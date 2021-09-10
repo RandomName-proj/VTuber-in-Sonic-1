@@ -10,8 +10,8 @@ CLS
 DEL "Dual PCM\Z80.p"
 DEL "Dual PCM\Z80.h"
 
-"_Assembly Tools\Asm68k.exe" /o op+ /o os+ /o ow+ /o oz+ /o oaq+ /o osq+ /o omq+ /q /p /o ae- "sonic1.asm", "s1built.bin"
-"_Assembly Tools\CheckFix.exe" "s1built.bin"
+"_Assembly Tools\Asm68k.exe" /o op+ /o os+ /o ow+ /o oz+ /o oaq+ /o osq+ /o omq+ /q /p /o ae- "sonic1.asm", "s1vt.gen"
+"_Assembly Tools\CheckFix.exe" "s1vt.gen"
 
 :Error
 Pause

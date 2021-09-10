@@ -726,6 +726,7 @@ loc_10D4:
 		move.w	#$7C00,(a5)
 		move.w	#$83,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
+		jsr	(ProcessDMAQueue).l
 	Z80DMA_OFF
 		rts	
 ; End of function sub_106E
