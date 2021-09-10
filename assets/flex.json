@@ -1,0 +1,162 @@
+{
+    "description": "Flex 2 Project File",
+    "name": "Sonime",
+    "objects": [
+        {
+            "name": "Torso",
+            "palettes": [
+                {
+                    "path": "..\\pallet\\sonic.bin",
+                    "length": 1
+                }
+            ],
+            "art": {
+                "path": "..\\artunc\\sonime_torso.bin",
+                "compression": "Uncompressed"
+            },
+            "mappings": {
+                "path": "..\\_maps\\sonime_torso.asm",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            },
+            "dplcs": {
+                "enabled": false,
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            }
+        },
+        {
+            "name": "Hair",
+            "palettes": [
+                {
+                    "path": "..\\pallet\\sonic.bin",
+                    "length": 1
+                }
+            ],
+            "art": {
+                "path": "..\\artunc\\sonime_hair.bin",
+                "compression": "Uncompressed"
+            },
+            "mappings": {
+                "path": "..\\_maps\\sonime_hair.asm",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            },
+            "dplcs": {
+                "enabled": false,
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            }
+        },
+        {
+            "name": "Head",
+            "palettes": [
+                {
+                    "path": "..\\pallet\\sonic.bin",
+                    "length": 1
+                }
+            ],
+            "art": {
+                "path": "..\\artunc\\sonime_head.bin",
+                "compression": "Uncompressed"
+            },
+            "mappings": {
+                "path": "..\\_maps\\sonime_head.asm",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            },
+            "dplcs": {
+                "enabled": false,
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            }
+        },
+        {
+            "name": "Faces",
+            "palettes": [
+                {
+                    "path": "..\\pallet\\sonic.bin",
+                    "length": 1
+                }
+            ],
+            "art": {
+                "path": "..\\artunc\\sonime_faces.bin",
+                "compression": "Uncompressed"
+            },
+            "mappings": {
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            },
+            "dplcs": {
+                "enabled": false,
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            }
+        },
+        {
+            "name": "Left Ear",
+            "palettes": [
+                {
+                    "path": "..\\pallet\\sonic.bin",
+                    "length": 1
+                }
+            ],
+            "art": {
+                "path": "..\\artunc\\sonime_leftear.bin",
+                "compression": "Uncompressed"
+            },
+            "mappings": {
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            },
+            "dplcs": {
+                "enabled": false,
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            }
+        },
+        {
+            "name": "Right Ear",
+            "palettes": [
+                {
+                    "path": "..\\pallet\\sonic.bin",
+                    "length": 1
+                }
+            ],
+            "art": {
+                "path": "..\\artunc\\sonime_rightear.bin",
+                "compression": "Uncompressed"
+            },
+            "mappings": {
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            },
+            "dplcs": {
+                "enabled": false,
+                "path": "",
+                "format": "Sonic 1",
+                "customDefinition": "",
+                "label": ""
+            }
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+movement
+
+torso ($C titles): static
+head ($14 tiles): randomly moves by 1 pixel every 600 to 1200 frames, can't move more than 1 pixel from origin
+hair ($C tiles): exact same movement as head, but lags 4 frames behind 
+
+faces (head: 2-3, 6-7, $A-$B)
+
+neutral: default
+blink: once every 180 to 240 frames, no input (600 frames)
+neutral eye left mid/mid: after blink randomly 1/16 of the time
+neutral eye right: after blink randomly 1/16 of the time, then moves back to neutral after 60 frames
+happy: hitting monitors (shield w/o current shield, extra life, invincibility), getting combo (until hit floor), continue screen (after start button pressed), inertia > 800 (until goes below), getting emerald (until result screen load), get continue, defeat boss, during ending sequence, robotnik jumping on end
+surprised: dying from time or crushing or getting game over (until level load), entering special stage (until level load), SBZ2 cutscene (total duration), continue screen (until start button pressed), get hit with >50 rings
+frustrated: getting hit (until Sonic regains control), standing on platform with no input for >300 frames, touching special stage crystals (until done touching), dying (until level load) hitting special stage goal, robotnik with emeralds at the end
+confused: hitting bumper
+meltdown: game over with no continues, continue screen reaches 0
+panic: standing in vulnerable area with invincibility frames or near end of invinicibility, during drowning jingle, continue screen close to 0
+
+ears (head: left 0, right 8-9)
+
+up: default
+twitch: once every 300 to 600 frames, moves back to up after 8 frames
