@@ -12,7 +12,9 @@
 
 ; ===========================================================================
 		org 0
-		include 	"macros.asm"
+
+		include	"Equz80.asm"
+		include	"Macros.asm"
 
 	
 StartOfRom:
@@ -398,11 +400,7 @@ loc_BB6:
 
 loc_BBA:
 		move.w	#1,($FFFFF644).w
-		move.w	#$100,($A11100).l
-
-loc_BC8:
-		btst	#0,($A11100).l
-		bne.s	loc_BC8
+	Z80DMA_ON
 		tst.b	($FFFFF64E).w
 		bne.s	loc_BFE
 		lea	($C00004).l,a5
@@ -426,7 +424,7 @@ loc_BFE:				; XREF: loc_BC8
 
 loc_C22:				; XREF: loc_BC8
 		move.w	($FFFFF624).w,(a5)
-		move.w	#0,($A11100).l
+	Z80DMA_OFF
 		bra.w	loc_B5E
 ; ===========================================================================
 
@@ -446,7 +444,6 @@ loc_C44:				; XREF: off_B6E
 		bsr.w	sub_106E
 		bsr.w	sub_6886
 		bsr.w	sub_1642
-		jsr (ProcessDMAQueue).l
 		tst.w	($FFFFF614).w
 		beq.w	locret_C5C
 		subq.w	#1,($FFFFF614).w
@@ -457,6 +454,10 @@ locret_C5C:
 
 loc_C5E:				; XREF: off_B6E
 		bsr.w	sub_106E
+		rts
+
+Return:
+		bsr.w	ReadJoypads
 		rts	
 ; ===========================================================================
 
@@ -465,11 +466,7 @@ loc_C64:				; XREF: off_B6E
 		beq.w	loc_DA6		; if yes, branch
 
 loc_C6E:				; XREF: off_B6E
-		move.w	#$100,($A11100).l ; stop the Z80
-
-loc_C76:
-		btst	#0,($A11100).l	; has Z80 stopped?
-		bne.s	loc_C76		; if not, branch
+	Z80DMA_ON
 		bsr.w	ReadJoypads
 		tst.b	($FFFFF64E).w
 		bne.s	loc_CB0
@@ -508,10 +505,10 @@ loc_CD4:				; XREF: loc_C76
 		move.w	#$7800,(a5)
 		move.w	#$83,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
-		jsr (ProcessDMAQueue).l
+		jsr	(ProcessDMAQueue).l
 
 loc_D50:
-		move.w	#0,($A11100).l
+	Z80DMA_OFF
 		movem.l	($FFFFF700).w,d0-d7
 		movem.l	d0-d7,($FFFFFF10).w
 		movem.l	($FFFFF754).w,d0-d1
@@ -545,12 +542,8 @@ Demo_TimeEnd:
 ; ===========================================================================
 
 loc_DA6:				; XREF: off_B6E
-		move.w	#$100,($A11100).l ; stop the Z80
-
-loc_DAE:
-		btst	#0,($A11100).l	; has Z80 stopped?
-		bne.s	loc_DAE		; if not, branch
 		bsr.w	ReadJoypads
+	Z80DMA_ON
 		lea	($C00004).l,a5
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
@@ -572,32 +565,22 @@ loc_DAE:
 		move.w	#$7C00,(a5)
 		move.w	#$83,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
-		move.w	#0,($A11100).l
 		bsr.w	PalCycle_SS
-		jsr (ProcessDMAQueue).l
+		jsr	(ProcessDMAQueue).l
 
 loc_E64:
-		cmpi.b	#96,($FFFFF625).w
-		bcc.s	@update
-		bra.w	@end
-
-	@update:
-		jsr	SS_LoadWalls
+	Z80DMA_OFF
 		tst.w	($FFFFF614).w
-		beq.w	@end
+		beq.w	locret_E70
 		subq.w	#1,($FFFFF614).w
 
-	@end:
+locret_E70:
 		rts	
 ; ===========================================================================
 
 loc_E72:				; XREF: off_B6E
-		move.w	#$100,($A11100).l ; stop the Z80
-
-loc_E7A:
-		btst	#0,($A11100).l	; has Z80 stopped?
-		bne.s	loc_E7A		; if not, branch
 		bsr.w	ReadJoypads
+	Z80DMA_ON
 		tst.b	($FFFFF64E).w
 		bne.s	loc_EB4
 		lea	($C00004).l,a5
@@ -637,10 +620,10 @@ loc_EEE:
 		move.w	#$7800,(a5)
 		move.w	#$83,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
-		jsr (ProcessDMAQueue).l
+		jsr	(ProcessDMAQueue).l
 
 loc_F54:
-		move.w	#0,($A11100).l	; start	the Z80
+	Z80DMA_OFF
 		movem.l	($FFFFF700).w,d0-d7
 		movem.l	d0-d7,($FFFFFF10).w
 		movem.l	($FFFFF754).w,d0-d1
@@ -666,12 +649,8 @@ loc_F9A:				; XREF: off_B6E
 ; ===========================================================================
 
 loc_FA6:				; XREF: off_B6E
-		move.w	#$100,($A11100).l ; stop the Z80
-
-loc_FAE:
-		btst	#0,($A11100).l	; has Z80 stopped?
-		bne.s	loc_FAE		; if not, branch
 		bsr.w	ReadJoypads
+	Z80DMA_ON
 		lea	($C00004).l,a5
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
@@ -693,33 +672,23 @@ loc_FAE:
 		move.w	#$7C00,(a5)
 		move.w	#$83,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
-		move.w	#0,($A11100).l	; start	the Z80
-		jsr (ProcessDMAQueue).l
+		jsr	(ProcessDMAQueue).l
 
 loc_1060:
-		cmpi.b	#96,($FFFFF625).w
-		bcc.s	@update
-		bra.w	@end
-
-	@update:
-		jsr	SS_LoadWalls
+	Z80DMA_OFF
 		tst.w	($FFFFF614).w
-		beq.w	@end
+		beq.w	locret_106C
 		subq.w	#1,($FFFFF614).w
 
-	@end:
+locret_106C:
 		rts	
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
 sub_106E:				; XREF: loc_C32; et al
-		move.w	#$100,($A11100).l ; stop the Z80
-
-loc_1076:
-		btst	#0,($A11100).l	; has Z80 stopped?
-		bne.s	loc_1076	; if not, branch
 		bsr.w	ReadJoypads
+	Z80DMA_ON
 		tst.b	($FFFFF64E).w
 		bne.s	loc_10B0
 		lea	($C00004).l,a5
@@ -729,10 +698,12 @@ loc_1076:
 		move.w	#$C000,(a5)
 		move.w	#$80,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
+
+PAL1_LOAD:
 		bra.s	loc_10D4
 ; ===========================================================================
 
-loc_10B0:				; XREF: sub_106E
+loc_10B0:
 		lea	($C00004).l,a5
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9540,(a5)
@@ -740,8 +711,7 @@ loc_10B0:				; XREF: sub_106E
 		move.w	#$C000,(a5)
 		move.w	#$80,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
-
-loc_10D4:				; XREF: sub_106E
+loc_10D4:
 		lea	($C00004).l,a5
 		move.l	#$94019340,(a5)
 		move.l	#$96FC9500,(a5)
@@ -756,7 +726,7 @@ loc_10D4:				; XREF: sub_106E
 		move.w	#$7C00,(a5)
 		move.w	#$83,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
-		move.w	#0,($A11100).l	; start	the Z80
+	Z80DMA_OFF
 		rts	
 ; End of function sub_106E
 
@@ -995,21 +965,29 @@ loc_134A:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-SoundDriverLoad:			; XREF: GameClrRAM; TitleScreen
-		nop	
-		move.w	#$100,($A11100).l ; stop the Z80
-		move.w	#$100,($A11200).l ; reset the Z80
-		lea	(Kos_Z80).l,a0	; load sound driver
-		lea	($A00000).l,a1
-		bsr.w	KosDec		; decompress
-		move.w	#0,($A11200).l
-		nop	
-		nop	
-		nop	
-		nop	
-		move.w	#$100,($A11200).l ; reset the Z80
-		move.w	#0,($A11100).l	; start	the Z80
-		rts	
+SoundDriverLoad:
+		lea	(Z80ROM).l,a0				; load Z80 ROM data
+		lea	($A00000).l,a1				; load Z80 RAM space address
+		move.w	#(Z80ROM_End-Z80ROM)-$01,d1		; set repeat times
+		move.w	#$0100,($A11100).l			; request Z80 stop (ON)
+		move.w	#$0100,($A11200).l			; request Z80 reset (OFF)
+		btst.b	#$00,($A11100).l			; has the Z80 stopped yet?
+		bne.s	*-$08					; if not, branch
+
+SM_LoadZ80:
+		move.b	(a0)+,(a1)+				; dump Z80 data to Z80 space
+		dbf	d1,SM_LoadZ80				; repeat til done
+		lea	(StopSample).l,a0			; load stop/mute sample address
+		lea	($A00000+MuteSample).l,a1		; load Z80 RAM space where the pointer is to be stored
+		move.b	(a0)+,(a1)+				; copy pointer over into Z80
+		move.b	(a0)+,(a1)+				; ''
+		move.b	(a0)+,(a1)+				; ''
+		move.w	#$0000,($A11200).l			; request Z80 reset (ON)
+		moveq	#$7F,d1					; set repeat times
+		dbf	d1,*					; there's no way of checking for reset, so a manual delay is necessary
+		move.w	#$0000,($A11100).l			; request Z80 stop (OFF)
+		move.w	#$0100,($A11200).l			; request Z80 reset (OFF)
+		rts
 ; End of function SoundDriverLoad
 
 ; ---------------------------------------------------------------------------
@@ -39528,7 +39506,6 @@ ObjPos_Null:	dc.b $FF, $FF, 0, 0, 0,	0
 ; ---------------------------------------------------------------------------
 		incbin	misc\padding4.bin
 		even
-
 Go_SoundTypes:	dc.l SoundTypes		; XREF: Sound_Play
 Go_SoundD0:	dc.l SoundD0Index	; XREF: Sound_D0toDF
 Go_MusicIndex:	dc.l MusicIndex		; XREF: Sound_81to9F
@@ -39578,30 +39555,27 @@ SoundTypes:	dc.b $90, $90, $90, $90, $90, $90, $90,	$90, $90, $90, $90, $90, $90
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
+YM_Access_WaitRead:
+		StartZ80					; EXT: request Z80 stop off (allow it to continue)
+		rept	$10					; EXT: delay for a long enough time to allow the...
+		nop						; EXT: '' ...68k pointer to be saved correctly.
+		endr						; EXT: ''
 
-sub_71B4C:				; XREF: loc_B10; PalToCRAM
-		move.w	#$100,($A11100).l ; stop the Z80
-		nop	
-		nop	
-		nop	
-
-loc_71B5A:
-		btst	#0,($A11100).l
-		bne.s	loc_71B5A
-
-		btst	#7,($A01FFD).l
-		beq.s	loc_71B82
-		move.w	#0,($A11100).l	; start	the Z80
-		nop	
-		nop	
-		nop	
-		nop	
-		nop	
-		bra.s	sub_71B4C
-; ===========================================================================
-
-loc_71B82:
+sub_71B4C:	
 		lea	($FFF000).l,a6
+
+		lea	($A00000+YM_Access).l,a0		; EXT: load access address in Z80
+		move.l	#$A00000,d0				; EXT: prepare Z80 RAM address in d0 (i.e. start of Cue list address)
+		StopZ80						; EXT: request Z80 stop on
+		tst.b	(a0)+					; EXT: is the Z80 accessing the 68k pointer?
+		bne.s	YM_Access_WaitRead			; EXT: if so, branch and wait for it to finish...
+		move.b	(a0)+,d1				; EXT: load lower byte of pointer
+		move.b	(a0)+,d0				; EXT: load upper byte of pointer
+		StartZ80					; EXT: request Z80 stop off
+		lsl.w	#$08,d0					; EXT: shift upper byte up
+		move.b	d1,d0					; EXT: put lower byte with it
+		move.l	d0,$10(a6)				; EXT: store the cue address
+
 		clr.b	$E(a6)
 		tst.b	3(a6)		; is music paused?
 		bne.w	loc_71E50	; if yes, branch
@@ -39630,12 +39604,19 @@ loc_71BBC:
 		jsr	Sound_ChkValue(pc)
 
 loc_71BC8:
-		lea	$40(a6),a5
+		lea	$40-$30(a6),a5			; MJ: making correction for flow below
+		moveq	#2-1,d7				; MJ: set number of PCM channels to run
+		move.b	#$80-1,$08(a6)			; MJ: reset as PCM channel
+
+SD_NextPCM:
+		addq.b	#$01,$08(a6)			; MJ: advance PCM channel ID
+		lea	$30(a5),a5			; MJ: advance to next channel
 		tst.b	(a5)
 		bpl.s	loc_71BD4
 		jsr	sub_71C4E(pc)
 
 loc_71BD4:
+		dbf	d7,SD_NextPCM			; MJ: repeat for number of PCM channels available
 		clr.b	8(a6)
 		moveq	#5,d7
 
@@ -39694,8 +39675,26 @@ loc_71C38:
 		jsr	sub_72850(pc)
 
 loc_71C44:
-		move.w	#0,($A11100).l	; start	the Z80
+		bra.s	YM_Access_TestWrite			; EXT: jump into the access loop
+
+YM_Access_WaitWrite:
+		StartZ80					; EXT: request Z80 stop off (allow it to continue)
+		rept	$10					; EXT: delay for a long enough time to let the Z80...
+		nop						; EXT: '' ...finish writing the 68k pointer, so it doesn't...
+		endr						; EXT: '' ...clash with 68k's pointer writing.
+
+YM_Access_TestWrite:
+		lea	($A00000+YM_Access).l,a0		; EXT: load access address in Z80
+		lea	$13(a6),a1				; EXT: load the 68k's pointer finish location
+		StopZ80						; EXT: request Z80 stop on
+		tst.b	(a0)+					; EXT: is the Z80 accessing the 68k pointer?
+		bne.s	YM_Access_WaitWrite			; EXT: if so, branch and wait for it to finish...
+		move.b	(a1),(a0)+				; EXT: save lower byte of pointer
+		move.b	-(a1),(a0)				; EXT: save upper byte of pointer
+		StartZ80					; EXT: request Z80 stop off
+
 		rts	
+
 ; End of function sub_71B4C
 
 
@@ -39704,8 +39703,7 @@ loc_71C44:
 
 sub_71C4E:				; XREF: sub_71B4C
 		subq.b	#1,$E(a5)
-		bne.s	locret_71CAA
-		move.b	#$80,8(a6)
+		bne.w	locret_71CAA
 		movea.l	4(a5),a4
 
 loc_71C5E:
@@ -39737,29 +39735,48 @@ loc_71C88:
 		bne.s	locret_71CAA
 		moveq	#0,d0
 		move.b	$10(a5),d0
-		cmpi.b	#$80,d0
-		beq.s	locret_71CAA
-		btst	#3,d0
-		bne.s	loc_71CAC
-		move.b	d0,($A01FFF).l
+		subi.b	#$80,d0					; MJ: minus 80
+		add.w	d0,d0					; MJ: multiply by 4 (long-word size)
+		add.w	d0,d0					; MJ: ''
+		movem.l	a0/a1,-(sp)				; MJ: store register data
+		lea	(SampleList).l,a0			; MJ: load sample list
+		move.l	(a0,d0.w),a0				; MJ: load correct sample z80 pointer address
+
+		cmpi.b	#$80,$08(a6)				; MJ: is this PCM 1?
+		bne.s	WritePCM2				; MJ: if not, branch for PCM 2 writing
+
+	; --- Writing to PCM 1 ---
+
+		StopZ80
+		lea	($A00000+PCM1_Sample).l,a1			; MJ: load PCM 1 slot address
+		move.b	(a0)+,(a1)+					; MJ: set address of sample
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; MJ: set routine to run
+		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; MJ: ''
+		move.b	#%11001001,($A00000+CUPCM1_RET).l		; MJ: change "NOP" to "RET"
+		StartZ80
+
+		movem.l	(sp)+,a0/a1				; MJ: restore register data
 
 locret_71CAA:
-		rts	
+		rts						; MJ: return
+
+	; --- Writing to PCM 2 ---
+
+WritePCM2:
+		StopZ80
+		lea	($A00000+PCM2_Sample).l,a1			; MJ: load PCM 2 slot address
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	#%00101000,($A00000+CUPCM2_RET).l		; change "JR NZ" to "JR Z"
+		StartZ80
+
+		movem.l	(sp)+,a0/a1				; MJ: restore register data
+		rts						; MJ: return
+
 ; ===========================================================================
-
-loc_71CAC:
-		subi.b	#$88,d0
-		move.b	byte_71CC4(pc,d0.w),d0
-		move.b	d0,($A000EA).l
-		move.b	#$83,($A01FFF).l
-		rts	
-; End of function sub_71C4E
-
-; ===========================================================================
-byte_71CC4:	dc.b $12, $15, $1C, $1D, $FF, $FF
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
 
 sub_71CCA:				; XREF: sub_71B4C
 		subq.b	#1,$E(a5)
@@ -40013,7 +40030,7 @@ loc_71E94:				; XREF: loc_71E50
 		clr.b	3(a6)
 		moveq	#$30,d3
 		lea	$40(a6),a5
-		moveq	#6,d4
+		moveq	#7,d4					; MJ: number of YM2612 based channels
 
 loc_71EA0:
 		btst	#7,(a5)
@@ -40028,7 +40045,7 @@ loc_71EB8:
 		adda.w	d3,a5
 		dbf	d4,loc_71EA0
 
-		lea	$220(a6),a5
+		lea	$250(a6),a5				; MJ: new SFX location
 		moveq	#2,d4
 
 loc_71EC4:
@@ -40044,7 +40061,7 @@ loc_71EDC:
 		adda.w	d3,a5
 		dbf	d4,loc_71EC4
 
-		lea	$340(a6),a5
+		lea	$370(a6),a5				; MJ: new SFX location
 		btst	#7,(a5)
 		beq.s	loc_71EFE
 		btst	#2,(a5)
@@ -40148,44 +40165,70 @@ Sound_ExIndex:
 ; Play "Say-gaa" PCM sound
 ; ---------------------------------------------------------------------------
 
-Sound_E1:				  
-		lea	(SegaPCM).l,a2			; Load the SEGA PCM sample into a2. It's important that we use a2 since a0 and a1 are going to be used up ahead when reading the joypad ports 
-		move.l	#(SegaPCM_End-SegaPCM),d3			; Load the size of the SEGA PCM sample into d3 
-		move.b	#$2A,($A04000).l		; $A04000 = $2A -> Write to DAC channel	  
-PlayPCM_Loop:	  
-		move.b	(a2)+,($A04001).l		; Write the PCM data (contained in a2) to $A04001 (YM2612 register D0) 
-		move.w	#$14,d0				; Write the pitch ($14 in this case) to d0 
-		dbf	d0,*				; Decrement d0; jump to itself if not 0. (for pitch control, avoids playing the sample too fast)  
-		sub.l	#1,d3				; Subtract 1 from the PCM sample size 
-		beq.s	return_PlayPCM			; If d3 = 0, we finished playing the PCM sample, so stop playing, leave this loop, and unfreeze the 68K 
-		lea	($FFFFF604).w,a0		; address where JoyPad states are written 
-		lea	($A10003).l,a1			; address where JoyPad states are read from 
-		jsr	(Joypad_Read).w			; Read only the first joypad port. It's important that we do NOT do the two ports, we don't have the cycles for that 
-		btst	#7,($FFFFF604).w		; Check for Start button 
-		bne.s	return_PlayPCM			; If start is pressed, stop playing, leave this loop, and unfreeze the 68K 
-		bra.s	PlayPCM_Loop			; Otherwise, continue playing PCM sample 
-return_PlayPCM: 
-		addq.w	#4,sp 
-		rts
+Sound_E1:
+		StopZ80						; MJ: request Z80 stop "ON"
+		lea	(SegaPCM).l,a2				; MJ: load sample address
+		lea	($A04000).l,a3				; MJ: load YM2612 port
+		move.b	#$2A,(a3)+				; MJ: set YM2612 address to the PCM data port
+		move.l	#(SegaPCM_End-SegaPCM)-$01,d4		; MJ: prepare size
+		move.w	d4,d3					; MJ: get lower word size
+		swap	d4					; MJ: get upper word size
+
+PlayPCM_Loop:
+		move.b	(a2)+,(a3)				; MJ: save sample data to port
+		moveq	#$2B,d0					; MJ: set delay time
+		dbf	d0,*					; MJ: delay...
+		dbf	d3,PlayPCM_Loop				; MJ: repeat til done
+		dbf	d4,PlayPCM_Loop				; MJ: ''
+		move.b	#$80,(a3)				; MJ: save mute data to port
+		addq.w	#$04,sp					; MJ: skip return address
+		subq.w	#$01,a3					; MJ: move back to address port
+		tst.b	(a3)					; MJ: is the YM2612 busy?
+		bmi.s	*-$02					; MJ: if so, branch and recheck
+		move.b	#$2A,(a3)				; MJ: write address (set it back to DAC port for the Z80)
+		StartZ80					; MJ: request Z80 stop "OFF"
+		rts						; MJ: return
+
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Play music track $81-$9F
 ; ---------------------------------------------------------------------------
 
 Sound_81to9F:				; XREF: Sound_ChkValue
+
+
+		StopZ80
+		lea	(StopSample).l,a0				; MJ: load stop sample address
+		lea	($A00000+PCM1_Sample).l,a1			; MJ: load PCM 1 slot address
+		move.b	(a0)+,(a1)+					; MJ: set address of sample
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; MJ: set routine to run
+		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; MJ: ''
+		move.b	#%11001001,($A00000+CUPCM1_RET).l		; MJ: change "NOP" to "RET"
+		lea	(StopSample).l,a0				; MJ: load stop sample address
+		lea	($A00000+PCM2_Sample).l,a1			; MJ: load PCM 2 slot address
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	#%00101000,($A00000+CUPCM2_RET).l		; MJ: change "JR NZ" to "JR Z"
+		StartZ80
+
+
+
 		cmpi.b	#$88,d7		; is "extra life" music	played?
 		bne.s	loc_72024	; if not, branch
 		tst.b	$27(a6)
 		bne.w	loc_721B6
 		lea	$40(a6),a5
-		moveq	#9,d0
+		moveq	#10,d0					; MJ: number of channels in total
 
 loc_71FE6:
 		bclr	#2,(a5)
 		adda.w	#$30,a5
 		dbf	d0,loc_71FE6
 
-		lea	$220(a6),a5
+		lea	$250(a6),a5				; MJ: new SFX location
 		moveq	#5,d0
 
 loc_71FF8:
@@ -40194,7 +40237,7 @@ loc_71FF8:
 		dbf	d0,loc_71FF8
 		clr.b	0(a6)
 		movea.l	a6,a0
-		lea	$3A0(a6),a1
+		lea	$3D0(a6),a1				; MJ: new SFX location
 		move.w	#$87,d0
 
 loc_72012:
@@ -40253,21 +40296,25 @@ loc_72098:
 		move.b	d1,$A(a1)
 		move.b	d5,$E(a1)
 		moveq	#0,d0
+		move.w	d0,$10(a1)				; MJ: clear FM's frequency (ensures no frequency writing)
 		move.w	(a4)+,d0
 		add.l	a3,d0
 		move.l	d0,4(a1)
 		move.w	(a4)+,8(a1)
 		adda.w	d6,a1
 		dbf	d7,loc_72098
-		cmpi.b	#7,2(a3)
+		moveq	#$2B,d0					; MJ: set YM2612 address to DAC/FM6 switch
+		move.b	#%10000000,d1				; MJ: set to turn DAC on
+		cmpi.b	#8,2(a3)				; MJ: changed to 8 (8 = 6FM channels, no DAC)
 		bne.s	loc_720D8
-		moveq	#$2B,d0
+	;	moveq	#$2B,d0					; MJ: removed...
 		moveq	#0,d1
 		jsr	sub_7272E(pc)
 		bra.w	loc_72114
 ; ===========================================================================
 
 loc_720D8:
+		jsr	sub_7272E(pc)				; MJ: added... (turn DAC on)
 		moveq	#$28,d0
 		moveq	#6,d1
 		jsr	sub_7272E(pc)
@@ -40288,11 +40335,12 @@ loc_720D8:
 		jsr	sub_72764(pc)
 
 loc_72114:
+		moveq	#$02,d5					; EXT: set PSG to delay for 1 extra frame (This is to match the PSG with the FM/DAC which is delayed a frame by the Z80)
 		moveq	#0,d7
 		move.b	3(a3),d7
 		beq.s	loc_72154
 		subq.b	#1,d7
-		lea	$190(a6),a1
+		lea	$1C0(a6),a1				; MJ: new BGM/SFX location
 		lea	byte_721C2(pc),a2
 
 loc_72126:
@@ -40301,6 +40349,8 @@ loc_72126:
 		move.b	d4,2(a1)
 		move.b	d6,$D(a1)
 		move.b	d5,$E(a1)
+		move.w	#$FFFF,$10(a1)				; MJ: clear PSG's frequency (ensures no frequency writing)
+		move.b	#$01,$12(a1)				; MJ: set key release rate to 1
 		moveq	#0,d0
 		move.w	(a4)+,d0
 		add.l	a3,d0
@@ -40312,7 +40362,7 @@ loc_72126:
 		dbf	d7,loc_72126
 
 loc_72154:
-		lea	$220(a6),a1
+		lea	$250(a6),a1				; MJ: new SFX location
 		moveq	#5,d7
 
 loc_7215A:
@@ -40338,17 +40388,18 @@ loc_7217C:
 		adda.w	d6,a1
 		dbf	d7,loc_7215A
 
-		tst.w	$340(a6)
+		tst.w	$370(a6)				; MJ: new SFX location
 		bpl.s	loc_7218E
-		bset	#2,$100(a6)
+		bset	#2,$130(a6)				; MJ: new BGM location
 
 loc_7218E:
-		tst.w	$370(a6)
+		tst.w	$3A0(a6)				; MJ: new SFX location
 		bpl.s	loc_7219A
-		bset	#2,$1F0(a6)
+		bset	#2,$220(a6)				; MJ: new BGM location
+
 
 loc_7219A:
-		lea	$70(a6),a5
+		lea	$A0(a6),a5				; MJ: new FM location
 		moveq	#5,d4
 
 loc_721A0:
@@ -40366,7 +40417,7 @@ loc_721B6:
 		addq.w	#4,sp
 		rts	
 ; ===========================================================================
-byte_721BA:	dc.b 6,	0, 1, 2, 4, 5, 6, 0
+byte_721BA:	dc.b 6,	6, 0, 1, 2, 4, 5, 6, 0			; MJ: extra 6 (for PCM 2)
 		even
 byte_721C2:	dc.b $80, $A0, $C0, 0
 		even
@@ -40415,8 +40466,10 @@ Sound_notA7:
 loc_72228:
 		moveq	#0,d3
 		move.b	1(a1),d3
+		moveq	#$02,d2					; EXT: set PSG to delay for 1 extra frame (This is to match the PSG with the FM/DAC which is delayed a frame by the Z80)
 		move.b	d3,d4
 		bmi.s	loc_72244
+		move.b	#$01,d2					; EXT: set DAC/FM to delay for 0 frames like normal (these have an auto delay of 1 frame in the Z80)
 		subq.w	#2,d3
 		lsl.w	#2,d3
 		lea	dword_722CC(pc),a5
@@ -40454,7 +40507,7 @@ loc_72276:
 		add.l	a3,d0
 		move.l	d0,4(a5)
 		move.w	(a1)+,8(a5)
-		move.b	#1,$E(a5)
+		move.b	d2,$E(a5)				; EXT: moving d2 contents (1 for FM/4 for PSG)
 		move.b	d6,$D(a5)
 		tst.b	d4
 		bmi.s	loc_722A8
@@ -40464,14 +40517,14 @@ loc_72276:
 loc_722A8:
 		dbf	d7,loc_72228
 
-		tst.b	$250(a6)
+		tst.b	$280(a6)				; MJ: new SFX location
 		bpl.s	loc_722B8
-		bset	#2,$340(a6)
+		bset	#2,$370(a6)				; MJ: new SFX location
 
 loc_722B8:
-		tst.b	$310(a6)
+		tst.b	$340(a6)				; MJ: new SFX location
 		bpl.s	locret_722C4
-		bset	#2,$370(a6)
+		bset	#2,$3A0(a6)				; MJ: new SFX location
 
 locret_722C4:
 		rts	
@@ -40481,22 +40534,22 @@ loc_722C6:
 		clr.b	0(a6)
 		rts	
 ; ===========================================================================
-dword_722CC:	dc.l $FFF0D0
+dword_722CC:	dc.l $FFF0D0+$30				; MJ: new locations (see all +$30)
 		dc.l 0
-		dc.l $FFF100
-		dc.l $FFF130
-		dc.l $FFF190
-		dc.l $FFF1C0
-		dc.l $FFF1F0
-		dc.l $FFF1F0
-dword_722EC:	dc.l $FFF220
+		dc.l $FFF100+$30
+		dc.l $FFF130+$30
+		dc.l $FFF190+$30
+		dc.l $FFF1C0+$30
+		dc.l $FFF1F0+$30
+		dc.l $FFF1F0+$30
+dword_722EC:	dc.l $FFF220+$30
 		dc.l 0
-		dc.l $FFF250
-		dc.l $FFF280
-		dc.l $FFF2B0
-		dc.l $FFF2E0
-		dc.l $FFF310
-		dc.l $FFF310
+		dc.l $FFF250+$30
+		dc.l $FFF280+$30
+		dc.l $FFF2B0+$30
+		dc.l $FFF2E0+$30
+		dc.l $FFF310+$30
+		dc.l $FFF310+$30
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Play GHZ waterfall sound
@@ -40526,14 +40579,14 @@ Sound_D0toDF:				; XREF: Sound_ChkValue
 loc_72348:
 		move.b	1(a1),d4
 		bmi.s	loc_7235A
-		bset	#2,$100(a6)
-		lea	$340(a6),a5
+		bset	#2,$130(a6)				; MJ: new BGM location
+		lea	$370(a6),a5				; MJ: new SFX location
 		bra.s	loc_72364
 ; ===========================================================================
 
 loc_7235A:
-		bset	#2,$1F0(a6)
-		lea	$370(a6),a5
+		bset	#2,$220(a6)				; MJ: new BGM location
+		lea	$3A0(a6),a5				; MJ: new SFX location
 
 loc_72364:
 		movea.l	a5,a2
@@ -40559,14 +40612,14 @@ loc_72368:
 loc_72396:
 		dbf	d7,loc_72348
 
-		tst.b	$250(a6)
+		tst.b	$280(a6)				; MJ: new SFX location
 		bpl.s	loc_723A6
-		bset	#2,$340(a6)
+		bset	#2,$370(a6)				; MJ: new SFX location
 
 loc_723A6:
-		tst.b	$310(a6)
+		tst.b	$340(a6)				; MJ: new SFX location
 		bpl.s	locret_723C6
-		bset	#2,$370(a6)
+		bset	#2,$3A0(a6)				; MJ: new SFX location
 		ori.b	#$1F,d4
 		move.b	d4,($C00011).l
 		bchg	#5,d4
@@ -40577,19 +40630,19 @@ locret_723C6:
 ; End of function Sound_ChkValue
 
 ; ===========================================================================
-		dc.l $FFF100
-		dc.l $FFF1F0
-		dc.l $FFF250
-		dc.l $FFF310
-		dc.l $FFF340
-		dc.l $FFF370
+		dc.l $FFF100+$30				; MJ: new channel locations (see +$30)
+		dc.l $FFF1F0+$30
+		dc.l $FFF250+$30
+		dc.l $FFF310+$30
+		dc.l $FFF340+$30
+		dc.l $FFF370+$30
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
 Snd_FadeOut1:				; XREF: Sound_E0
 		clr.b	0(a6)
-		lea	$220(a6),a5
+		lea	$250(a6),a5				; MJ: new SFX location
 		moveq	#5,d7
 
 loc_723EA:
@@ -40602,9 +40655,9 @@ loc_723EA:
 		jsr	sub_726FE(pc)
 		cmpi.b	#4,d3
 		bne.s	loc_72416
-		tst.b	$340(a6)
+		tst.b	$370(a6)				; MJ: new SFX location
 		bpl.s	loc_72416
-		lea	$340(a6),a5
+		lea	$370(a6),a5				; MJ: new SFX location
 		movea.l	$20(a6),a1
 		bra.s	loc_72428
 ; ===========================================================================
@@ -40628,7 +40681,7 @@ loc_72428:
 
 loc_7243C:
 		jsr	sub_729A0(pc)
-		lea	$370(a6),a0
+		lea	$3A0(a6),a0				; MJ: new SFX location
 		cmpi.b	#$E0,d3
 		beq.s	loc_7245A
 		cmpi.b	#$C0,d3
@@ -40656,14 +40709,14 @@ loc_72472:
 
 
 Snd_FadeOut2:				; XREF: Sound_E0
-		lea	$340(a6),a5
+		lea	$370(a6),a5				; MJ: new SFX location
 		tst.b	(a5)
 		bpl.s	loc_724AE
 		bclr	#7,(a5)
 		btst	#2,(a5)
 		bne.s	loc_724AE
 		jsr	loc_7270A(pc)
-		lea	$100(a6),a5
+		lea	$130(a6),a5				; MJ: new BGM location
 		bclr	#2,(a5)
 		bset	#1,(a5)
 		tst.b	(a5)
@@ -40673,14 +40726,14 @@ Snd_FadeOut2:				; XREF: Sound_E0
 		jsr	sub_72C4E(pc)
 
 loc_724AE:
-		lea	$370(a6),a5
+		lea	$3A0(a6),a5				; MJ: new SFX location
 		tst.b	(a5)
 		bpl.s	locret_724E4
 		bclr	#7,(a5)
 		btst	#2,(a5)
 		bne.s	locret_724E4
 		jsr	loc_729A6(pc)
-		lea	$1F0(a6),a5
+		lea	$220(a6),a5				; MJ: new BGM location
 		bclr	#2,(a5)
 		bset	#1,(a5)
 		tst.b	(a5)
@@ -40704,6 +40757,7 @@ Sound_E0:				; XREF: Sound_ExIndex
 		move.b	#3,6(a6)
 		move.b	#$28,4(a6)
 		clr.b	$40(a6)
+		clr.b	$70(a6)					; MJ: stop PCM 2 as well
 		clr.b	$2A(a6)
 		rts	
 
@@ -40721,7 +40775,7 @@ loc_72510:
 		subq.b	#1,4(a6)
 		beq.w	Sound_E4
 		move.b	#3,6(a6)
-		lea	$70(a6),a5
+		lea	$A0(a6),a5				; MJ: new FM location
 		moveq	#5,d7
 
 loc_72524:
@@ -40802,7 +40856,24 @@ loc_72586:
 ; Stop music
 ; ---------------------------------------------------------------------------
 
-Sound_E4:				; XREF: Sound_ChkValue; Sound_ExIndex; sub_72504
+Sound_E4:
+		StopZ80
+		lea	(StopSample).l,a0				; EXT: load stop sample address
+		lea	($A00000+PCM1_Sample).l,a1			; EXT: load PCM 1 slot address
+		move.b	(a0)+,(a1)+					; EXT: set address of sample
+		move.b	(a0)+,(a1)+					; EXT: ''
+		move.b	(a0)+,(a1)+					; EXT: ''
+		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; EXT: set routine to run
+		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; EXT: ''
+		move.b	#%11001001,($A00000+CUPCM1_RET).l		; EXT: change "NOP" to "RET"
+		lea	(StopSample).l,a0				; EXT: load stop sample address
+		lea	($A00000+PCM2_Sample).l,a1			; EXT: load PCM 2 slot address
+		move.b	(a0)+,(a1)+					; EXT: ''
+		move.b	(a0)+,(a1)+					; EXT: ''
+		move.b	(a0)+,(a1)+					; EXT: ''
+		move.b	#%00101000,($A00000+CUPCM2_RET).l		; EXT: change "JR NZ" to "JR Z"
+		StartZ80
+
 		moveq	#$2B,d0
 		move.b	#$80,d1
 		jsr	sub_7272E(pc)
@@ -40810,12 +40881,14 @@ Sound_E4:				; XREF: Sound_ChkValue; Sound_ExIndex; sub_72504
 		moveq	#0,d1
 		jsr	sub_7272E(pc)
 		movea.l	a6,a0
-		move.w	#$E3,d0
+		move.l	$10(a6),d6					; EXT: store YM Cue list pointer
+		move.w	#$EF,d0						; MJ: new size of data to clear
 
 loc_725B6:
 		clr.l	(a0)+
 		dbf	d0,loc_725B6
 
+		move.l	d6,$10(a6)					; EXT: restore YM Cue list pointer
 		move.b	#$80,9(a6)	; set music to $80 (silence)
 		jsr	sub_7256A(pc)
 		bra.w	sub_729B6
@@ -40830,7 +40903,8 @@ sub_725CA:				; XREF: Sound_ChkValue
 		move.b	$2A(a6),d3
 		move.b	$26(a6),d4
 		move.w	$A(a6),d5
-		move.w	#$87,d0
+		move.l	$10(a6),d6					; EXT: store YM Cue list pointer
+		move.w	#$93,d0						; MJ: new size
 
 loc_725E4:
 		clr.l	(a0)+
@@ -40841,6 +40915,7 @@ loc_725E4:
 		move.b	d3,$2A(a6)
 		move.b	d4,$26(a6)
 		move.w	d5,$A(a6)
+		move.l	d6,$10(a6)					; EXT: restore YM Cue list pointer
 		move.b	#$80,9(a6)
 		jsr	sub_7256A(pc)
 		bra.w	sub_729B6
@@ -40854,7 +40929,7 @@ sub_7260C:				; XREF: sub_71B4C
 		move.b	2(a6),1(a6)
 		lea	$4E(a6),a0
 		moveq	#$30,d0
-		moveq	#9,d1
+		moveq	#10,d1				; MJ: new number of channels
 
 loc_7261A:
 		addq.b	#1,(a0)
@@ -40879,9 +40954,9 @@ Sound_E2:				; XREF: Sound_ExIndex
 ; ===========================================================================
 
 loc_7263E:
-		move.b	$3C9(a6),$3A2(a6)
-		move.b	$3C9(a6),$3A1(a6)
-		move.b	#$80,$3CA(a6)
+		move.b	$3F9(a6),$3D2(a6)			; MJ: new location
+		move.b	$3F9(a6),$3D1(a6)			; MJ: new location
+		move.b	#$80,$3FA(a6)
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -40898,9 +40973,9 @@ Sound_E3:				; XREF: Sound_ExIndex
 ; ===========================================================================
 
 loc_7266A:
-		move.b	$3C8(a6),$3A2(a6)
-		move.b	$3C8(a6),$3A1(a6)
-		clr.b	$3CA(a6)
+		move.b	$3F8(a6),$3D2(a6)
+		move.b	$3F8(a6),$3D1(a6)
+		clr.b	$3FA(a6)
 		rts	
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -40918,7 +40993,7 @@ loc_72688:
 		beq.s	loc_726D6
 		subq.b	#1,$26(a6)
 		move.b	#2,$25(a6)
-		lea	$70(a6),a5
+		lea	$A0(a6),a5				; MJ: new SFX location
 		moveq	#5,d7
 
 loc_7269E:
@@ -40952,6 +41027,7 @@ loc_726CC:
 
 loc_726D6:
 		bclr	#2,$40(a6)
+		bclr	#2,$70(a6)				; MJ: do PCM 2 as well...
 		clr.b	$24(a6)
 		rts	
 ; End of function sub_7267C
@@ -41000,7 +41076,7 @@ loc_72716:				; XREF: sub_72A5A
 ; ===========================================================================
 
 locret_72720:
-		rts	
+		rts
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -41014,24 +41090,22 @@ sub_72722:				; XREF: sub_71E18; sub_72C4E; sub_72CB4
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-
-sub_7272E:				; XREF: loc_71E6A
-		move.b	($A04000).l,d2
-		btst	#7,d2
-		bne.s	sub_7272E
-		move.b	d0,($A04000).l
-		nop	
-		nop	
-		nop	
-
-loc_72746:
-		move.b	($A04000).l,d2
-		btst	#7,d2
-		bne.s	loc_72746
-
-		move.b	d1,($A04001).l
-		rts	
-; End of function sub_7272E
+sub_7272E:
+		movem.l	d2/a0,-(sp)				; EXT: store register data
+		movea.l	$10(a6),a0				; EXT: load Cue pointer
+		addq.w	#$01,a0					; EXT: skip $40
+		move.b	#$00,d2					; EXT: prepare d2 for YM2612 port address ($4000 - $4001)
+		StopZ80						; EXT: request Z80 stop "ON"
+		move.b	d2,(a0)+				; EXT: write YM2612 port address
+		move.b	d1,(a0)+				; EXT: write YM2612 data
+		move.b	d0,(a0)+				; EXT: write YM2612 address
+		StartZ80					; EXT: request Z80 stop "OFF"
+		move.w	a0,d2					; EXT: load Cue pointer
+		andi.w	#$0FFF,d2				; EXT: wrap it
+		ori.w	#$1000,d2				; EXT: ''
+		move.w	d2,$12(a6)				; EXT: update it
+		movem.l	(sp)+,d2/a0				; EXT: restore register data
+		rts						; EXT: return
 
 ; ===========================================================================
 
@@ -41043,23 +41117,22 @@ loc_7275A:				; XREF: sub_72722
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-sub_72764:				; XREF: loc_71E6A; Sound_ChkValue; sub_7256A; sub_72764
-		move.b	($A04000).l,d2
-		btst	#7,d2
-		bne.s	sub_72764
-		move.b	d0,($A04002).l
-		nop	
-		nop	
-		nop	
-
-loc_7277C:
-		move.b	($A04000).l,d2
-		btst	#7,d2
-		bne.s	loc_7277C
-
-		move.b	d1,($A04003).l
-		rts	
-; End of function sub_72764
+sub_72764:
+		movem.l	d2/a0,-(sp)				; EXT: store register data
+		movea.l	$10(a6),a0				; EXT: load Cue pointer
+		addq.w	#$01,a0					; EXT: skip $40
+		move.b	#$02,d2					; EXT: prepare d2 for YM2612 port address ($4002 - $4003)
+		StopZ80						; EXT: request Z80 stop "ON"
+		move.b	d2,(a0)+				; EXT: write YM2612 port address
+		move.b	d1,(a0)+				; EXT: write YM2612 data
+		move.b	d0,(a0)+				; EXT: write YM2612 address
+		StartZ80					; EXT: request Z80 stop "OFF"
+		move.w	a0,d2					; EXT: load Cue pointer
+		andi.w	#$0FFF,d2				; EXT: wrap it
+		ori.w	#$1000,d2				; EXT: ''
+		move.w	d2,$12(a6)				; EXT: update it
+		movem.l	(sp)+,d2/a0				; EXT: restore register data
+		rts						; EXT: return
 
 ; ===========================================================================
 word_72790:	dc.w $25E, $284, $2AB, $2D3, $2FE, $32D, $35C, $38F, $3C5
@@ -41404,19 +41477,20 @@ loc_72AF8:				; XREF: loc_72A64
 
 loc_72B14:				; XREF: loc_72A64
 		movea.l	a6,a0
-		lea	$3A0(a6),a1
-		move.w	#$87,d0
+		lea	$3D0(a6),a1				; MJ: new SFX location
+		move.w	#$93,d0					; MJ: new size to store
 
 loc_72B1E:
 		move.l	(a1)+,(a0)+
 		dbf	d0,loc_72B1E
 
 		bset	#2,$40(a6)
+		bset	#2,$70(a6)				; MJ: enable PCM 2
 		movea.l	a5,a3
 		move.b	#$28,d6
 		sub.b	$26(a6),d6
 		moveq	#5,d7
-		lea	$70(a6),a5
+		lea	$A0(a6),a5				; MJ: new FM location
 
 loc_72B3A:
 		btst	#7,(a5)
@@ -41450,7 +41524,6 @@ loc_72B78:
 		move.b	#$80,$24(a6)
 		move.b	#$28,$26(a6)
 		clr.b	$27(a6)
-		move.w	#0,($A11100).l
 		addq.w	#8,sp
 		rts	
 ; ===========================================================================
@@ -41493,7 +41566,7 @@ loc_72BD0:				; XREF: loc_72A64
 		lea	$40(a6),a0
 		move.b	(a4)+,d0
 		moveq	#$30,d1
-		moveq	#9,d2
+		moveq	#10,d2				; MJ: extra channel
 
 loc_72BDA:
 		move.b	d0,2(a0)
@@ -41518,10 +41591,10 @@ loc_72BF4:				; XREF: loc_72A64
 		bclr	#7,(a5)
 		bclr	#4,(a5)
 		jsr	sub_726FE(pc)
-		tst.b	$250(a6)
+		tst.b	$280(a6)				; MJ: new SFX location
 		bmi.s	loc_72C22
 		movea.l	a5,a3
-		lea	$100(a6),a5
+		lea	$130(a6),a5				; MJ: new BGM location
 		movea.l	$18(a6),a1
 		bclr	#2,(a5)
 		bset	#1,(a5)
@@ -41700,9 +41773,9 @@ loc_72D78:
 		movea.l	a5,a3
 		cmpi.b	#4,d0
 		bne.s	loc_72DA8
-		tst.b	$340(a6)
+		tst.b	$370(a6)				; MJ: new SFX location
 		bpl.s	loc_72DA8
-		lea	$340(a6),a5
+		lea	$370(a6),a5				; MJ: new SFX location
 		movea.l	$20(a6),a1
 		bra.s	loc_72DB8
 ; ===========================================================================
@@ -41727,7 +41800,7 @@ loc_72DC8:
 ; ===========================================================================
 
 loc_72DCC:
-		lea	$370(a6),a0
+		lea	$3A0(a6),a0				; MJ: new SFX location
 		tst.b	(a0)
 		bpl.s	loc_72DE0
 		cmpi.b	#$E0,d0
@@ -41748,7 +41821,12 @@ loc_72DEA:
 		move.b	$1F(a0),($C00011).l
 
 loc_72E02:
-		addq.w	#8,sp
+		addq.w	#4,sp					; MJ: changed to 4 (go back, but not out of sound driver)
+		tst.b	$08(a6)					; MJ: is this a PCM channel?
+		bne.s	FlagF2_NoWaitFrame			; MJ: if so, branch
+		addq.w	#4,sp					; MJ: go back outside the sound driver like normal
+
+FlagF2_NoWaitFrame:
 		rts	
 ; ===========================================================================
 
@@ -41756,8 +41834,13 @@ loc_72E06:				; XREF: loc_72A64
 		move.b	#$E0,1(a5)
 		move.b	(a4)+,$1F(a5)
 		btst	#2,(a5)
-		bne.s	locret_72E1E
-		move.b	-1(a4),($C00011).l
+		bne.s	locret_72E1E 
+		move.b	-1(a4),d0				; MJ: reload F3 setting to d0
+		move.b	d0,($C00011).l				; MJ: save F3 setting (should be EX (PSG 4) related)
+		andi.b	#%00000011,d0				; MJ: get only frequency mode bits
+		cmpi.b	#%00000011,d0				; MJ: has it been set to use PSG 3's frequency?
+		bne.s	locret_72E1E				; MJ: if not, branch
+		move.b	#%11011111,($C00011).l			; MJ: mute PSG 3's volume
 
 locret_72E1E:
 		rts	
@@ -41814,12 +41897,8 @@ loc_72E64:				; XREF: loc_72A64
 		move.b	#$F,d1
 		bra.w	sub_7272E
 ; ===========================================================================
-Kos_Z80:	incbin	sound\z80_1.bin
-		dc.w ((SegaPCM&$FF)<<8)+((SegaPCM&$FF00)>>8)
-		dc.b $21
-		dc.w (((EndOfRom-SegaPCM)&$FF)<<8)+(((EndOfRom-SegaPCM)&$FF00)>>8)
-		incbin	sound\z80_2.bin
-		even
+Z80ROM:		incbin	"Dual PCM\Z80.bin"
+Z80ROM_End:	even
 Music81:	incbin	sound\music81.bin
 		even
 Music82:	incbin	sound\music82.bin
@@ -41976,8 +42055,8 @@ SoundCF:	incbin	sound\soundCF.bin
 		even
 SoundD0:	incbin	sound\soundD0.bin
 		even
-SegaPCM:	incbin	sound\segapcm.bin
-SegaPCM_end:	even
+SegaPCM:	incbin	sound\segapcm.wav,$3A
+SegaPCM_End:	even
 
 SHC2021:    incbin "SHC21_Lite_Sonic12.bin"
             even
@@ -42043,6 +42122,52 @@ ErrorExcept:	jsr	ErrorHandler(pc)
 		even
 
 ErrorHandler:	incbin	"ErrorHandler.bin"
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Sample 68k PCM list
+; ---------------------------------------------------------------------------
+
+SampleList:		dc.l	StopSample			; 80 (THIS IS A REST NOTE, DO NOT EDIT...)
+			dc.l	Sonic1Kick			; 81
+			dc.l	Sonic1Snare			; 82
+			dc.l	Sonic1TimpaniLow		; 83
+			dc.l	StopSample			; 84
+			dc.l	StopSample			; 85
+			dc.l	StopSample			; 86
+			dc.l	StopSample			; 87
+			dc.l	Sonic1TimpaniHigh		; 88
+			dc.l	Sonic1TimpaniMid		; 89
+			dc.l	Sonic1TimpaniLow		; 8A
+			dc.l	Sonic1TimpaniLower		; 8B
+
+; ---------------------------------------------------------------------------
+; Sample z80 pointers
+; ---------------------------------------------------------------------------
+
+StopSample:		dcz80	SWF_StopSample
+Sonic1Kick:		dcz80	SWF_S1Kick
+Sonic1Snare:		dcz80	SWF_S1Snare
+Sonic1TimpaniHigh:	dcz80	SWF_S1TimpaniHigh
+Sonic1TimpaniMid:	dcz80	SWF_S1TimpaniMid
+Sonic1TimpaniLow:	dcz80	SWF_S1TimpaniLow
+Sonic1TimpaniLower:	dcz80	SWF_S1TimpaniLower
+
+; ---------------------------------------------------------------------------
+; Sample file includes
+; ---------------------------------------------------------------------------
+			align	$20,$FF
+SWF_StopSample:	dcb.b	$7FFF,$00
+		dc.b	$80
+; ---------------------------------------------------------------------------
+SWF_S1Kick:		incbin	"Dual PCM\Samples\incswf\Sonic 1 Kick.swf"
+SWF_S1Snare:		incbin	"Dual PCM\Samples\incswf\Sonic 1 Snare.swf"
+SWF_S1TimpaniHigh:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani High.swf"
+SWF_S1TimpaniMid:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Mid.swf"
+SWF_S1TimpaniLow:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Low.swf"
+SWF_S1TimpaniLower:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Lower.swf"
+
+; ===========================================================================
 
 ; end of 'ROM'
 EndOfRom:
