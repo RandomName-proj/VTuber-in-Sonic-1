@@ -3,7 +3,6 @@ Additions
 - points mode - get sonime to do a variety of frequent facial expressions to get the largest audience
 - move ears separately from head
 - object which forces an expression then deletes itself
-- sega sound from Magical Taruruuto-Kun
 - angry at using save states (if possible)
 
 Faces
@@ -18,6 +17,6 @@ Functions
 
 Bug Fixes
 - make the title screen background use only one palette line so that the other two lines can be used to give color back to the foreground
-- lava tag stops working (must be related to scare face)
+- lava tag stops working
 - is happy for too long into special stage
-- water palette bug
+- labyrinth invincibility causes slowdown so bad it affects h-interrupts

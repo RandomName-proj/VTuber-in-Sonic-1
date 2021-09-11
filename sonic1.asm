@@ -13008,7 +13008,8 @@ Obj4B_Main:				; XREF: Obj4B_Index
 		beq.w	Obj4B_Delete	; if yes, branch
 		cmpi.w	#50,($FFFFFE20).w ; do you have	at least 50 rings?
 		bcc.s	Obj4B_Okay	; if yes, branch
-		rts	
+		jmp	(DeleteObject).l
+
 ; ===========================================================================
 
 Obj4B_Okay:				; XREF: Obj4B_Main
@@ -17202,7 +17203,7 @@ DisplaySprite:
 		lsr.w	#1,d0
 		andi.w	#$380,d0
 		adda.w	d0,a1
-		cmpi.w	#$72,(a1)
+		cmpi.w	#$7E,(a1)
 		bcc.s	locret_D620
 		addq.w	#2,(a1)
 		adda.w	(a1),a1
@@ -17225,7 +17226,7 @@ DisplaySprite2:
 		lsr.w	#1,d0
 		andi.w	#$380,d0
 		adda.w	d0,a2
-		cmpi.w	#$72,(a2)
+		cmpi.w	#$7E,(a2)
 		bcc.s	locret_D63E
 		addq.w	#2,(a2)
 		adda.w	(a2),a2
@@ -17269,8 +17270,6 @@ BldSpr_ScrPos:	dc.l 0			; blank
 
 BuildSprites:				; XREF: TitleScreen; et al
 		lea	($FFFFF800).w,a2 ; set address for sprite table
-		moveq	#0,d5
-		moveq	#0,d4
 		bsr.w	Obj02
 		lea	($FFFFAC00).w,a4
 		moveq	#7,d7
@@ -26345,6 +26344,8 @@ Obj02_Display:
 		moveq	#0,d1
 		moveq	#0,d2
 		moveq	#0,d3
+		moveq	#0,d4
+		moveq	#0,d5
 		move.b	sonime_headx(a0),d3	; set X pos
 		move.b	sonime_heady(a0),d2	; set Y pos
 		ext.w	d3
