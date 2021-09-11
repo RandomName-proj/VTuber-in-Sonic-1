@@ -570,6 +570,12 @@ loc_DA6:				; XREF: off_B6E
 
 loc_E64:
 	Z80DMA_OFF
+		cmpi.b	#96,($FFFFF625).w
+		bcc.s	@update
+		bra.w	locret_E70
+
+	@update:
+		jsr	SS_LoadWalls
 		tst.w	($FFFFF614).w
 		beq.w	locret_E70
 		subq.w	#1,($FFFFF614).w
@@ -899,7 +905,7 @@ loc_128E:
 ; End of function VDPSetupGame
 
 ; ===========================================================================
-VDPSetupArray:	dc.w $8004, $8174, $8230, $8328	; XREF: VDPSetupGame
+VDPSetupArray:	dc.w $8004, $8134, $8230, $8328	; XREF: VDPSetupGame
 		dc.w $8407, $857C, $8600, $8700
 		dc.w $8800, $8900, $8A00, $8B00
 		dc.w $8C81, $8D3F, $8E00, $8F02
@@ -2994,24 +3000,10 @@ Sega_WaitEnd:
 Sega_GotoTitle:
 		move.b	#1,(FromSEGA).w
 		move.b	#4,($FFFFF600).w ; go to title screen
-		rts	
-; ===========================================================================
-
-; ---------------------------------------------------------------------------
-; Title	screen
-; ---------------------------------------------------------------------------
-
-TitleScreen:				; XREF: GameModeArray
-		move.b	#face_neutrall,(SonimeSST+sonime_face).w
 		move.b	#$E4,d0
 		bsr.w	PlaySound_Special ; stop music
 		bsr.w	ClearPLC
-		move.w	#$202F,($FFFFF626).w
-		tst.b	(FromSEGA).w
-		beq.s	@notSEGA
 		move.w	#$3F,($FFFFF626).w
-
-	@notSEGA:
 		bsr.w	Pal_FadeFrom2
 		move	#$2700,sr
 		bsr.w	SoundDriverLoad
@@ -3026,6 +3018,34 @@ TitleScreen:				; XREF: GameModeArray
 		clr.b	($FFFFF64E).w
 		bsr.w	ClearScreen
 		jsr SHC2021
+		bra.s	TitleSkip
+; ===========================================================================
+
+; ---------------------------------------------------------------------------
+; Title	screen
+; ---------------------------------------------------------------------------
+
+TitleScreen:				; XREF: GameModeArray
+		move.b	#face_neutrall,(SonimeSST+sonime_face).w
+		move.b	#$E4,d0
+		bsr.w	PlaySound_Special ; stop music
+		bsr.w	ClearPLC
+		move.w	#$202F,($FFFFF626).w
+		bsr.w	Pal_FadeFrom2
+		move	#$2700,sr
+		bsr.w	SoundDriverLoad
+		lea	($C00004).l,a6
+		move.w	#$8004,(a6)
+		move.w	#$8230,(a6)
+		move.w	#$8407,(a6)
+		move.w	#$9001,(a6)
+		move.w	#$9200,(a6)
+		move.w	#$8B03,(a6)
+		move.w	#$8720,(a6)
+		clr.b	($FFFFF64E).w
+		bsr.w	ClearScreen
+
+TitleSkip:
 		lea	($FFFFD000).w,a1
 		moveq	#0,d0
 		move.w	#$7FF,d1
@@ -3695,8 +3715,6 @@ Level_ClrVars3:
 		move.w	#$8720,(a6)
 		move.w	#$8ADF,($FFFFF624).w
 		move.w	($FFFFF624).w,(a6)
-		clr.w ($FFFFC800).w
-		move.l #$FFFFC800,($FFFFC8FC).w
 		cmpi.b	#1,($FFFFFE10).w ; is level LZ?
 		bne.s	Level_LoadPal	; if not, branch
 		move.w	#$8014,(a6)
@@ -4710,6 +4728,7 @@ SpecialStage:				; XREF: GameModeArray
 		move.w	#$8AAF,($FFFFF624).w
 		move.w	#$9011,(a6)
 		move.w	($FFFFF60C).w,d0
+		andi.b	#$BF,d0
 		move.w	d0,($C00004).l
 		bsr.w	ClearScreen
 		move	#$2300,sr
@@ -4860,8 +4879,6 @@ loc_47D4:
 		lea	(Nem_TitleCard).l,a0 ; load title card patterns
 		bsr.w	NemDec
 		jsr	Hud_Base
-		clr.w ($FFFFC800).w
-		move.l #$FFFFC800,($FFFFC8FC).w
 		move	#$2300,sr
 		moveq	#$11,d0
 		bsr.w	PalLoad2	; load results screen pallet
@@ -42056,7 +42073,7 @@ SoundCF:	incbin	sound\soundCF.bin
 		even
 SoundD0:	incbin	sound\soundD0.bin
 		even
-SegaPCM:	incbin	sound\segapcm.wav,$3A
+SegaPCM:	incbin	"Dual PCM\Samples\incswf\Sega.swf",$3A
 SegaPCM_End:	even
 
 SHC2021:    incbin "SHC21_Lite_Sonic12.bin"
