@@ -3137,9 +3137,9 @@ Title_LoadText:
 		lea	(Blk16_GHZ).l,a0 ; load	GHZ 16x16 mappings
 		move.w	#0,d0
 		bsr.w	EniDec
-		lea	(Blk256_GHZ).l,a0 ; load GHZ 256x256 mappings
-		lea	($FF0000).l,a1
-		bsr.w	KosDec
+;		lea	(Blk256_GHZ).l,a0 ; load GHZ 256x256 mappings
+;		lea	($FF0000).l,a1
+;		bsr.w	KosDec
 		bsr.w	LevelLayoutLoad
 		move.w	#$202F,($FFFFF626).w
 		tst.b	(FromSEGA).w
@@ -8497,9 +8497,72 @@ loc_712C:
 		lsr.w	#5,d0
 		andi.w	#$7F,d0	; '?'
 		add.w	d3,d0
-		moveq	#-1,d3
-		move.b	(a4,d0.w),d3
-		beq.s	locret_7172
+		tst.b	($FFFFFE10).w	
+		beq.s	@ghz		
+		cmpi.b	#1,($FFFFFE10).w	
+		beq.s	@lz		
+		cmpi.b	#2,($FFFFFE10).w	
+		beq.s	@mz		
+		cmpi.b	#3,($FFFFFE10).w	
+		beq.s	@slz		
+		cmpi.b	#4,($FFFFFE10).w	
+		beq.s	@syz		
+		cmpi.b	#5,($FFFFFE10).w	
+		beq.s	@sbz				
+		cmpi.b	#6,($FFFFFE10).w ; are we in the ending sequence?
+		beq.s	@ghz		; if yes, branch
+		moveq	#-1,d3		; load chunks from RAM
+		bsr.s	LocateBlock
+		bra.s	@continue
+
+@ghz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_GHZ,d3
+		bra.w	@continue
+	
+@lz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_LZ,d3
+		bra.w	@continue
+		
+@mz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_MZ,d3
+		bra.w	@continue
+		
+@slz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_SLZ,d3
+		bra.w	@continue
+		
+@syz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_SYZ,d3
+		bra.w	@continue
+		
+@sbz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_SBZ,d3		
+		bra.w	@continue
+		
+@continue:
+		movea.l	d3,a0
+		move.w	(a0),d3
+		andi.w	#$3FF,d3
+		lsl.w	#3,d3
+		adda.w	d3,a1
+		rts	
+; ---------------------------------------------------------------------------
+
+LocateBlock:
+		move.b	(a4,d0.w),d3	; load chunk ID in d3
+		beq.s	LocateBlock_EmptyChunk
 		subq.b	#1,d3
 		andi.w	#$7F,d3	; '?'
 		ror.w	#7,d3
@@ -8508,14 +8571,12 @@ loc_712C:
 		andi.w	#$1E,d5
 		add.w	d4,d3
 		add.w	d5,d3
-		movea.l	d3,a0
-		move.w	(a0),d3
-		andi.w	#$3FF,d3
-		lsl.w	#3,d3
-		adda.w	d3,a1
+		rts
+; ---------------------------------------------------------------------------
 
-locret_7172:
-		rts	
+LocateBlock_EmptyChunk:
+		addq.w	#4,sp	; pop a stack frame to leave a1 pointing at the first tile
+		rts
 ; End of function sub_712A
 
 
@@ -8726,6 +8787,14 @@ MainLoadBlockLoad:			; XREF: Level; EndingSequence
 		movea.l	(a2)+,a0
 		lea	($FF0000).l,a1	; RAM address for 256x256 mappings
 		bsr.w	KosDec
+		tst.b	($FFFFFE10).w	; are we in Green Hill Zone?
+		beq.s	@no_dec		; if yes, branch
+		cmpi.b	#6,($FFFFFE10).w ; are we in the ending sequence?
+		beq.s	@no_dec		; if yes, branch
+		lea	($FF0000).l,a1	; RAM address for 256x256 mappings
+		bsr.w	KosDec
+
+@no_dec:		
 		bsr.w	LevelLayoutLoad
 		move.w	(a2)+,d0
 		move.w	(a2),d0
@@ -27728,20 +27797,12 @@ loc_14942:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Floor_ChkTile:				; XREF: FindFloor; et al
-		move.w	d2,d0
-		lsr.w	#1,d0
-		andi.w	#$380,d0
-		move.w	d3,d1
-		lsr.w	#8,d1
-		andi.w	#$7F,d1
-		add.w	d1,d0
-		moveq	#-1,d1
+Floor_ChkTile_LocateBlock:
 		lea	($FFFFA400).w,a1
 		move.b	(a1,d0.w),d1
-		beq.s	loc_14996
+		beq.s	Floor_ChkTile_EmptyChunk	; if the chunk ID is 0 (empty chunk), branch
 		bmi.s	loc_1499A
-		subq.b	#1,d1
+		subq.b	#1,d1		; the empty chunk is not included in the chunk mappings, subtract 1 to read the correct data
 		ext.w	d1
 		ror.w	#7,d1
 		move.w	d2,d0
@@ -27752,11 +27813,8 @@ Floor_ChkTile:				; XREF: FindFloor; et al
 		lsr.w	#3,d0
 		andi.w	#$1E,d0
 		add.w	d0,d1
-
-loc_14996:
-		movea.l	d1,a1
 		rts	
-; ===========================================================================
+; ---------------------------------------------------------------------------
 
 loc_1499A:
 		andi.w	#$7F,d1
@@ -27778,8 +27836,90 @@ loc_149B2:
 		lsr.w	#3,d0
 		andi.w	#$1E,d0
 		add.w	d0,d1
+		rts	
+; ---------------------------------------------------------------------------
+
+Floor_ChkTile_EmptyChunk:
+		lea	($FFFFFF00).w,a1	; override a1
+		addq.w	#4,sp			; pop a stack frame to avoid adding the address of the chunk mappings to a1
+		rts	
+
+; ---------------------------------------------------------------------------
+; Subroutine to	find which tile	the object is standing on
+; ---------------------------------------------------------------------------
+
+; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
+
+
+Floor_ChkTile:				; XREF: FindFloor; et al
+		move.w	d2,d0
+		lsr.w	#1,d0
+		andi.w	#$380,d0
+		move.w	d3,d1
+		lsr.w	#8,d1
+		andi.w	#$7F,d1
+		add.w	d1,d0
+		tst.b	($FFFFFE10).w	; are we in Green Hill Zone?
+		beq.s	@ghz		; if yes, branch		
+		cmpi.b	#1,($FFFFFE10).w	
+		beq.s	@lz		
+		cmpi.b	#2,($FFFFFE10).w	
+		beq.s	@mz		
+		cmpi.b	#3,($FFFFFE10).w	
+		beq.s	@slz		
+		cmpi.b	#4,($FFFFFE10).w	
+		beq.s	@syz		
+		cmpi.b	#5,($FFFFFE10).w	
+		beq.s	@sbz				
+		cmpi.b	#6,($FFFFFE10).w ; are we in the ending sequence?
+		beq.s	@ghz		; if yes, branch
+		moveq	#-1,d1
+		bsr.w	Floor_ChkTile_LocateBlock
 		movea.l	d1,a1
 		rts	
+; ---------------------------------------------------------------------------
+
+@ghz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_GHZ,d1
+		movea.l	d1,a1
+		rts	
+
+@lz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_LZ,d1
+		movea.l	d1,a1
+		rts	
+
+@mz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_MZ,d1
+		movea.l	d1,a1
+		rts	
+
+@slz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_SLZ,d1
+		movea.l	d1,a1
+		rts	
+
+@syz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_SYZ,d1
+		movea.l	d1,a1
+		rts	
+
+@sbz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_SBZ,d1
+		movea.l	d1,a1
+		rts			
 ; End of function Floor_ChkTile
 
 
@@ -27787,7 +27927,7 @@ loc_149B2:
 
 
 FindFloor:				; XREF: Sonic_AnglePos; et al
-		bsr.s	Floor_ChkTile
+		bsr.w	Floor_ChkTile
 		move.w	(a1),d0
 		move.w	d0,d4
 		andi.w	#$7FF,d0
@@ -39555,37 +39695,37 @@ Nem_GHZ_1st:	incbin	artnem\8x8ghz1.bin	; GHZ primary patterns
 		even
 Nem_GHZ_2nd:	incbin	artnem\8x8ghz2.bin	; GHZ secondary patterns
 		even
-Blk256_GHZ:	incbin	map256\ghz.bin
+Blk256_GHZ:	incbin	map256_u\ghz.bin
 		even
 Blk16_LZ:	incbin	map16\lz.bin
 		even
 Nem_LZ:		incbin	artnem\8x8lz.bin	; LZ primary patterns
 		even
-Blk256_LZ:	incbin	map256\lz.bin
+Blk256_LZ:	incbin	map256_u\lz.bin
 		even
 Blk16_MZ:	incbin	map16\mz.bin
 		even
 Nem_MZ:		incbin	artnem\8x8mz.bin	; MZ primary patterns
 		even
-Blk256_MZ:	incbin	map256\mz.bin
+Blk256_MZ:	incbin	map256_u\mz.bin
 		even
 Blk16_SLZ:	incbin	map16\slz.bin
 		even
 Nem_SLZ:	incbin	artnem\8x8slz.bin	; SLZ primary patterns
 		even
-Blk256_SLZ:	incbin	map256\slz.bin
+Blk256_SLZ:	incbin	map256_u\slz.bin
 		even
 Blk16_SYZ:	incbin	map16\syz.bin
 		even
 Nem_SYZ:	incbin	artnem\8x8syz.bin	; SYZ primary patterns
 		even
-Blk256_SYZ:	incbin	map256\syz.bin
+Blk256_SYZ:	incbin	map256_u\syz.bin
 		even
 Blk16_SBZ:	incbin	map16\sbz.bin
 		even
 Nem_SBZ:	incbin	artnem\8x8sbz.bin	; SBZ primary patterns
 		even
-Blk256_SBZ:	incbin	map256\sbz.bin
+Blk256_SBZ:	incbin	map256_u\sbz.bin
 		even
 ; ---------------------------------------------------------------------------
 ; Compressed graphics - bosses and ending sequence
