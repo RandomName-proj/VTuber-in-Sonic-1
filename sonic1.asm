@@ -16,6 +16,22 @@
 		include	"Equz80.asm"
 		include	"Macros.asm"
 
+Max_Rings = 511 ; default. maximum number possible is 759
+Rings_Space = (Max_Rings+1)*2
+
+Object_Respawn_Table = $FFFF8000
+Camera_X_pos_last = $FFFFFE2A
+Camera_Y_pos_last = $FFFFF76E
+
+Ring_Positions = $FFFF8300
+Ring_start_addr_ROM = Ring_Positions+Rings_Space
+Ring_end_addr_ROM = Ring_Positions+Rings_Space+4
+Ring_start_addr_RAM = Ring_Positions+Rings_Space+8
+Perfect_rings_left = Ring_Positions+Rings_Space+$A
+Rings_manager_routine = Ring_Positions+Rings_Space+$C
+Level_started_flag = Ring_Positions+Rings_Space+$D
+Ring_consumption_table = Ring_Positions+Rings_Space+$E
+respawn_index = $14	
 	
 StartOfRom:
 Vectors:	dc.l $FFFE00, EntryPoint, BusError, AddressError
@@ -1433,7 +1449,6 @@ RunPLC_RAM:				; XREF: Pal_FadeTo
 
 loc_160E:
 		andi.w	#$7FFF,d2
-		move.w	d2,($FFFFF6F8).w
 		bsr.w	NemDec4
 		move.b	(a0)+,d5
 		asl.w	#8,d5
@@ -1447,7 +1462,8 @@ loc_160E:
 		move.l	d0,($FFFFF6EC).w
 		move.l	d5,($FFFFF6F0).w
 		move.l	d6,($FFFFF6F4).w
-
+		move.w	d2,($FFFFF6F8).w
+		
 locret_1640:
 		rts	
 ; End of function RunPLC_RAM
@@ -3816,6 +3832,8 @@ Level_ChkWater:
 
 Level_LoadObj:
 		jsr	ObjPosLoad
+		move.b	#0,(Rings_manager_routine).w
+		jsr	RingsManager				
 		jsr	ObjectsLoad
 		jsr	BuildSprites
 		moveq	#0,d0
@@ -4477,7 +4495,7 @@ loc_4056:
 		move.b	(a1),d0
 		lea	($FFFFF604).w,a0
 		move.b	d0,d1
-		move.b	(a0),d2
+		move.b	-2(a0),d2
 		eor.b	d2,d0
 		move.b	d1,(a0)+
 		and.b	d1,d0
@@ -7382,11 +7400,11 @@ ScrollHoriz2:				; XREF: ScrollHoriz
 		move.w	($FFFFD008).w,d0
 		sub.w	($FFFFF700).w,d0
 		subi.w	#$90,d0
-		bcs.s	loc_65F6
+		bmi.s	loc_65F6				; cs to mi (for negative)
 		subi.w	#$10,d0
-		bcc.s	loc_65CC
+		bpl.s	loc_65CC				; cc to pl (for negative)
 		clr.w	($FFFFF73A).w
-		rts	
+		rts
 ; ===========================================================================
 
 loc_65CC:
@@ -12907,7 +12925,6 @@ Obj37_MakeRings:			; XREF: Obj37_CountRings
 		move.b	#3,$18(a1)
 		move.b	#$47,$20(a1)
 		move.b	#8,$19(a1)
-		move.b	#-1,($FFFFFEC6).w
 		tst.w	d4
 		bmi.s	loc_9D62
 		move.w	d4,d0
@@ -12935,6 +12952,9 @@ Obj37_ResetCounter:			; XREF: Obj37_Loop
 		move.w	#0,($FFFFFE20).w ; reset number	of rings to zero
 		move.b	#$80,($FFFFFE1D).w ; update ring counter
 		move.b	#0,($FFFFFE1B).w
+		moveq	#-1,d0			; Move #-1 to d0
+		move.b	d0,$1F(a0)	; Move d0 to new timer
+		move.b	d0,($FFFFFEC6).w	; Move d0 to old timer (for animated purposes)		
 		move.w	#$C6,d0
 		jsr	(PlaySound_Special).l ;	play ring loss sound
 
@@ -12957,8 +12977,10 @@ Obj37_Bounce:				; XREF: Obj37_Index
 		neg.w	$12(a0)
 
 Obj37_ChkDel:				; XREF: Obj37_Bounce
-		tst.b	($FFFFFEC6).w
-		beq.s	Obj37_Delete
+		subq.b	#1,$1F(a0)	; Subtract 1
+		beq.w	DeleteObject		; If 0, delete
+		cmpi.w	#$FF00,($FFFFF72C).w		; is vertical wrapping enabled?
+		beq.w	DisplaySprite			; if so, branch
 		move.w	($FFFFF72E).w,d0
 		addi.w	#$E0,d0
 		cmp.w	$C(a0),d0	; has object moved below level boundary?
@@ -13271,6 +13293,10 @@ loc_A246:
 loc_A25C:
 		btst	#5,$22(a0)
 		beq.s	Obj26_Animate
+		cmp.b	#2,$1C(a1)	; check if in jumping/rolling animation
+		beq.s	loc_A26A
+		cmp.b	#$17,$1C(a1)	; check if in drowning animation
+		beq.s	loc_A26A
 		move.w	#1,$1C(a1)
 
 loc_A26A:
@@ -17116,6 +17142,8 @@ loc_D358:
 ; ===========================================================================
 
 loc_D362:
+		cmpi.b	#$A,($FFFFD000+$24).w	; Has Sonic drowned?
+		beq.s	loc_D348				; If so, run objects a little longer
 		moveq	#$1F,d7
 		bsr.s	loc_D348
 		moveq	#$5F,d7
@@ -17151,20 +17179,17 @@ Obj_Index:
 
 
 ObjectFall:
-		move.l	8(a0),d2
-		move.l	$C(a0),d3
 		move.w	$10(a0),d0
 		ext.l	d0
-		asl.l	#8,d0
-		add.l	d0,d2
+		lsl.l	#8,d0
+		add.l	d0,8(a0)
 		move.w	$12(a0),d0
 		addi.w	#$38,$12(a0)	; increase vertical speed
 		ext.l	d0
-		asl.l	#8,d0
-		add.l	d0,d3
-		move.l	d2,8(a0)
-		move.l	d3,$C(a0)
+		lsl.l	#8,d0
+		add.l	d0,$C(a0)
 		rts	
+
 ; End of function ObjectFall
 
 ; ---------------------------------------------------------------------------
@@ -17175,19 +17200,16 @@ ObjectFall:
 
 
 SpeedToPos:
-		move.l	8(a0),d2
-		move.l	$C(a0),d3
 		move.w	$10(a0),d0	; load horizontal speed
 		ext.l	d0
-		asl.l	#8,d0		; multiply speed by $100
-		add.l	d0,d2		; add to x-axis	position
+		lsl.l	#8,d0		; multiply speed by $100
+		add.l	d0,8(a0)	; add to x-axis	position
 		move.w	$12(a0),d0	; load vertical	speed
 		ext.l	d0
-		asl.l	#8,d0		; multiply by $100
-		add.l	d0,d3		; add to y-axis	position
-		move.l	d2,8(a0)	; update x-axis	position
-		move.l	d3,$C(a0)	; update y-axis	position
+		lsl.l	#8,d0		; multiply by $100
+		add.l	d0,$C(a0)	; add to y-axis	position
 		rts	
+
 ; End of function SpeedToPos
 
 ; ---------------------------------------------------------------------------
@@ -17863,6 +17885,352 @@ loc_DAB0:
 locret_DABC:
 		rts	
 ; End of function SingleObjLoad2
+
+RingsManager:   
+ 	moveq	#0,d0
+		move.b	(Rings_manager_routine).w,d0
+		move.w	RingsManager_States(pc,d0.w),d0
+		jmp	RingsManager_States(pc,d0.w)
+; ===========================================================================
+; off_16F96:
+RingsManager_States:
+		dc.w RingsManager_Init-RingsManager_States
+		dc.w RingsManager_Main-RingsManager_States
+; ===========================================================================
+; loc_16F9A:
+RingsManager_Init:
+		addq.b	#2,(Rings_manager_routine).w ; => RingsManager_Main
+		bsr.w	RingsManager_Setup
+		movea.l	(Ring_start_addr_ROM).w,a1
+		lea	(Ring_Positions).w,a2
+		move.w	($FFFFF700).w,d4
+		subq.w	#8,d4
+		bhi.s	loc_16FB6
+		moveq	#1,d4
+		bra.s	loc_16FB6
+; ===========================================================================
+
+loc_16FB2:
+		addq.w	#4,a1	; load next ring
+          	addq.w	#2,a2
+
+loc_16FB6:
+		cmp.w	(a1),d4
+		bhi.s	loc_16FB2
+		move.l	a1,(Ring_start_addr_ROM).w	; set start addresses in both ROM and RAM
+           	move.w	a2,(Ring_start_addr_RAM).w
+		addi.w	#320+16,d4	; advance by a screen
+		bra.s	loc_16FCE
+; ===========================================================================
+
+loc_16FCA:
+		addq.w	#4,a1
+
+loc_16FCE:
+		cmp.w	(a1),d4
+		bhi.s	loc_16FCA
+		move.l	a1,(Ring_end_addr_ROM).w
+		rts
+; ===========================================================================
+; loc_16FDE:
+RingsManager_Main:
+		lea	(Ring_consumption_table).w,a2
+		move.w	(a2)+,d1
+		subq.w	#1,d1
+		bcs.s	loc_17014
+
+loc_16FE8:
+		move.w	(a2)+,d0
+		beq.s	loc_16FE8
+		movea.w	d0,a1
+		subq.b	#1,(a1)
+		bne.s	loc_17010
+		move.b	#6,(a1)
+		addq.b	#1,1(a1)
+		cmpi.b	#8,1(a1)
+		bne.s	loc_17010
+		move.w	#-1,(a1)
+		move.w	#0,-2(a2)
+		subq.w	#1,(Ring_consumption_table).w
+
+loc_17010:
+		dbf	d1,loc_16FE8
+
+loc_17014:
+		movea.l	(Ring_start_addr_ROM).w,a1
+		movea.w	(Ring_start_addr_RAM).w,a2
+		move.w	($FFFFF700).w,d4
+		subq.w	#8,d4
+		bhi.s	loc_17028
+		moveq	#1,d4
+		bra.s	loc_17028
+; ===========================================================================
+
+loc_17024:
+		addq.w	#4,a1
+		addq.w	#2,a2
+
+loc_17028:
+		cmp.w	(a1),d4
+		bhi.s	loc_17024
+		bra.s	loc_17032
+; ===========================================================================
+
+loc_17030:
+		subq.w	#4,a1
+		subq.w	#2,a2
+
+loc_17032:
+		cmp.w	-4(a1),d4
+		bls.s	loc_17030
+		move.l	a1,(Ring_start_addr_ROM).w
+		move.w	a2,(Ring_start_addr_RAM).w
+		movea.l	(Ring_end_addr_ROM).w,a2
+		addi.w	#$150,d4
+		bra.s	loc_1704A
+; ===========================================================================
+
+loc_17046:
+		addq.w	#4,a2
+
+loc_1704A:
+		cmp.w	(a2),d4
+		bhi.s	loc_17046
+		bra.s	loc_17054
+; ===========================================================================
+
+loc_17052:
+		subq.w	#4,a2
+
+loc_17054:
+		cmp.w	-4(a2),d4
+		bls.s	loc_17052
+		move.l	a2,(Ring_end_addr_ROM).w
+		rts
+
+; ===========================================================================
+
+Touch_Rings:
+		movea.l	(Ring_start_addr_ROM).w,a1	; load start and end addresses
+          	movea.l	(Ring_end_addr_ROM).w,a2
+         	cmpa.l	a1,a2	; are there no rings in this area?
+           	beq.w	return_17166	; if so, return
+            	movea.w	(Ring_start_addr_RAM).w,a4	; load start address
+
+
+loc_170D0:
+		cmpi.w	#$5A,$30(a0)
+		bcc.w	return_17166
+		cmpi.b  #$A,($FFFFFE2C).w	; does Sonic have a lightning shield?
+		bne.s	Touch_Rings_NoAttraction	; if not, branch
+		move.w	8(a0),d2
+      	move.w	$C(a0),d3
+      	subi.w	#$40,d2
+      	subi.w	#$40,d3
+      	move.w	#6,d1
+       	move.w	#$C,d6
+      	move.w	#$80,d4
+      	move.w	#$80,d5
+		bra.s	Touch_Rings_Loop
+; ===========================================================================
+
+Touch_Rings_NoAttraction:
+		move.w	8(a0),d2	; get character's position
+	move.w	$C(a0),d3
+	subi.w	#8,d2	; assume X radius to be 8
+	moveq	#0,d5
+	move.b	$16(a0),d5
+	subq.b	#3,d5
+	sub.w	d5,d3	; subtract (Y radius - 3) from Y pos
+	cmpi.b	#8,$1C(a0)
+	bne.s	@NotDucking	; if you're not ducking, branch
+	addi.w	#$C,d3
+	moveq	#$A,d5
+ @NotDucking:
+	move.w	#6,d1	; set ring radius
+	move.w	#$C,d6	; set ring diameter
+	move.w	#$10,d4	; set character's X diameter
+	add.w	d5,d5	; set Y diameter
+
+Touch_Rings_Loop:
+	tst.w	(a4)	; has this ring already been collided with?
+	bne.w	Touch_NextRing	; if it has, branch
+	move.w	(a1),d0		; get ring X pos
+	sub.w	d1,d0		; get ring left edge X pos
+	sub.w	d2,d0		; subtract character's left edge X pos
+	bcc.s	@goSomeWhere1		; if character's to the left of the ring, branch
+	add.w	d6,d0		; add ring diameter
+	bcs.s	loc_17130		; if character's colliding, branch
+	bra.w	Touch_NextRing	; otherwise, test next ring
+; ===========================================================================
+
+@goSomeWhere1:
+	cmp.w	d4,d0		; has character crossed the ring?
+	bhi.w	Touch_NextRing	; if they have, branch
+
+loc_17130:
+	move.w	2(a1),d0	; get ring Y pos	; why is it 2?
+	sub.w	d1,d0		; get ring top edge pos
+	sub.w	d3,d0		; subtract character's top edge pos
+	bcc.s	CheckRingLooping		; if character's above the ring, branch
+	add.w	d6,d0		; add ring diameter
+	bcs.s	CheckForShield			; if character's colliding, branch
+	bra.w	Touch_NextRing	; otherwise, test next ring
+; ===========================================================================
+
+CheckRingLooping:
+	cmp.w	d5,d0		; has character crossed the ring?
+	bhi.w	Touch_NextRing	; if they have, branch
+
+CheckForShield:
+	cmpi.b  #$A,($FFFFFE2C).w
+	beq.s	AttractRing
+
+CheckForShield_cont:
+		move.w	#$604,(a4)
+		bsr.s	loc_17168
+		lea	(Ring_consumption_table+2).w,a3
+
+loc_17152:
+	tst.w	(a3)+		; is this slot free?
+	bne.s	loc_17152		; if not, repeat until you find one
+	move.w	a4,-(a3)	; set ring address
+	addq.w	#1,(Ring_consumption_table).w	; increase count
+
+Touch_NextRing:
+	addq.w	#4,a1
+	addq.w	#2,a4
+	cmpa.l	a1,a2		; are we at the last ring for this area?
+	bne.w	Touch_Rings_Loop	; if not, branch
+
+return_17166:
+		rts
+; ===========================================================================
+
+loc_17168:
+		subq.w	#1,(Perfect_rings_left).w
+		bra.w	CollectRing
+; ===========================================================================
+
+AttractRing:
+		movea.l	a1,a3
+		jsr	(SingleObjLoad).l
+		bne.w	AttractRing_NoFreeSlot
+		move.b	#$92,(a1)	; was Obj07 in the Hive one.
+		move.w	(a3),8(a1)
+		move.w	2(a3),$C(a1)
+		move.w	a0,$34(a1)
+		move.w	#-1,(a4)
+		rts
+; ===========================================================================
+
+AttractRing_NoFreeSlot:
+		movea.l	a3,a1
+		bra.s	loc_17152
+; ===========================================================================
+; this bit is fine
+BuildRings:
+		movea.l	(Ring_start_addr_ROM).w,a0
+		move.l	(Ring_end_addr_ROM).w,d7
+		sub.l	a0,d7
+		bne.s	loc_17186
+		rts
+; ===========================================================================
+
+loc_17186:
+		movea.w	(Ring_start_addr_RAM).w,a4
+		lea	($FFFFF700).w,a3
+
+loc_1718A:
+		tst.w	(a4)+
+		bmi.w	loc_171EC
+		move.w	(a0),d3
+		sub.w	(a3),d3
+		addi.w	#$80,d3
+		move.w	2(a0),d2
+		sub.w	4(a3),d2
+		andi.w	#$7FF,d2
+		addi.w	#8,d2
+		bmi.s	loc_171EC
+		cmpi.w	#$F0,d2
+		bge.s	loc_171EC
+		addi.w	#$78,d2
+		lea	(Map_Obj25).l,a1
+		moveq	#0,d1
+		move.b	-1(a4),d1
+		bne.s	loc_171C8
+		move.b	($FFFFFEC3).w,d1
+
+loc_171C8:
+		add.w	d1,d1
+		adda.w	(a1,d1.w),a1
+		moveq	#$00,d1
+		move.b	(a1)+,d1
+		subq.b	#1,d1
+		bmi.s	loc_171EC
+		move.b	(a1)+,d0
+		ext.w	d0
+		add.w	d2,d0
+		move.w	d0,(a2)+
+		move.b	(a1)+,(a2)+
+		addq.b	#1,d5
+		move.b	d5,(a2)+
+		move.b	(a1)+,d0
+		lsl.w	#8,d0
+		move.b	(a1)+,d0
+		addi.w	#$27B2,d0
+		move.w	d0,(a2)+
+		move.b	(a1)+,d0
+		ext.w	d0
+		add.w	d3,d0
+		move.w	d0,(a2)+
+
+loc_171EC:
+		addq.w	#4,a0
+		subq.w	#4,d7
+		bne.w	loc_1718A
+		rts
+; ===========================================================================
+;this bit is fine
+RingsManager_Setup:
+	lea	(Ring_Positions).w,a1
+	moveq	#0,d0
+	move.w	#Rings_Space/4-1,d1
+
+loc_172AE:				; CODE XREF: h+33Cj
+	move.l	d0,(a1)+
+	dbf	d1,loc_172AE
+
+	; d0 = 0
+	lea	(Ring_consumption_table).w,a1
+	move.w	#$1F,d1
+RMBack1:
+	move.l	d0,(a1)+
+	dbf	d1,RMBack1
+
+;	moveq	#0,d5
+	moveq	#0,d0
+	move.w	($FFFFFE10).w,d0
+	lsl.b	#6,d0
+	lsr.w	#4,d0
+	lea	(RingPos_Index).l,a1
+;	move.w	(a1,d0.w),d0
+;	lea	(a1,d0.w),a1
+	move.l	a1,(Ring_start_addr_ROM).w
+	addq.w	#4,a1
+	moveq	#0,d5
+	move.w	#(Max_Rings-1),d0	
+	
+RMBack2:
+	tst.l	(a1)+
+	bmi.s	RM2
+	addq.w	#1,d5
+	dbf	d0,RMBack2
+RM2:
+;	move.w	d5,(Perfect_rings_left).w
+	rts
+
+; ===========================================================================
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -19996,7 +20364,7 @@ loc_F9FE:
 
 loc_FA12:
 		move.w	d4,d2
-		bsr.w	MvSonicOnPtfm
+		jsr	(MvSonicOnPtfm).l
 		moveq	#0,d4
 		rts	
 ; ===========================================================================
@@ -20026,7 +20394,7 @@ loc_FA44:
 
 loc_FA58:
 		move.w	d4,d2
-		bsr.w	MvSonicOnPtfm
+		jsr	(MvSonicOnPtfm).l
 		moveq	#0,d4
 		rts	
 ; ===========================================================================
@@ -20158,10 +20526,15 @@ loc_FB8C:
 		moveq	#1,d4
 		rts	
 ; ===========================================================================
-
 loc_FB92:
 		btst	#5,$22(a0)
 		beq.s	loc_FBAC
+		cmp.b	#2,$1C(a1)	; check if in jumping/rolling animation
+		beq.s	loc_FBA0
+		cmp.b	#$17,$1C(a1)	; check if in drowning animation
+		beq.s	loc_FBA0
+		cmp.b	#$1A,$1C(a1)	; check if in hurt animation
+		beq.s	loc_FBA0
 		move.w	#1,$1C(a1)	; use walking animation
 
 loc_FBA0:
@@ -24324,7 +24697,8 @@ Obj01_Index:	dc.w Obj01_Main-Obj01_Index
 		dc.w Obj01_Hurt-Obj01_Index
 		dc.w Obj01_Death-Obj01_Index
 		dc.w Obj01_ResetLevel-Obj01_Index
-; ===========================================================================
+		dc.w Sonic_Drowned-Obj01_Index
+;===========================================================================
 
 Obj01_Main:				; XREF: Obj01_Index
 		addq.b	#2,$24(a0)
@@ -25913,6 +26287,21 @@ locret_139C2:
 ; End of function Sonic_Loops
 
 ; ---------------------------------------------------------------------------
+; Sonic when he's drowning
+; ---------------------------------------------------------------------------
+ 
+; ||||||||||||||| S	U B	R O	U T	I N	E |||||||||||||||||||||||||||||||||||||||
+ 
+ 
+Sonic_Drowned:
+		bsr.w   SpeedToPos		; Make Sonic able to move
+		addi.w  #$10,$12(a0)	; Apply gravity
+		bsr.w   Sonic_RecordPos	; Record position
+		bsr.s   Sonic_Animate	; Animate Sonic
+		bsr.w   LoadSonicDynPLC	; Load Sonic's DPLCs
+		bra.w   DisplaySprite	; And finally, display Sonic
+
+; ---------------------------------------------------------------------------
 ; Subroutine to	animate	Sonic's sprites
 ; ---------------------------------------------------------------------------
 
@@ -26635,25 +27024,18 @@ Obj0A_ReduceAir:
 		move.w	#0,$12(a0)
 		move.w	#0,$10(a0)
 		move.w	#0,$14(a0)
+		move.b	#$A,$24(a0)		; Force the character to drown		
 		move.b	#1,($FFFFF744).w
+		move.b	#0,($FFFFFE1E).w	; Stop the timer immediately		
 		movea.l	(sp)+,a0
 		rts	
 ; ===========================================================================
 
 loc_13F86:
 		subq.w	#1,$2C(a0)
-		bne.s	loc_13F94
-		move.b	#6,($FFFFD024).w
-		rts	
-; ===========================================================================
-
-loc_13F94:
-		move.l	a0,-(sp)
-		lea	($FFFFD000).w,a0
-		jsr	SpeedToPos
-		addi.w	#$10,$12(a0)
-		movea.l	(sp)+,a0
-		bra.s	loc_13FAC
+		bne.s	loc_13FAC	; Make it jump straight to this location
+		move.b	#6,($FFFFD000+$24).w
+		rts
 ; ===========================================================================
 
 Obj0A_GoMakeItem:			; XREF: Obj0A_ReduceAir
@@ -30387,6 +30769,7 @@ loc_16C64:
 		bne.s	loc_16C82
 
 loc_16C7C:
+		clr.b	$20(a1)	; immediately remove all touch response values when destroying the head to avoid taking damage
 		move.b	#$A,$24(a0)
 
 loc_16C82:
@@ -30714,9 +31097,9 @@ Obj7D_Delete:
 		jmp	DeleteObject
 ; ===========================================================================
 Obj7D_Points:	dc.w 0			; Bonus	points array
-		dc.w 1000
-		dc.w 100
-		dc.w 1
+		dc.w 1000		; earn 1000*10 points for revealing 10000 object
+		dc.w 100		; earn 100*10 points for revealing 1000 object
+		dc.w 10			; earn 10*10 points for revealing 100 object
 ; ===========================================================================
 
 Obj7D_DelayDel:				; XREF: Obj7D_Index
@@ -37894,17 +38277,15 @@ Obj21_Main:				; XREF: Obj21_Main
 		move.b	#0,$18(a0)
 
 Obj21_Flash:				; XREF: Obj21_Main
-		tst.w	($FFFFFE20).w	; do you have any rings?
-		beq.s	Obj21_Flash2	; if not, branch
-		clr.b	$1A(a0)		; make all counters yellow
-		jmp	DisplaySprite
-; ===========================================================================
-
-Obj21_Flash2:
 		moveq	#0,d0
 		btst	#3,($FFFFFE05).w
 		bne.s	Obj21_Display
+		tst.w	($FFFFFE20).w	; do you have any rings?
+		bne.s	Obj21_Flash2	; if not, branch
 		addq.w	#1,d0		; make ring counter flash red
+; ===========================================================================
+
+Obj21_Flash2:
 		cmpi.b	#9,($FFFFFE23).w ; have	9 minutes elapsed?
 		bne.s	Obj21_Display	; if not, branch
 		addq.w	#2,d0		; make time counter flash red
@@ -39523,6 +39904,79 @@ ObjPos_End:	incbin	objpos\ending.bin
 		even
 ObjPos_Null:	dc.b $FF, $FF, 0, 0, 0,	0
 ; ---------------------------------------------------------------------------
+; Sprite locations index
+; ---------------------------------------------------------------------------
+RingPos_Index:	dc.w Rings_GHZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_GHZ2-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_GHZ3-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_GHZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_LZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_LZ2-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_LZ3-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SBZ3-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_MZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_MZ2-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_MZ3-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_MZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SLZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SLZ2-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SLZ3-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SLZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SYZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SYZ2-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SYZ3-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SYZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SBZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SBZ2-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_FZ-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_SBZ1-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_End-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_End-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_End-RingPos_Index, Rings_Null-RingPos_Index
+		dc.w Rings_End-RingPos_Index, Rings_Null-RingPos_Index
+Rings_GHZ1:	incbin	rings\ghz1_INDIVIDUAL.bin
+		even
+Rings_GHZ2:	incbin	rings\ghz2_INDIVIDUAL.bin
+		even
+Rings_GHZ3:	incbin	rings\ghz3_INDIVIDUAL.bin
+		even
+Rings_LZ1:	incbin	rings\lz1_INDIVIDUAL.bin
+		even
+Rings_LZ2:	incbin	rings\lz2_INDIVIDUAL.bin
+		even
+Rings_LZ3:	incbin	rings\lz3_INDIVIDUAL.bin
+		even
+Rings_SBZ3:	incbin	rings\sbz3_INDIVIDUAL.bin
+		even
+Rings_MZ1:	incbin	rings\mz1_INDIVIDUAL.bin
+		even
+Rings_MZ2:	incbin	rings\mz2_INDIVIDUAL.bin
+		even
+Rings_MZ3:	incbin	rings\mz3_INDIVIDUAL.bin
+		even
+Rings_SLZ1:	incbin	rings\slz1_INDIVIDUAL.bin
+		even
+Rings_SLZ2:	incbin	rings\slz2_INDIVIDUAL.bin
+		even
+Rings_SLZ3:	incbin	rings\slz3_INDIVIDUAL.bin
+		even
+Rings_SYZ1:	incbin	rings\syz1_INDIVIDUAL.bin
+		even
+Rings_SYZ2:	incbin	rings\syz2_INDIVIDUAL.bin
+		even
+Rings_SYZ3:	incbin	rings\syz3_INDIVIDUAL.bin
+		even
+Rings_SBZ1:	incbin	rings\sbz1_INDIVIDUAL.bin
+		even
+Rings_SBZ2:	incbin	rings\sbz2_INDIVIDUAL.bin
+		even
+Rings_FZ:	incbin	rings\fz_INDIVIDUAL.bin
+		even
+Rings_End:	incbin	rings\ending_INDIVIDUAL.bin
+		even
+Rings_Null:	dc.b $FF, $FF, 0, 0
+; ---------------------------------------------------------------------------
+; ---------------------------------------------------------------------------
 		incbin	misc\padding4.bin
 		even
 Go_SoundTypes:	dc.l SoundTypes		; XREF: Sound_Play
@@ -41046,9 +41500,17 @@ loc_726CC:
 
 loc_726D6:
 		bclr	#2,$40(a6)
-		bclr	#2,$70(a6)				; MJ: do PCM 2 as well...
 		clr.b	$24(a6)
-		rts	
+
+		tst.b	$40(a6)					; is the DAC channel running?
+		bpl.s	Resume_NoDAC				; if not, branch
+
+		moveq	#$FFFFFFB6,d0				; prepare FM channel 3/6 L/R/AMS/FMS address
+		move.b	$4A(a6),d1				; load DAC channel's L/R/AMS/FMS value
+		jmp	sub_72764(pc)				; write to FM 6
+
+Resume_NoDAC:
+		rts
 ; End of function sub_7267C
 
 ; ===========================================================================
@@ -41540,6 +42002,14 @@ loc_72B78:
 		adda.w	#$30,a5
 		dbf	d7,loc_72B66
 		movea.l	a3,a5
+		tst.b	$40(a6)			; is the DAC channel running?
+		bmi.s	Restore_NoFM6		; if it is, branch
+
+		moveq	#$2B,d0			; DAC enable/disable register
+		moveq	#0,d1			; Disable DAC
+		jsr	sub_7272E(pc)
+
+Restore_NoFM6:		
 		move.b	#$80,$24(a6)
 		move.b	#$28,$26(a6)
 		clr.b	$27(a6)

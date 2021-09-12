@@ -9,7 +9,9 @@ IF NOT EXIST "Dual PCM\Z80.p" goto Error
 CLS
 DEL "Dual PCM\Z80.p"
 DEL "Dual PCM\Z80.h"
-
+cd rings
+rings.exe
+cd ..
 "_Assembly Tools\Asm68k.exe" /o op+ /o os+ /o ow+ /o oz+ /o oaq+ /o osq+ /o omq+ /q /p /o ae- "sonic1.asm", "s1vt.gen"
 "_Assembly Tools\CheckFix.exe" "s1vt.gen"
 
