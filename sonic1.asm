@@ -487,6 +487,7 @@ loc_C6E:				; XREF: off_B6E
 		tst.b	($FFFFF64E).w
 		bne.s	loc_CB0
 		lea	($C00004).l,a5
+		move.w	#$8C81,(a5)
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
@@ -498,6 +499,7 @@ loc_C6E:				; XREF: off_B6E
 
 loc_CB0:				; XREF: loc_C76
 		lea	($C00004).l,a5
+		move.w	#$8C81,(a5)
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9540,(a5)
 		move.w	#$977F,(a5)
@@ -765,44 +767,46 @@ PalToCRAM:
 		tst.w	($FFFFF644).w
 		beq.s	locret_119C
 		move.w	#0,($FFFFF644).w
-		movem.l	a0-a1,-(sp)
-		lea	($C00000).l,a1
-		lea	($FFFFFA80).w,a0 ; load	pallet from RAM
-		move.l	#$C0000000,4(a1) ; set VDP to CRAM write
-		move.l	(a0)+,(a1)	; move pallet to CRAM
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.l	(a0)+,(a1)
-		move.w	#$8ADF,4(a1)
-		movem.l	(sp)+,a0-a1
+		move.l	a0,-(sp)
+		lea	($C00004).l,a0
+;		lea	($FFFFFA80).w,a0 ; load	pallet from RAM
+
+		move.w	#$8C89,(a0)
+;		move.l	#$C0000000,4(a1) ; set VDP to CRAM write
+;		move.l	(a0)+,(a1)	; move pallet to CRAM
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+;		move.l	(a0)+,(a1)
+		move.w	#$8ADF,(a0)
+		move.l	(sp)+,a0
 		tst.b	($FFFFF64F).w
 		bne.s	loc_119E
 
