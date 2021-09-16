@@ -420,6 +420,7 @@ loc_BBA:
 		tst.b	($FFFFF64E).w
 		bne.s	loc_BFE
 		lea	($C00004).l,a5
+		move.w	#$8C81,(a5)
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
@@ -431,8 +432,9 @@ loc_BBA:
 
 loc_BFE:				; XREF: loc_BC8
 		lea	($C00004).l,a5
+		move.w	#$8C89,(a5)
 		move.l	#$94009340,(a5)
-		move.l	#$96FD9540,(a5)
+		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
 		move.w	#$C000,(a5)
 		move.w	#$80,($FFFFF640).w
@@ -499,9 +501,9 @@ loc_C6E:				; XREF: off_B6E
 
 loc_CB0:				; XREF: loc_C76
 		lea	($C00004).l,a5
-		move.w	#$8C81,(a5)
+		move.w	#$8C89,(a5)
 		move.l	#$94009340,(a5)
-		move.l	#$96FD9540,(a5)
+		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
 		move.w	#$C000,(a5)
 		move.w	#$80,($FFFFF640).w
@@ -608,6 +610,7 @@ loc_E72:				; XREF: off_B6E
 		tst.b	($FFFFF64E).w
 		bne.s	loc_EB4
 		lea	($C00004).l,a5
+		move.w	#$8C81,(a5)
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
@@ -619,8 +622,9 @@ loc_E72:				; XREF: off_B6E
 
 loc_EB4:				; XREF: loc_E7A
 		lea	($C00004).l,a5
+		move.w	#$8C89,(a5)
 		move.l	#$94009340,(a5)
-		move.l	#$96FD9540,(a5)
+		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
 		move.w	#$C000,(a5)
 		move.w	#$80,($FFFFF640).w
@@ -716,6 +720,7 @@ sub_106E:				; XREF: loc_C32; et al
 		tst.b	($FFFFF64E).w
 		bne.s	loc_10B0
 		lea	($C00004).l,a5
+		move.w	#$8C81,(a5)
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
@@ -729,8 +734,9 @@ PAL1_LOAD:
 
 loc_10B0:
 		lea	($C00004).l,a5
+		move.w	#$8C89,(a5)
 		move.l	#$94009340,(a5)
-		move.l	#$96FD9540,(a5)
+		move.l	#$96FD9580,(a5)
 		move.w	#$977F,(a5)
 		move.w	#$C000,(a5)
 		move.w	#$80,($FFFFF640).w
@@ -769,42 +775,7 @@ PalToCRAM:
 		move.w	#0,($FFFFF644).w
 		move.l	a0,-(sp)
 		lea	($C00004).l,a0
-;		lea	($FFFFFA80).w,a0 ; load	pallet from RAM
-
 		move.w	#$8C89,(a0)
-;		move.l	#$C0000000,4(a1) ; set VDP to CRAM write
-;		move.l	(a0)+,(a1)	; move pallet to CRAM
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
-;		move.l	(a0)+,(a1)
 		move.w	#$8ADF,(a0)
 		move.l	(sp)+,a0
 		tst.b	($FFFFF64F).w
@@ -2254,19 +2225,6 @@ Pal_FadeIn:				; XREF: Pal_FadeTo
 loc_1DFA:
 		bsr.s	Pal_AddColor
 		dbf	d0,loc_1DFA
-		cmpi.b	#1,($FFFFFE10).w
-		bne.s	locret_1E24
-		moveq	#0,d0
-		lea	($FFFFFA80).w,a0
-		lea	($FFFFFA00).w,a1
-		move.b	($FFFFF626).w,d0
-		adda.w	d0,a0
-		adda.w	d0,a1
-		move.b	($FFFFF627).w,d0
-
-loc_1E1E:
-		bsr.s	Pal_AddColor
-		dbf	d0,loc_1E1E
 
 locret_1E24:
 		rts	
@@ -2438,20 +2396,6 @@ Pal_WhiteToBlack:			; XREF: Pal_MakeWhite
 loc_1F20:
 		bsr.s	Pal_DecColor2
 		dbf	d0,loc_1F20
-
-		cmpi.b	#1,($FFFFFE10).w
-		bne.s	locret_1F4A
-		moveq	#0,d0
-		lea	($FFFFFA80).w,a0
-		lea	($FFFFFA00).w,a1
-		move.b	($FFFFF626).w,d0
-		adda.w	d0,a0
-		adda.w	d0,a1
-		move.b	($FFFFF627).w,d0
-
-loc_1F44:
-		bsr.s	Pal_DecColor2
-		dbf	d0,loc_1F44
 
 locret_1F4A:
 		rts	
@@ -11211,6 +11155,15 @@ Obj1C_Var:	dc.l Map_obj1C		; mappings address
 		dc.l Map_obj11
 		dc.w $438E
 		dc.b 1,	$10, 1,	0
+		dc.l Map_obj1C
+		dc.w $4000
+		dc.b 1,	$10, 0, 0
+		dc.l Map_obj1C
+		dc.w $4000
+		dc.b 2,	$10, 0, 0
+		dc.l Map_obj1C
+		dc.w $4000
+		dc.b 3,	$10, 0, 0
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - SLZ	lava thrower
 ; ---------------------------------------------------------------------------
@@ -13442,9 +13395,23 @@ Obj2E_ChkShield:
 
 Obj2E_ChkInvinc:
 		cmpi.b #5,d0 ; does monitor contain invincibility?
-		bne.s Obj2E_ChkRings
+		bne.w Obj2E_ChkRings
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
+
+		movem.l	a0-a2,-(sp)
+		StopZ80
+		lea	(SegaPCM).l,a0				; MJ: load stop sample address
+		lea	($A00000+PCM1_Sample).l,a1			; MJ: load PCM 1 slot address
+		move.b	(a0)+,(a1)+					; MJ: set address of sample
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	(a0)+,(a1)+					; MJ: ''
+		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; MJ: set routine to run
+		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; MJ: ''
+		move.b	#%11001001,($A00000+CUPCM1_RET).l		; MJ: change "NOP" to "RET"
+		StartZ80
+		movem.l	(sp)+,a0-a2
+
 		move.b #1,($FFFFFE2D).w ; Set Invisibility to 1
 		move.w #$4B0,($FFFFD032).w ; Set Invisibility timer to 4B0
 		move.b #$4A,($FFFFD200).w ; load stars object ($3801)
@@ -42659,6 +42626,13 @@ SWF_S1TimpaniHigh:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani High.swf"
 SWF_S1TimpaniMid:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Mid.swf"
 SWF_S1TimpaniLow:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Low.swf"
 SWF_S1TimpaniLower:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Lower.swf"
+SWF_Dies:		incbin	"Dual PCM\Samples\incswf\dies.swf"
+SWF_Frustrated:		incbin	"Dual PCM\Samples\incswf\frustrated.swf"
+SWF_Happy:		incbin	"Dual PCM\Samples\incswf\happy.swf"
+SWF_Happy2:		incbin	"Dual PCM\Samples\incswf\happy 2.swf"
+SWF_Hurt:		incbin	"Dual PCM\Samples\incswf\hurt.swf"
+SWF_Impatient:		incbin	"Dual PCM\Samples\incswf\impatient.swf"
+SWF_Invincibility:		incbin	"Dual PCM\Samples\incswf\invincibility.swf"
 
 ; ===========================================================================
 

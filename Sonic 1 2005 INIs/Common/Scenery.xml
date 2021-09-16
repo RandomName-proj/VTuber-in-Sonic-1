@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<ObjDef xmlns="http://www.sonicretro.org" Name="Scenery" RememberState="false" Image="img1">
+  <Images>
+    <ImageFromMappings id="img1">
+      <ArtFile filename="../artnem/ghzbridg.bin"/>
+      <MapFile type="ASM" filename="../_maps/obj1C.asm" frame="0" startpal="2"/>
+    </ImageFromMappings>
+    <ImageFromMappings id="img2">
+      <ArtFile filename="../artnem/slzcanno.bin"/>
+      <MapFile type="ASM" filename="../_maps/obj1C.asm" frame="0" startpal="2"/>
+    </ImageFromMappings>
+    <ImageFromMappings id="img3">
+      <ArtFile filename="../artnem/8x8lz.bin"/>
+      <MapFile type="ASM" filename="../_maps/obj1C.asm" frame="1" startpal="2"/>
+    </ImageFromMappings>
+    <ImageFromMappings id="img4">
+      <ArtFile filename="../artnem/8x8lz.bin"/>
+      <MapFile type="ASM" filename="../_maps/obj1C.asm" frame="2" startpal="2"/>
+    </ImageFromMappings>
+    <ImageFromMappings id="img5">
+      <ArtFile filename="../artnem/8x8lz.bin"/>
+      <MapFile type="ASM" filename="../_maps/obj1C.asm" frame="3" startpal="2"/>
+    </ImageFromMappings>
+  </Images>
+  <Subtypes>
+    <Subtype id="00" name="GHZ Bridge Stump" image="img1"/>
+    <Subtype id="01" name="GHZ Bridge Stump" image="img1"/>
+    <Subtype id="02" name="GHZ Bridge Stump" image="img1"/>
+    <Subtype id="03" name="SLZ Fireball Thrower" image="img2"/>
+    <Subtype id="04" name="LZ Ground 1" image="img3"/>
+    <Subtype id="05" name="LZ Ground 2" image="img4"/>
+    <Subtype id="06" name="LZ Ground 3" image="img5"/>
+  </Subtypes>
+</ObjDef>

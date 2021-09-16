@@ -4,6 +4,11 @@ Additions
 - move ears separately from head
 - object which forces an expression then deletes itself
 - angry at using save states (if possible)
+- shadow/highlight water mode
+	- implement when fully underwater
+	- add for when loading level
+	- add mappings to decorations object to cover hidden objects
+
 
 Faces
 - anime sleep bubble when paused
@@ -20,3 +25,4 @@ Bug Fixes
 - lava tag stops working
 - is happy for too long into special stage
 - labyrinth invincibility causes slowdown so bad it affects h-interrupts
+	- if not fixable by deadline, remove LZ BG effects
