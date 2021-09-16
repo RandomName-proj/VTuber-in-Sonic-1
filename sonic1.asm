@@ -54,7 +54,7 @@ Console:	dc.b 'SEGA MEGA DRIVE ' ; Hardware system ID
 Date:		dc.b '(C)SEGA 1991.APR' ; Release date
 Title_Local:	dc.b 'SONIC THE               HEDGEHOG                ' ; Domestic name
 Title_Int:	dc.b 'SONIC THE               HEDGEHOG                ' ; International name
-Serial:		dc.b 'GM 00001009-00'   ; Serial/version number
+Serial:					dc.b "GM 00004049-01" ; Serial/version number (Rev01)
 Checksum:	dc.w 0
 		dc.b 'J               ' ; I/O support
 RomStartLoc:	dc.l StartOfRom		; ROM start
@@ -1129,201 +1129,220 @@ loc_1432:
 		rts	
 ; End of function ShowVDPGraphics
 
-; ---------------------------------------------------------------------------
-; Nemesis decompression	algorithm
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
+; ==============================================================================
+; ------------------------------------------------------------------------------
+; Nemesis decompression routine
+; ------------------------------------------------------------------------------
+; Optimized by vladikcomper
+; ------------------------------------------------------------------------------
+ 
+NemDec_RAM:
+    movem.l d0-a1/a3-a6,-(sp)
+    lea NemDec_WriteRowToRAM(pc),a3
+    bra.s   NemDec_Main
+ 
+; ------------------------------------------------------------------------------
 NemDec:
-		movem.l	d0-a1/a3-a5,-(sp)
-		lea	(loc_1502).l,a3
-		lea	($C00000).l,a4
-		bra.s	loc_145C
-; ===========================================================================
-		movem.l	d0-a1/a3-a5,-(sp)
-		lea	(loc_1518).l,a3
+    movem.l d0-a1/a3-a6,-(sp)
+    lea $C00000,a4      ; load VDP Data Port     
+    lea NemDec_WriteRowToVDP(pc),a3
+ 
+NemDec_Main:
+    lea $FFFFAA00,a1        ; load Nemesis decompression buffer
+    move.w  (a0)+,d2        ; get number of patterns
+    bpl.s   @0          ; are we in Mode 0?
+    lea $A(a3),a3       ; if not, use Mode 1
+@0  lsl.w   #3,d2
+    movea.w d2,a5
+    moveq   #7,d3
+    moveq   #0,d2
+    moveq   #0,d4
+    bsr.w   NemDec4
+    move.b  (a0)+,d5        ; get first byte of compressed data
+    asl.w   #8,d5           ; shift up by a byte
+    move.b  (a0)+,d5        ; get second byte of compressed data
+    move.w  #$10,d6         ; set initial shift value
+    bsr.s   NemDec2
+    movem.l (sp)+,d0-a1/a3-a6
+    rts
+ 
+; ---------------------------------------------------------------------------
+; Part of the Nemesis decompressor, processes the actual compressed data
+; ---------------------------------------------------------------------------
+ 
+NemDec2:
+    move.w  d6,d7
+    subq.w  #8,d7           ; get shift value
+    move.w  d5,d1
+    lsr.w   d7,d1           ; shift so that high bit of the code is in bit position 7
+    cmpi.b  #%11111100,d1       ; are the high 6 bits set?
+    bcc.s   NemDec_InlineData   ; if they are, it signifies inline data
+    andi.w  #$FF,d1
+    add.w   d1,d1
+    sub.b   (a1,d1.w),d6        ; ~~ subtract from shift value so that the next code is read next time around
+    cmpi.w  #9,d6           ; does a new byte need to be read?
+    bcc.s   @0          ; if not, branch
+    addq.w  #8,d6
+    asl.w   #8,d5
+    move.b  (a0)+,d5        ; read next byte
+@0  move.b  1(a1,d1.w),d1
+    move.w  d1,d0
+    andi.w  #$F,d1          ; get palette index for pixel
+    andi.w  #$F0,d0
+ 
+NemDec_GetRepeatCount:
+    lsr.w   #4,d0           ; get repeat count
+ 
+NemDec_WritePixel:
+    lsl.l   #4,d4           ; shift up by a nybble
+    or.b    d1,d4           ; write pixel
+    dbf d3,NemDec_WritePixelLoop; ~~
+    jmp (a3)            ; otherwise, write the row to its destination
+; ---------------------------------------------------------------------------
+ 
+NemDec3:
+    moveq   #0,d4           ; reset row
+    moveq   #7,d3           ; reset nybble counter
+ 
+NemDec_WritePixelLoop:
+    dbf d0,NemDec_WritePixel
+    bra.s   NemDec2
+; ---------------------------------------------------------------------------
+ 
+NemDec_InlineData:
+    subq.w  #6,d6           ; 6 bits needed to signal inline data
+    cmpi.w  #9,d6
+    bcc.s   @0
+    addq.w  #8,d6
+    asl.w   #8,d5
+    move.b  (a0)+,d5
+@0  subq.w  #7,d6           ; and 7 bits needed for the inline data itself
+    move.w  d5,d1
+    lsr.w   d6,d1           ; shift so that low bit of the code is in bit position 0
+    move.w  d1,d0
+    andi.w  #$F,d1          ; get palette index for pixel
+    andi.w  #$70,d0         ; high nybble is repeat count for pixel
+    cmpi.w  #9,d6
+    bcc.s   NemDec_GetRepeatCount
+    addq.w  #8,d6
+    asl.w   #8,d5
+    move.b  (a0)+,d5
+    bra.s   NemDec_GetRepeatCount
+ 
+; ---------------------------------------------------------------------------
+; Subroutines to output decompressed entry
+; Selected depending on current decompression mode
+; ---------------------------------------------------------------------------
+ 
+NemDec_WriteRowToVDP:
+loc_1502:
+    move.l  d4,(a4)         ; write 8-pixel row
+    subq.w  #1,a5
+    move.w  a5,d4           ; have all the 8-pixel rows been written?
+    bne.s   NemDec3         ; if not, branch
+    rts
+; ---------------------------------------------------------------------------
+ 
+NemDec_WriteRowToVDP_XOR:
+    eor.l   d4,d2           ; XOR the previous row by the current row
+    move.l  d2,(a4)         ; and write the result
+    subq.w  #1,a5
+    move.w  a5,d4
+    bne.s   NemDec3
+    rts
+; ---------------------------------------------------------------------------
+ 
+NemDec_WriteRowToRAM:
+    move.l  d4,(a4)+        ; write 8-pixel row
+    subq.w  #1,a5
+    move.w  a5,d4           ; have all the 8-pixel rows been written?
+    bne.s   NemDec3         ; if not, branch
+    rts
+; ---------------------------------------------------------------------------
+ 
+NemDec_WriteRowToRAM_XOR:
+    eor.l   d4,d2           ; XOR the previous row by the current row
+    move.l  d2,(a4)+        ; and write the result
+    subq.w  #1,a5
+    move.w  a5,d4
+    bne.s   NemDec3
+    rts
+ 
+; ---------------------------------------------------------------------------
+; Part of the Nemesis decompressor, builds the code table (in RAM)
+; ---------------------------------------------------------------------------
+ 
+NemDec4:
+    move.b  (a0)+,d0        ; read first byte
+ 
+@ChkEnd:
+    cmpi.b  #$FF,d0         ; has the end of the code table description been reached?
+    bne.s   @NewPalIndex        ; if not, branch
+    rts
+; ---------------------------------------------------------------------------
+ 
+@NewPalIndex:
+    move.w  d0,d7
+ 
+@ItemLoop:
+    move.b  (a0)+,d0        ; read next byte
+    bmi.s   @ChkEnd         ; ~~
+    move.b  d0,d1
+    andi.w  #$F,d7          ; get palette index
+    andi.w  #$70,d1         ; get repeat count for palette index
+    or.w    d1,d7           ; combine the two
+    andi.w  #$F,d0          ; get the length of the code in bits
+    move.b  d0,d1
+    lsl.w   #8,d1
+    or.w    d1,d7           ; combine with palette index and repeat count to form code table entry
+    moveq   #8,d1
+    sub.w   d0,d1           ; is the code 8 bits long?
+    bne.s   @ItemShortCode      ; if not, a bit of extra processing is needed
+    move.b  (a0)+,d0        ; get code
+    add.w   d0,d0           ; each code gets a word-sized entry in the table
+    move.w  d7,(a1,d0.w)        ; store the entry for the code
+    bra.s   @ItemLoop       ; repeat
+; ---------------------------------------------------------------------------
+ 
+@ItemShortCode:
+    move.b  (a0)+,d0        ; get code
+    lsl.w   d1,d0           ; shift so that high bit is in bit position 7
+    add.w   d0,d0           ; get index into code table
+    moveq   #1,d5
+    lsl.w   d1,d5
+    subq.w  #1,d5           ; d5 = 2^d1 - 1
+    lea (a1,d0.w),a6        ; ~~
+ 
+@ItemShortCodeLoop:
+    move.w  d7,(a6)+        ; ~~ store entry
+    dbf d5,@ItemShortCodeLoop   ; repeat for required number of entries
+    bra.s   @ItemLoop
 
-loc_145C:				; XREF: NemDec
-		lea	($FFFFAA00).w,a1
-		move.w	(a0)+,d2
-		lsl.w	#1,d2
-		bcc.s	loc_146A
-		adda.w	#$A,a3
-
-loc_146A:
-		lsl.w	#2,d2
-		movea.w	d2,a5
-		moveq	#8,d3
-		moveq	#0,d2
-		moveq	#0,d4
-		bsr.w	NemDec4
-		move.b	(a0)+,d5
-		asl.w	#8,d5
-		move.b	(a0)+,d5
-		move.w	#$10,d6
-		bsr.s	NemDec2
-		movem.l	(sp)+,d0-a1/a3-a5
-		rts	
-; End of function NemDec
-
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-NemDec2:				; XREF: NemDec
-		move.w	d6,d7
-		subq.w	#8,d7
-		move.w	d5,d1
-		lsr.w	d7,d1
-		cmpi.b	#-4,d1
-		bcc.s	loc_14D6
-		andi.w	#$FF,d1
-		add.w	d1,d1
-		move.b	(a1,d1.w),d0
-		ext.w	d0
-		sub.w	d0,d6
-		cmpi.w	#9,d6
-		bcc.s	loc_14B2
-		addq.w	#8,d6
-		asl.w	#8,d5
-		move.b	(a0)+,d5
-
-loc_14B2:
-		move.b	1(a1,d1.w),d1
-		move.w	d1,d0
-		andi.w	#$F,d1
-		andi.w	#$F0,d0
-
-loc_14C0:				; XREF: NemDec3
-		lsr.w	#4,d0
-
-loc_14C2:				; XREF: NemDec3
-		lsl.l	#4,d4
-		or.b	d1,d4
-		subq.w	#1,d3
-		bne.s	loc_14D0
-		jmp	(a3)
-; End of function NemDec2
-
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-NemDec3:				; XREF: loc_1502
-		moveq	#0,d4
-		moveq	#8,d3
-
-loc_14D0:				; XREF: NemDec2
-		dbf	d0,loc_14C2
-		bra.s	NemDec2
-; ===========================================================================
-
-loc_14D6:				; XREF: NemDec2
-		subq.w	#6,d6
-		cmpi.w	#9,d6
-		bcc.s	loc_14E4
-		addq.w	#8,d6
-		asl.w	#8,d5
-		move.b	(a0)+,d5
-
-loc_14E4:				; XREF: NemDec3
-		subq.w	#7,d6
-		move.w	d5,d1
-		lsr.w	d6,d1
-		move.w	d1,d0
-		andi.w	#$F,d1
-		andi.w	#$70,d0
-		cmpi.w	#9,d6
-		bcc.s	loc_14C0
-		addq.w	#8,d6
-		asl.w	#8,d5
-		move.b	(a0)+,d5
-		bra.s	loc_14C0
-; End of function NemDec3
-
-; ===========================================================================
-
-loc_1502:				; XREF: NemDec
-		move.l	d4,(a4)
-		subq.w	#1,a5
-		move.w	a5,d4
-		bne.s	NemDec3
-		rts	
-; ===========================================================================
-		eor.l	d4,d2
-		move.l	d2,(a4)
-		subq.w	#1,a5
-		move.w	a5,d4
-		bne.s	NemDec3
-		rts	
-; ===========================================================================
-
-loc_1518:				; XREF: NemDec
-		move.l	d4,(a4)+
-		subq.w	#1,a5
-		move.w	a5,d4
-		bne.s	NemDec3
-		rts	
-; ===========================================================================
-		eor.l	d4,d2
-		move.l	d2,(a4)+
-		subq.w	#1,a5
-		move.w	a5,d4
-		bne.s	NemDec3
-		rts	
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-NemDec4:				; XREF: NemDec
-		move.b	(a0)+,d0
-
-loc_1530:
-		cmpi.b	#-1,d0
-		bne.s	loc_1538
-		rts	
-; ===========================================================================
-
-loc_1538:				; XREF: NemDec4
-		move.w	d0,d7
-
-loc_153A:
-		move.b	(a0)+,d0
-		cmpi.b	#$80,d0
-		bcc.s	loc_1530
-		move.b	d0,d1
-		andi.w	#$F,d7
-		andi.w	#$70,d1
-		or.w	d1,d7
-		andi.w	#$F,d0
-		move.b	d0,d1
-		lsl.w	#8,d1
-		or.w	d1,d7
-		moveq	#8,d1
-		sub.w	d0,d1
-		bne.s	loc_1568
-		move.b	(a0)+,d0
-		add.w	d0,d0
-		move.w	d7,(a1,d0.w)
-		bra.s	loc_153A
-; ===========================================================================
-
-loc_1568:				; XREF: NemDec4
-		move.b	(a0)+,d0
-		lsl.w	d1,d0
-		add.w	d0,d0
-		moveq	#1,d5
-		lsl.w	d1,d5
-		subq.w	#1,d5
-
-loc_1574:
-		move.w	d7,(a1,d0.w)
-		addq.w	#2,d0
-		dbf	d5,loc_1574
-		bra.s	loc_153A
-; End of function NemDec4
+; ===============================================================
+; ---------------------------------------------------------------
+; uncompressed art to VRAM loader
+; ---------------------------------------------------------------
+; INPUT:
+;       a0      - Source Offset
+;   d0  - length in tiles
+; ---------------------------------------------------------------
+LoadUncArt:
+        move    #$2700,sr   ; disable interrupts
+        lea $C00000.l,a6    ; get VDP data port
+ 
+LoadArt_Loop:
+        move.l  (a0)+,(a6)  ; transfer 4 bytes
+        move.l  (a0)+,(a6)  ; transfer 4 more bytes
+        move.l  (a0)+,(a6)  ; and so on and so forth
+        move.l  (a0)+,(a6)  ;
+        move.l  (a0)+,(a6)  ;
+        move.l  (a0)+,(a6)  ;
+        move.l  (a0)+,(a6)  ; in total transfer 32 bytes
+        move.l  (a0)+,(a6)  ; which is 1 full tile
+ 
+        dbf d0, LoadArt_Loop; loop until d0 = 0
+        move    #$2300,sr   ; enable interrupts
+        rts	
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	load pattern load cues
@@ -1781,109 +1800,137 @@ locret_189A:
 		rts	
 ; End of function sub_188C
 
+; ===========================================================================
 ; ---------------------------------------------------------------------------
-; Kosinski decompression algorithm
+; Kosinski decompression routine
+;
+; Created by vladikcomper
+; Special thanks to flamewing and MarkeyJester
 ; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
+ 
+_Kos_RunBitStream macro
+    dbf d2,@skip\@
+    moveq   #7,d2
+    move.b  d1,d0
+    swap    d3
+    bpl.s   @skip\@
+    move.b  (a0)+,d0            ; get desc. bitfield
+    move.b  (a0)+,d1            ;
+    move.b  (a4,d0.w),d0            ; reload converted desc. bitfield from a LUT
+    move.b  (a4,d1.w),d1            ;
+@skip\@
+    endm
+; ---------------------------------------------------------------------------
+ 
 KosDec:
-
-var_2		= -2
-var_1		= -1
-
-		subq.l	#2,sp
-		move.b	(a0)+,2+var_1(sp)
-		move.b	(a0)+,(sp)
-		move.w	(sp),d5
-		moveq	#$F,d4
-
-loc_18A8:
-		lsr.w	#1,d5
-		move	sr,d6
-		dbf	d4,loc_18BA
-		move.b	(a0)+,2+var_1(sp)
-		move.b	(a0)+,(sp)
-		move.w	(sp),d5
-		moveq	#$F,d4
-
-loc_18BA:
-		move	d6,ccr
-		bcc.s	loc_18C2
-		move.b	(a0)+,(a1)+
-		bra.s	loc_18A8
+    moveq   #7,d7
+    moveq   #0,d0
+    moveq   #0,d1
+    lea KosDec_ByteMap(pc),a4
+    move.b  (a0)+,d0            ; get desc field low-byte
+    move.b  (a0)+,d1            ; get desc field hi-byte
+    move.b  (a4,d0.w),d0            ; reload converted desc. bitfield from a LUT
+    move.b  (a4,d1.w),d1            ;
+    moveq   #7,d2               ; set repeat count to 8
+    moveq   #-1,d3              ; d3 will be desc field switcher
+    clr.w   d3              ;
+    bra.s   KosDec_FetchNewCode
+ 
+KosDec_FetchCodeLoop:
+    ; code 1 (Uncompressed byte)
+    _Kos_RunBitStream
+    move.b  (a0)+,(a1)+
+ 
+KosDec_FetchNewCode:
+    add.b   d0,d0               ; get a bit from the bitstream
+    bcs.s   KosDec_FetchCodeLoop        ; if code = 0, branch
+ 
+    ; codes 00 and 01
+    _Kos_RunBitStream
+    moveq   #0,d4               ; d4 will contain copy count
+    add.b   d0,d0               ; get a bit from the bitstream
+    bcs.s   KosDec_Code_01
+ 
+    ; code 00 (Dictionary ref. short)
+    _Kos_RunBitStream
+    add.b   d0,d0               ; get a bit from the bitstream
+    addx.w  d4,d4
+    _Kos_RunBitStream
+    add.b   d0,d0               ; get a bit from the bitstream
+    addx.w  d4,d4
+    _Kos_RunBitStream
+    moveq   #-1,d5
+    move.b  (a0)+,d5            ; d5 = displacement
+ 
+KosDec_StreamCopy:
+    lea (a1,d5),a3
+    move.b  (a3)+,(a1)+         ; do 1 extra copy (to compensate for +1 to copy counter)
+ 
+KosDec_copy:
+    move.b  (a3)+,(a1)+
+    dbf d4,KosDec_copy
+    bra.w   KosDec_FetchNewCode
+; ---------------------------------------------------------------------------
+KosDec_Code_01:
+    ; code 01 (Dictionary ref. long / special)
+    _Kos_RunBitStream
+    move.b  (a0)+,d6            ; d6 = %LLLLLLLL
+    move.b  (a0)+,d4            ; d4 = %HHHHHCCC
+    moveq   #-1,d5
+    move.b  d4,d5               ; d5 = %11111111 HHHHHCCC
+    lsl.w   #5,d5               ; d5 = %111HHHHH CCC00000
+    move.b  d6,d5               ; d5 = %111HHHHH LLLLLLLL
+    and.w   d7,d4               ; d4 = %00000CCC
+    bne.s   KosDec_StreamCopy       ; if CCC=0, branch
+ 
+    ; special mode (extended counter)
+    move.b  (a0)+,d4            ; read cnt
+    beq.s   KosDec_Quit         ; if cnt=0, quit decompression
+    subq.b  #1,d4
+    beq.w   KosDec_FetchNewCode     ; if cnt=1, fetch a new code
+ 
+    lea (a1,d5),a3
+    move.b  (a3)+,(a1)+         ; do 1 extra copy (to compensate for +1 to copy counter)
+    move.w  d4,d6
+    not.w   d6
+    and.w   d7,d6
+    add.w   d6,d6
+    lsr.w   #3,d4
+    jmp KosDec_largecopy(pc,d6.w)
+ 
+KosDec_largecopy:
+    rept 8
+    move.b  (a3)+,(a1)+
+    endr
+    dbf d4,KosDec_largecopy
+    bra.w   KosDec_FetchNewCode
+ 
+KosDec_Quit:
+    rts
+ 
+; ---------------------------------------------------------------------------
+; A look-up table to invert bits order in desc. field bytes
+; ---------------------------------------------------------------------------
+ 
+KosDec_ByteMap:
+    dc.b    $00,$80,$40,$C0,$20,$A0,$60,$E0,$10,$90,$50,$D0,$30,$B0,$70,$F0
+    dc.b    $08,$88,$48,$C8,$28,$A8,$68,$E8,$18,$98,$58,$D8,$38,$B8,$78,$F8
+    dc.b    $04,$84,$44,$C4,$24,$A4,$64,$E4,$14,$94,$54,$D4,$34,$B4,$74,$F4
+    dc.b    $0C,$8C,$4C,$CC,$2C,$AC,$6C,$EC,$1C,$9C,$5C,$DC,$3C,$BC,$7C,$FC
+    dc.b    $02,$82,$42,$C2,$22,$A2,$62,$E2,$12,$92,$52,$D2,$32,$B2,$72,$F2
+    dc.b    $0A,$8A,$4A,$CA,$2A,$AA,$6A,$EA,$1A,$9A,$5A,$DA,$3A,$BA,$7A,$FA
+    dc.b    $06,$86,$46,$C6,$26,$A6,$66,$E6,$16,$96,$56,$D6,$36,$B6,$76,$F6
+    dc.b    $0E,$8E,$4E,$CE,$2E,$AE,$6E,$EE,$1E,$9E,$5E,$DE,$3E,$BE,$7E,$FE
+    dc.b    $01,$81,$41,$C1,$21,$A1,$61,$E1,$11,$91,$51,$D1,$31,$B1,$71,$F1
+    dc.b    $09,$89,$49,$C9,$29,$A9,$69,$E9,$19,$99,$59,$D9,$39,$B9,$79,$F9
+    dc.b    $05,$85,$45,$C5,$25,$A5,$65,$E5,$15,$95,$55,$D5,$35,$B5,$75,$F5
+    dc.b    $0D,$8D,$4D,$CD,$2D,$AD,$6D,$ED,$1D,$9D,$5D,$DD,$3D,$BD,$7D,$FD
+    dc.b    $03,$83,$43,$C3,$23,$A3,$63,$E3,$13,$93,$53,$D3,$33,$B3,$73,$F3
+    dc.b    $0B,$8B,$4B,$CB,$2B,$AB,$6B,$EB,$1B,$9B,$5B,$DB,$3B,$BB,$7B,$FB
+    dc.b    $07,$87,$47,$C7,$27,$A7,$67,$E7,$17,$97,$57,$D7,$37,$B7,$77,$F7
+    dc.b    $0F,$8F,$4F,$CF,$2F,$AF,$6F,$EF,$1F,$9F,$5F,$DF,$3F,$BF,$7F,$FF
+ 
 ; ===========================================================================
-
-loc_18C2:				; XREF: KosDec
-		moveq	#0,d3
-		lsr.w	#1,d5
-		move	sr,d6
-		dbf	d4,loc_18D6
-		move.b	(a0)+,2+var_1(sp)
-		move.b	(a0)+,(sp)
-		move.w	(sp),d5
-		moveq	#$F,d4
-
-loc_18D6:
-		move	d6,ccr
-		bcs.s	loc_1906
-		lsr.w	#1,d5
-		dbf	d4,loc_18EA
-		move.b	(a0)+,2+var_1(sp)
-		move.b	(a0)+,(sp)
-		move.w	(sp),d5
-		moveq	#$F,d4
-
-loc_18EA:
-		roxl.w	#1,d3
-		lsr.w	#1,d5
-		dbf	d4,loc_18FC
-		move.b	(a0)+,2+var_1(sp)
-		move.b	(a0)+,(sp)
-		move.w	(sp),d5
-		moveq	#$F,d4
-
-loc_18FC:
-		roxl.w	#1,d3
-		addq.w	#1,d3
-		moveq	#-1,d2
-		move.b	(a0)+,d2
-		bra.s	loc_191C
-; ===========================================================================
-
-loc_1906:				; XREF: loc_18C2
-		move.b	(a0)+,d0
-		move.b	(a0)+,d1
-		moveq	#-1,d2
-		move.b	d1,d2
-		lsl.w	#5,d2
-		move.b	d0,d2
-		andi.w	#7,d1
-		beq.s	loc_1928
-		move.b	d1,d3
-		addq.w	#1,d3
-
-loc_191C:
-		move.b	(a1,d2.w),d0
-		move.b	d0,(a1)+
-		dbf	d3,loc_191C
-		bra.s	loc_18A8
-; ===========================================================================
-
-loc_1928:				; XREF: loc_1906
-		move.b	(a0)+,d1
-		beq.s	loc_1938
-		cmpi.b	#1,d1
-		beq.w	loc_18A8
-		move.b	d1,d3
-		bra.s	loc_191C
-; ===========================================================================
-
-loc_1938:				; XREF: loc_1928
-		addq.l	#2,sp
-		rts	
-; End of function KosDec
 
 ; ---------------------------------------------------------------------------
 ; Pallet cycling routine loading subroutine
@@ -2937,6 +2984,7 @@ SegaScreen:				; XREF: GameModeArray
 		move.w	#0,($FFFFF634).w
 		move.w	#0,($FFFFF662).w
 		move.w	#0,($FFFFF660).w
+        move.b    #0,($FFFFFFD0).w		
 		move.w	($FFFFF60C).w,d0
 		ori.b	#$40,d0
 		move.w	d0,($C00004).l
@@ -3045,6 +3093,7 @@ Title_ClrPallet:
 		moveq	#$14,d0		; load Sonic's pallet
 		bsr.w	PalLoad1
 		move.b	#$8A,($FFFFD080).w ; load "SONIC TEAM PRESENTS"	object
+        move.b    #0,($FFFFFFD0).w		
 		jsr	ObjectsLoad
 		jsr	BuildSprites
 		move.w	#$202F,($FFFFF626).w
@@ -3085,9 +3134,9 @@ Title_LoadText:
 		lea	(Blk16_GHZ).l,a0 ; load	GHZ 16x16 mappings
 		move.w	#0,d0
 		bsr.w	EniDec
-		lea	(Blk256_GHZ).l,a0 ; load GHZ 256x256 mappings
-		lea	($FF0000).l,a1
-		bsr.w	KosDec
+;		lea	(Blk256_GHZ).l,a0 ; load GHZ 256x256 mappings
+;		lea	($FF0000).l,a1
+;		bsr.w	KosDec
 		bsr.w	LevelLayoutLoad
 		move.w	#$202F,($FFFFF626).w
 		tst.b	(FromSEGA).w
@@ -3324,6 +3373,7 @@ LevSel_Level_SS:			; XREF: LevelSelect
 		move.b	d0,($FFFFFE57).w ; clear emeralds
 	;	move.l	#$00010203,($FFFFFE58).w ; clear emeralds
 	;	move.l	#$04050000,($FFFFFE5C).w ; clear emeralds
+        move.l  #$1388,($FFFFFFC0).w    ; Initialize score limit for 1-up (50000)	
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -3349,6 +3399,7 @@ PlayLevel:				; XREF: ROM:00003246j ...
 	;	move.l	#$01020304,($FFFFFE58).w ; clear emeralds
 	;	move.l	#$05000000,($FFFFFE5C).w ; clear emeralds
 		move.b	d0,($FFFFFE18).w ; clear continues
+        move.l  #$1388,($FFFFFFC0).w    ; Initialize score limit for 1-up (50000)			
 		move.b	#$E0,d0
 		bsr.w	PlaySound_Special ; fade out music
 		rts	
@@ -3419,6 +3470,7 @@ Demo_Level:
 		move.w	d0,($FFFFFE20).w ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
 		move.l	d0,($FFFFFE26).w ; clear score
+        move.l  #$1388,($FFFFFFC0).w    ; Initialize score limit for 1-up (50000)		
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -3606,6 +3658,7 @@ MusicList:	incbin	misc\muslist1.bin
 
 Level:					; XREF: GameModeArray
 		bset	#7,($FFFFF600).w ; add $80 to screen mode (for pre level sequence)
+        move.b    #0,($FFFFFFD0).w		
 		tst.w	($FFFFFFF0).w
 		bmi.s	loc_37B6
 		move.b	#$E0,d0
@@ -3617,9 +3670,10 @@ loc_37B6:
 		tst.w	($FFFFFFF0).w
 		bmi.s	Level_ClrRam
 		move	#$2700,sr
-		move.l	#$70000002,($C00004).l
-		lea	(Nem_TitleCard).l,a0 ; load title card patterns
-		bsr.w	NemDec
+        move.l  #$70000002,($C00004)        ; set mode "VRAM Write to $B000"
+        lea Nem_TitleCard,a0        ; load title card patterns
+        move.l  #((Nem_TitleCard_End-Nem_TitleCard)/32)-1,d0; the title card art lenght, in tiles
+        jsr LoadUncArt          ; load uncompressed art
 		move	#$2300,sr
 		moveq	#0,d0
 		move.b	($FFFFFE10).w,d0
@@ -3751,6 +3805,7 @@ loc_3946:
 		bsr.w	LevelSizeLoad
 		bsr.w	DeformBgLayer
 		bset	#2,($FFFFF754).w
+		bsr.w	LoadZoneTiles	; load level art			
 		bsr.w	MainLoadBlockLoad ; load block mappings	and pallets
 		bsr.w	LoadTilesFromStart
 		jsr	FloorLog_Unk
@@ -3760,7 +3815,8 @@ loc_3946:
 		tst.w	($FFFFFFF0).w
 		bmi.s	Level_ChkDebug
 		move.b	#$21,($FFFFD040).w ; load HUD object
-
+        move.b    #1,($FFFFFFD0).w
+		
 Level_ChkDebug:
 		tst.b	($FFFFFFE2).w	; has debug cheat been entered?
 		beq.s	Level_ChkWater	; if not, branch
@@ -4753,6 +4809,7 @@ SS_ClrNemRam:
 		move.l	#0,($FFFFF700).w
 		move.l	#0,($FFFFF704).w
 		move.b	#9,($FFFFD000).w ; load	special	stage Sonic object
+        move.b    #0,($FFFFFFD0).w
 		bsr.w	PalCycle_SS
 		clr.w	($FFFFF780).w	; set stage angle to "upright"
 		move.b	#$FF,(v_ssangleprev).w	; fill previous angle with obviously false value to force an update
@@ -4841,9 +4898,10 @@ loc_47D4:
 		move.w	#$8407,(a6)
 		move.w	#$9001,(a6)
 		bsr.w	ClearScreen
-		move.l	#$70000002,($C00004).l
-		lea	(Nem_TitleCard).l,a0 ; load title card patterns
-		bsr.w	NemDec
+        move.l  #$70000002,($C00004)        ; set mode "VRAM Write to $B000"
+        lea Nem_TitleCard,a0        ; load title card patterns
+        move.l  #((Nem_TitleCard_End-Nem_TitleCard)/32)-1,d0; the title card art lenght, in tiles
+        jsr LoadUncArt          ; load uncompressed art
 		jsr	Hud_Base
 		move	#$2300,sr
 		moveq	#$11,d0
@@ -5295,9 +5353,10 @@ Cont_ClrObjRam:
 		move.l	d0,(a1)+
 		dbf	d1,Cont_ClrObjRam ; clear object RAM
 
-		move.l	#$70000002,($C00004).l
-		lea	(Nem_TitleCard).l,a0 ; load title card patterns
-		bsr.w	NemDec
+        move.l  #$70000002,($C00004)        ; set mode "VRAM Write to $B000"
+        lea Nem_TitleCard,a0        ; load title card patterns
+        move.l  #((Nem_TitleCard_End-Nem_TitleCard)/32)-1,d0; the title card art lenght, in tiles
+        jsr LoadUncArt          ; load uncompressed art
 		move.l	#$60000002,($C00004).l
 		lea	(Nem_ContSonic).l,a0 ; load Sonic patterns
 		bsr.w	NemDec
@@ -5320,6 +5379,7 @@ Cont_ClrObjRam:
 		move.b	#4,($FFFFD09A).w
 		move.b	#$80,($FFFFD0C0).w
 		move.b	#4,($FFFFD0E4).w
+		move.b    #0,($FFFFFFD0).w
 		jsr	ObjectsLoad
 		jsr	BuildSprites
 		move.w	($FFFFF60C).w,d0
@@ -5371,6 +5431,7 @@ Cont_GotoLevel:				; XREF: Cont_MainLoop
 		move.l	d0,($FFFFFE26).w ; clear score
 		move.b	d0,($FFFFFE30).w ; clear lamppost count
 		subq.b	#1,($FFFFFE18).w ; subtract 1 from continues
+        move.l  #$1388,($FFFFFFC0).w    ; Initialize score limit for 1-up (50000)			
 		rts	
 ; ===========================================================================
 
@@ -5630,6 +5691,7 @@ End_LoadData:
 		bsr.w	LevelSizeLoad
 		bsr.w	DeformBgLayer
 		bset	#2,($FFFFF754).w
+		bsr.w	LoadZoneTiles	; load level art			
 		bsr.w	MainLoadBlockLoad
 		bsr.w	LoadTilesFromStart
 		move.l	#Col_GHZ,($FFFFF796).w ; load collision	index
@@ -5652,6 +5714,7 @@ End_LoadSonic:
 		move.w	#$400,($FFFFF602).w ; move Sonic to the	left
 		move.w	#$F800,($FFFFD014).w ; set Sonic's speed
 		move.b	#$21,($FFFFD040).w ; load HUD object
+        move.b    #1,($FFFFFFD0).w
 		jsr	ObjPosLoad
 		jsr	ObjectsLoad
 		jsr	BuildSprites
@@ -6089,6 +6152,7 @@ Cred_ClrPallet:
 		moveq	#$14,d0
 		bsr.w	PalLoad1	; load Sonic's pallet
 		move.b	#$8A,($FFFFD080).w ; load credits object
+        move.b    #0,($FFFFFFD0).w
 		move.b	#face_neutrall,(SonimeSST+sonime_face).w
 		jsr	ObjectsLoad
 		jsr	BuildSprites
@@ -8445,9 +8509,72 @@ loc_712C:
 		lsr.w	#5,d0
 		andi.w	#$7F,d0	; '?'
 		add.w	d3,d0
-		moveq	#-1,d3
-		move.b	(a4,d0.w),d3
-		beq.s	locret_7172
+		tst.b	($FFFFFE10).w	
+		beq.s	@ghz		
+		cmpi.b	#1,($FFFFFE10).w	
+		beq.s	@lz		
+		cmpi.b	#2,($FFFFFE10).w	
+		beq.s	@mz		
+		cmpi.b	#3,($FFFFFE10).w	
+		beq.s	@slz		
+		cmpi.b	#4,($FFFFFE10).w	
+		beq.s	@syz		
+		cmpi.b	#5,($FFFFFE10).w	
+		beq.s	@sbz				
+		cmpi.b	#6,($FFFFFE10).w ; are we in the ending sequence?
+		beq.s	@ghz		; if yes, branch
+		moveq	#-1,d3		; load chunks from RAM
+		bsr.s	LocateBlock
+		bra.s	@continue
+
+@ghz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_GHZ,d3
+		bra.w	@continue
+	
+@lz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_LZ,d3
+		bra.w	@continue
+		
+@mz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_MZ,d3
+		bra.w	@continue
+		
+@slz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_SLZ,d3
+		bra.w	@continue
+		
+@syz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_SYZ,d3
+		bra.w	@continue
+		
+@sbz:
+		moveq	#0,d3
+		bsr.s	LocateBlock
+		add.l	#Blk256_SBZ,d3		
+		bra.w	@continue
+		
+@continue:
+		movea.l	d3,a0
+		move.w	(a0),d3
+		andi.w	#$3FF,d3
+		lsl.w	#3,d3
+		adda.w	d3,a1
+		rts	
+; ---------------------------------------------------------------------------
+
+LocateBlock:
+		move.b	(a4,d0.w),d3	; load chunk ID in d3
+		beq.s	LocateBlock_EmptyChunk
 		subq.b	#1,d3
 		andi.w	#$7F,d3	; '?'
 		ror.w	#7,d3
@@ -8456,14 +8583,12 @@ loc_712C:
 		andi.w	#$1E,d5
 		add.w	d4,d3
 		add.w	d5,d3
-		movea.l	d3,a0
-		move.w	(a0),d3
-		andi.w	#$3FF,d3
-		lsl.w	#3,d3
-		adda.w	d3,a1
+		rts
+; ---------------------------------------------------------------------------
 
-locret_7172:
-		rts	
+LocateBlock_EmptyChunk:
+		addq.w	#4,sp	; pop a stack frame to leave a1 pointing at the first tile
+		rts
 ; End of function sub_712A
 
 
@@ -8652,6 +8777,47 @@ locret_72EE:
 		rts	
 ; End of function sub_72BA
 
+LoadZoneTiles:
+		moveq	#0,d0			; Clear d0
+		move.b	($FFFFFE10).w,d0		; Load number of current zone to d0
+		lsl.w	#4,d0			; Multiply by $10, converting the zone ID into an offset
+		lea	(MainLoadBlocks).l,a2	; Load LevelHeaders's address into a2
+		lea	(a2,d0.w),a2		; Offset LevelHeaders by the zone-offset, and load the resultant address to a2
+		move.l	(a2)+,d0		; Move the first longword of data that a2 points to to d0, this contains the zone's first PLC ID and its art's address.
+						; The auto increment is pointless as a2 is overwritten later, and nothing reads from a2 before then
+		andi.l	#$FFFFFF,d0    		; Filter out the first byte, which contains the first PLC ID, leaving the address of the zone's art in d0
+		movea.l	d0,a0			; Load the address of the zone's art into a0 (source)
+		lea	($FF0000).l,a1		; Load v_256x256/StartOfRAM (in this context, an art buffer) into a1 (destination)
+		bsr.w	KosDec			; Decompress a0 to a1 (Kosinski compression)
+
+		move.w	a1,d3			; Move a word of a1 to d3, note that a1 doesn't exactly contain the address of v_256x256/StartOfRAM anymore, after KosDec, a1 now contains v_256x256/StartOfRAM + the size of the file decompressed to it, d3 now contains the length of the file that was decompressed
+		move.w	d3,d7			; Move d3 to d7, for use in seperate calculations
+
+		andi.w	#$FFF,d3		; Remove the high nibble of the high byte of the length of decompressed file, this nibble is how many $1000 bytes the decompressed art is
+		lsr.w	#1,d3			; Half the value of 'length of decompressed file', d3 becomes the 'DMA transfer length'
+
+		rol.w	#4,d7			; Rotate (left) length of decompressed file by one nibble
+		andi.w	#$F,d7			; Only keep the low nibble of low byte (the same one filtered out of d3 above), this nibble is how many $1000 bytes the decompressed art is
+
+@loop:		move.w	d7,d2			; Move d7 to d2, note that the ahead dbf removes 1 byte from d7 each time it loops, meaning that the following calculations will have different results each time
+		lsl.w	#7,d2
+		lsl.w	#5,d2			; Shift (left) d2 by $C, making it high nibble of the high byte, d2 is now the size of the decompressed file rounded down to the nearest $1000 bytes, d2 becomes the 'destination address'
+
+		move.l	#$FFFFFF,d1		; Fill d1 with $FF
+		move.w	d2,d1			; Move d2 to d1, overwriting the last word of $FF's with d2, this turns d1 into 'StartOfRAM'+'However many $1000 bytes the decompressed art is', d1 becomes the 'source address'
+
+		jsr	(QueueDMATransfer).l	; Use d1, d2, and d3 to locate the decompressed art and ready for transfer to VRAM
+		move.w	d7,-(sp)		; Store d7 in the Stack
+		move.b	#$C,($FFFFF62A).w
+		bsr.w	DelayProgram
+		bsr.w	RunPLC_RAM
+		move.w	(sp)+,d7		; Restore d7 from the Stack
+		move.w	#$800,d3		; Force the DMA transfer length to be $1000/2 (the first cycle is dynamic because the art's DMA'd backwards)
+		dbf	d7,@loop		; Loop for each $1000 bytes the decompressed art is
+
+		rts
+; End of function LoadZoneTiles
+
 ; ---------------------------------------------------------------------------
 ; Main Load Block loading subroutine
 ; ---------------------------------------------------------------------------
@@ -8674,6 +8840,14 @@ MainLoadBlockLoad:			; XREF: Level; EndingSequence
 		movea.l	(a2)+,a0
 		lea	($FF0000).l,a1	; RAM address for 256x256 mappings
 		bsr.w	KosDec
+		tst.b	($FFFFFE10).w	; are we in Green Hill Zone?
+		beq.s	@no_dec		; if yes, branch
+		cmpi.b	#6,($FFFFFE10).w ; are we in the ending sequence?
+		beq.s	@no_dec		; if yes, branch
+		lea	($FF0000).l,a1	; RAM address for 256x256 mappings
+		bsr.w	KosDec
+
+@no_dec:		
 		bsr.w	LevelLayoutLoad
 		move.w	(a2)+,d0
 		move.w	(a2),d0
@@ -17261,11 +17435,16 @@ BldSpr_ScrPos:	dc.l 0			; blank
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-BuildSprites:				; XREF: TitleScreen; et al
-		lea	($FFFFF800).w,a2 ; set address for sprite table
-		bsr.w	Obj02
-		lea	($FFFFAC00).w,a4
-		moveq	#7,d7
+BuildSprites:                ; XREF: TitleScreen; et al
+        lea    ($FFFFF800).w,a2 ; set address for sprite table
+        moveq    #0,d5
+        moveq    #0,d4
+        tst.b    ($FFFFFFD0).w ; this was level_started_flag
+        beq.s    BuildSprites_2
+        jsr    loc_40804
+BuildSprites_2:
+        lea    ($FFFFAC00).w,a4
+        moveq    #7,d7
 
 loc_D66A:
 		tst.w	(a4)
@@ -19509,8 +19688,12 @@ GotThroughAct:				; XREF: Obj3E_EndAct
 		clr.b	($FFFFFE2D).w	; disable invincibility
 		clr.b	($FFFFFE1E).w	; stop time counter
 		move.b	#$3A,($FFFFD5C0).w
-		moveq	#$10,d0
-		jsr	(LoadPLC2).l	; load title card patterns
+        move.l  a0,-(sp)            ; save object address to stack
+        move.l  #$70000002,($C00004)        ; set mode "VRAM Write to $B000"
+        lea Nem_TitleCard,a0        ; load title card patterns
+        move.l  #((Nem_TitleCard_End-Nem_TitleCard)/32)-1,d0; the title card art lenght, in tiles
+        jsr LoadUncArt          ; load uncompressed art
+        move.l  (sp)+,a0            ; get object address from stack
 		move.b	#1,($FFFFF7D6).w
 		moveq	#0,d0
 		move.b	($FFFFFE23).w,d0
@@ -26459,41 +26642,41 @@ SonicAniData:
 
 
 LoadSonicDynPLC:			; XREF: Obj01_Control; et al
-		moveq #0,d0
-		move.b $1A(a0),d0 ; load frame number
-		cmp.b ($FFFFF766).w,d0
-		beq.s locret_13C96
-		move.b d0,($FFFFF766).w
-		lea (SonicDynPLC).l,a2
-		add.w d0,d0
-		adda.w (a2,d0.w),a2
-		moveq #0,d5
-		move.b (a2)+,d5
-		subq.w #1,d5
-		bmi.s locret_13C96
-		move.w #$F000,d4
-		move.l #Art_Sonic,d6
+		moveq	#0,d0
+		move.b	$1A(a0),d0	; load frame number
+		cmp.b	($FFFFF766).w,d0
+		beq.w	locret_13C96
+		move.b	d0,($FFFFF766).w
+		lea	(SonicDynPLC).l,a2	
+		add.w	d0,d0
+		adda.w	(a2,d0.w),a2
+		moveq	#0,d5
+		move.b	(a2)+,d5
+		subq.w	#1,d5
+		bmi.s	locret_13C96
+		move.w	#$F000,d4
+		move.l	#Art_Sonic,d6
 
 SPLC_ReadEntry:
-		moveq #0,d1
-		move.b (a2)+,d1
-		lsl.w #8,d1
-		move.b (a2)+,d1
-		move.w d1,d3
-		lsr.w #8,d3
-		andi.w #$F0,d3
-		addi.w #$10,d3
-		andi.w #$FFF,d1
-		lsl.l #5,d1
-		add.l d6,d1
-		move.w d4,d2
-		add.w d3,d4
-		add.w d3,d4
-		jsr (QueueDMATransfer).l
-		dbf d5,SPLC_ReadEntry ; repeat for number of entries
-
+		moveq	#0,d1
+		move.b	(a2)+,d1
+		lsl.w	#8,d1
+		move.b	(a2)+,d1
+		move.w	d1,d3
+		lsr.w	#8,d3
+		andi.w	#$F0,d3
+		addi.w	#$10,d3
+		andi.w	#$FFF,d1
+		lsl.l	#5,d1
+		add.l	d6,d1
+		move.w	d4,d2
+		add.w	d3,d4
+		add.w	d3,d4
+		jsr	(QueueDMATransfer).l
+		dbf	d5,SPLC_ReadEntry	; repeat for number of entries
+ 
 locret_13C96:
-		rts 
+		rts	
 ; End of function LoadSonicDynPLC
 
 ; ===========================================================================
@@ -27699,20 +27882,12 @@ loc_14942:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Floor_ChkTile:				; XREF: FindFloor; et al
-		move.w	d2,d0
-		lsr.w	#1,d0
-		andi.w	#$380,d0
-		move.w	d3,d1
-		lsr.w	#8,d1
-		andi.w	#$7F,d1
-		add.w	d1,d0
-		moveq	#-1,d1
+Floor_ChkTile_LocateBlock:
 		lea	($FFFFA400).w,a1
 		move.b	(a1,d0.w),d1
-		beq.s	loc_14996
+		beq.s	Floor_ChkTile_EmptyChunk	; if the chunk ID is 0 (empty chunk), branch
 		bmi.s	loc_1499A
-		subq.b	#1,d1
+		subq.b	#1,d1		; the empty chunk is not included in the chunk mappings, subtract 1 to read the correct data
 		ext.w	d1
 		ror.w	#7,d1
 		move.w	d2,d0
@@ -27723,11 +27898,8 @@ Floor_ChkTile:				; XREF: FindFloor; et al
 		lsr.w	#3,d0
 		andi.w	#$1E,d0
 		add.w	d0,d1
-
-loc_14996:
-		movea.l	d1,a1
 		rts	
-; ===========================================================================
+; ---------------------------------------------------------------------------
 
 loc_1499A:
 		andi.w	#$7F,d1
@@ -27749,8 +27921,90 @@ loc_149B2:
 		lsr.w	#3,d0
 		andi.w	#$1E,d0
 		add.w	d0,d1
+		rts	
+; ---------------------------------------------------------------------------
+
+Floor_ChkTile_EmptyChunk:
+		lea	($FFFFFF00).w,a1	; override a1
+		addq.w	#4,sp			; pop a stack frame to avoid adding the address of the chunk mappings to a1
+		rts	
+
+; ---------------------------------------------------------------------------
+; Subroutine to	find which tile	the object is standing on
+; ---------------------------------------------------------------------------
+
+; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
+
+
+Floor_ChkTile:				; XREF: FindFloor; et al
+		move.w	d2,d0
+		lsr.w	#1,d0
+		andi.w	#$380,d0
+		move.w	d3,d1
+		lsr.w	#8,d1
+		andi.w	#$7F,d1
+		add.w	d1,d0
+		tst.b	($FFFFFE10).w	; are we in Green Hill Zone?
+		beq.s	@ghz		; if yes, branch		
+		cmpi.b	#1,($FFFFFE10).w	
+		beq.s	@lz		
+		cmpi.b	#2,($FFFFFE10).w	
+		beq.s	@mz		
+		cmpi.b	#3,($FFFFFE10).w	
+		beq.s	@slz		
+		cmpi.b	#4,($FFFFFE10).w	
+		beq.s	@syz		
+		cmpi.b	#5,($FFFFFE10).w	
+		beq.s	@sbz				
+		cmpi.b	#6,($FFFFFE10).w ; are we in the ending sequence?
+		beq.s	@ghz		; if yes, branch
+		moveq	#-1,d1
+		bsr.w	Floor_ChkTile_LocateBlock
 		movea.l	d1,a1
 		rts	
+; ---------------------------------------------------------------------------
+
+@ghz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_GHZ,d1
+		movea.l	d1,a1
+		rts	
+
+@lz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_LZ,d1
+		movea.l	d1,a1
+		rts	
+
+@mz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_MZ,d1
+		movea.l	d1,a1
+		rts	
+
+@slz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_SLZ,d1
+		movea.l	d1,a1
+		rts	
+
+@syz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_SYZ,d1
+		movea.l	d1,a1
+		rts	
+
+@sbz:
+		moveq	#0,d1
+		bsr.w	Floor_ChkTile_LocateBlock
+		add.l	#Blk256_SBZ,d1
+		movea.l	d1,a1
+		rts			
 ; End of function Floor_ChkTile
 
 
@@ -27758,7 +28012,7 @@ loc_149B2:
 
 
 FindFloor:				; XREF: Sonic_AnglePos; et al
-		bsr.s	Floor_ChkTile
+		bsr.w	Floor_ChkTile
 		move.w	(a1),d0
 		move.w	d0,d4
 		andi.w	#$7FF,d0
@@ -34861,8 +35115,10 @@ loc_19F6A:
 		move.w	d0,($FFFFD010).w
 		tst.b	$35(a0)
 		bne.s	loc_19F88
+		tst.b	$21(a0)	;has the boss been defeated?
+		beq.s	loc_19F9C	;if so, don't let it be hit again.		
 		subq.b	#1,$21(a0)
-		move.b	#$64,$35(a0)
+		move.b	#255,$35(a0)
 		move.w	#$AC,d0
 		jsr	(PlaySound_Special).l ;	play boss damage sound
 
@@ -38224,46 +38480,51 @@ loc_1C518:
 ; End of function AniArt_GiantRing
 
 ; ===========================================================================
+Obj21:                    ; XREF: Obj_Index
+        rts
+; ===========================================================================
 ; ---------------------------------------------------------------------------
-; Object 21 - SCORE, TIME, RINGS
+; HUD Object code - SCORE, TIME, RINGS
 ; ---------------------------------------------------------------------------
+loc_40804:
+    tst.w    ($FFFFFE20).w
+    beq.s    loc_40820
+    moveq    #0,d1
+    btst    #3,($FFFFFE05).w
+    bne.s    BranchTo_loc_40836
+    cmpi.b    #9,($FFFFFE23).w
+    bne.s    BranchTo_loc_40836
+    addq.w    #2,d1
 
-Obj21:					; XREF: Obj_Index
-		moveq	#0,d0
-		move.b	$24(a0),d0
-		move.w	Obj21_Index(pc,d0.w),d1
-		jmp	Obj21_Index(pc,d1.w)
-; ===========================================================================
-Obj21_Index:	dc.w Obj21_Main-Obj21_Index
-		dc.w Obj21_Flash-Obj21_Index
-; ===========================================================================
-
-Obj21_Main:				; XREF: Obj21_Main
-		addq.b	#2,$24(a0)
-		move.w	#$90,8(a0)
-		move.w	#$108,$A(a0)
-		move.l	#Map_obj21,4(a0)
-		move.w	#$6CA,2(a0)
-		move.b	#0,1(a0)
-		move.b	#0,$18(a0)
-
-Obj21_Flash:				; XREF: Obj21_Main
-		moveq	#0,d0
-		btst	#3,($FFFFFE05).w
-		bne.s	Obj21_Display
-		tst.w	($FFFFFE20).w	; do you have any rings?
-		bne.s	Obj21_Flash2	; if not, branch
-		addq.w	#1,d0		; make ring counter flash red
+BranchTo_loc_40836
+    bra.s    loc_40836
 ; ===========================================================================
 
-Obj21_Flash2:
-		cmpi.b	#9,($FFFFFE23).w ; have	9 minutes elapsed?
-		bne.s	Obj21_Display	; if not, branch
-		addq.w	#2,d0		; make time counter flash red
+loc_40820:
+    moveq    #0,d1
+    btst    #3,($FFFFFE05).w
+    bne.s    loc_40836
+    addq.w    #1,d1
+    cmpi.b    #9,($FFFFFE23).w
+    bne.s    loc_40836
+    addq.w    #2,d1
 
-Obj21_Display:
-		move.b	d0,$1A(a0)
-		jmp	DisplaySprite
+loc_40836:
+    move.w    #$90,d3
+    move.w    #$108,d2
+    lea    (Map_Obj21).l,a1
+    movea.w    #$6CA,a3
+    add.w    d1,d1
+    adda.w    (a1,d1.w),a1
+    moveq    #0,d1
+    move.b    (a1)+,d1
+    subq.b    #1,d1
+    bmi.s    return_40858
+    jsr    sub_D762
+
+return_40858:
+    rts
+; End of function h
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - SCORE, TIME, RINGS
@@ -38278,25 +38539,24 @@ Map_obj21:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-AddPoints:
-		move.b	#1,($FFFFFE1F).w ; set score counter to	update
-		lea	($FFFFFFC0).w,a2
-		lea	($FFFFFE26).w,a3
-		add.l	d0,(a3)		; add d0*10 to the score
-		move.l	#999999,d1
-		cmp.l	(a3),d1		; is #999999 higher than the score?
-		bhi.w	loc_1C6AC	; if yes, branch
-		move.l	d1,(a3)		; reset	score to #999999
-		move.l	d1,(a2)
+AddPoints:                      ; ...
+        move.b    #1,($FFFFFE1F).w
+        lea    ($FFFFFE26).w,a3
+        add.l    d0,(a3)
+        move.l    #999999,d1
+        cmp.l    (a3),d1
+        bhi.s    loc_1C6AC
+        move.l    d1,(a3)
 
-loc_1C6AC:
-		move.l	(a3),d0
-		cmp.l	(a2),d0
-		bcs.w	locret_1C6B6
-		move.l	d0,(a2)
+loc_1C6AC:                      ; ...
+        move.l    (a3),d0
+        cmp.l    ($FFFFFFC0).w,d0
+        blo.s    locret_1C6B6
+        add.l    #$1388,($FFFFFFC0).w
+        jmp        ExtraLife
 
 locret_1C6B6:
-		rts	
+		rts
 ; End of function AddPoints
 
 ; ---------------------------------------------------------------------------
@@ -39465,8 +39725,8 @@ Nem_Cater:	incbin	artnem\caterkil.bin	; caterkiller
 ; ---------------------------------------------------------------------------
 ; Compressed graphics - various
 ; ---------------------------------------------------------------------------
-Nem_TitleCard:	incbin	artnem\ttlcards.bin	; title cards
-		even
+Nem_TitleCard:      incbin  artnem\ttlcards.bin ; title cards
+Nem_TitleCard_End:  even
 Nem_Hud:	incbin	artnem\hud.bin		; HUD (rings, time, score)
 		even
 Nem_Lives:	incbin	artnem\lifeicon.bin	; life counter icon
@@ -39524,39 +39784,39 @@ Blk16_GHZ:	incbin	map16\ghz.bin
 		even
 Nem_GHZ_1st:	incbin	artnem\8x8ghz1.bin	; GHZ primary patterns
 		even
-Nem_GHZ_2nd:	incbin	artnem\8x8ghz2.bin	; GHZ secondary patterns
+Nem_GHZ_2nd:	incbin	artnem\8x8ghz.kos	; GHZ secondary patterns
 		even
-Blk256_GHZ:	incbin	map256\ghz.bin
+Blk256_GHZ:	incbin	map256_u\ghz.bin
 		even
 Blk16_LZ:	incbin	map16\lz.bin
 		even
-Nem_LZ:		incbin	artnem\8x8lz.bin	; LZ primary patterns
+Nem_LZ:		incbin	artnem\8x8lz.kos	; LZ primary patterns
 		even
-Blk256_LZ:	incbin	map256\lz.bin
+Blk256_LZ:	incbin	map256_u\lz.bin
 		even
 Blk16_MZ:	incbin	map16\mz.bin
 		even
-Nem_MZ:		incbin	artnem\8x8mz.bin	; MZ primary patterns
+Nem_MZ:		incbin	artnem\8x8mz.kos	; MZ primary patterns
 		even
-Blk256_MZ:	incbin	map256\mz.bin
+Blk256_MZ:	incbin	map256_u\mz.bin
 		even
 Blk16_SLZ:	incbin	map16\slz.bin
 		even
-Nem_SLZ:	incbin	artnem\8x8slz.bin	; SLZ primary patterns
+Nem_SLZ:	incbin	artnem\8x8slz.kos	; SLZ primary patterns
 		even
-Blk256_SLZ:	incbin	map256\slz.bin
+Blk256_SLZ:	incbin	map256_u\slz.bin
 		even
 Blk16_SYZ:	incbin	map16\syz.bin
 		even
-Nem_SYZ:	incbin	artnem\8x8syz.bin	; SYZ primary patterns
+Nem_SYZ:	incbin	artnem\8x8syz.kos	; SYZ primary patterns
 		even
-Blk256_SYZ:	incbin	map256\syz.bin
+Blk256_SYZ:	incbin	map256_u\syz.bin
 		even
 Blk16_SBZ:	incbin	map16\sbz.bin
 		even
-Nem_SBZ:	incbin	artnem\8x8sbz.bin	; SBZ primary patterns
+Nem_SBZ:	incbin	artnem\8x8sbz.kos	; SBZ primary patterns
 		even
-Blk256_SBZ:	incbin	map256\sbz.bin
+Blk256_SBZ:	incbin	map256_u\sbz.bin
 		even
 ; ---------------------------------------------------------------------------
 ; Compressed graphics - bosses and ending sequence

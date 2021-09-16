@@ -10,7 +10,7 @@
 		dc.w byte_17DC8-Map_Eggman
 byte_17D26:	dc.b 6
 		dc.b $EC, 1, 0,	$A, $E4
-		dc.b $EC, 5, 0,	$C, $C
+		dc.b $EC, 1, 0,	$E, $14
 		dc.b $FC, $E, $20, $10,	$E4
 		dc.b $FC, $E, $20, $1C,	4
 		dc.b $14, $C, $20, $28,	$EC
