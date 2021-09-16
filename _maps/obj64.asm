@@ -1,67 +1,76 @@
-; ---------------------------------------------------------------------------
-; Sprite mappings - bubbles (LZ)
-; ---------------------------------------------------------------------------
-		dc.w byte_129FA-Map_obj64, byte_12A00-Map_obj64
-		dc.w byte_12A06-Map_obj64, byte_12A0C-Map_obj64
-		dc.w byte_12A12-Map_obj64, byte_12A18-Map_obj64
-		dc.w byte_12A1E-Map_obj64, byte_12A24-Map_obj64
-		dc.w byte_12A39-Map_obj64, byte_12A4E-Map_obj64
-		dc.w byte_12A54-Map_obj64, byte_12A5A-Map_obj64
-		dc.w byte_12A60-Map_obj64, byte_12A66-Map_obj64
-		dc.w byte_12A6C-Map_obj64, byte_12A72-Map_obj64
-		dc.w byte_12A78-Map_obj64, byte_12A7E-Map_obj64
-		dc.w byte_12A84-Map_obj64, byte_12A8A-Map_obj64
-		dc.w byte_12A90-Map_obj64, byte_12A96-Map_obj64
-		dc.w byte_12A9C-Map_obj64
-byte_129FA:	dc.b 1
-		dc.b $FC, 0, 0,	0, $FC
-byte_12A00:	dc.b 1
-		dc.b $FC, 0, 0,	1, $FC
-byte_12A06:	dc.b 1
-		dc.b $FC, 0, 0,	2, $FC
-byte_12A0C:	dc.b 1
-		dc.b $F8, 5, 0,	3, $F8
-byte_12A12:	dc.b 1
-		dc.b $F8, 5, 0,	7, $F8
-byte_12A18:	dc.b 1
-		dc.b $F4, $A, 0, $B, $F4
-byte_12A1E:	dc.b 1
-		dc.b $F0, $F, 0, $14, $F0
-byte_12A24:	dc.b 4
-		dc.b $F0, 5, 0,	$24, $F0
-		dc.b $F0, 5, 8,	$24, 0
-		dc.b 0,	5, $10,	$24, $F0
-		dc.b 0,	5, $18,	$24, 0
-byte_12A39:	dc.b 4
-		dc.b $F0, 5, 0,	$28, $F0
-		dc.b $F0, 5, 8,	$28, 0
-		dc.b 0,	5, $10,	$28, $F0
-		dc.b 0,	5, $18,	$28, 0
-byte_12A4E:	dc.b 1
-		dc.b $F4, 6, 0,	$2C, $F8
-byte_12A54:	dc.b 1
-		dc.b $F4, 6, 0,	$32, $F8
-byte_12A5A:	dc.b 1
-		dc.b $F4, 6, 0,	$38, $F8
-byte_12A60:	dc.b 1
-		dc.b $F4, 6, 0,	$3E, $F8
-byte_12A66:	dc.b 1
-		dc.b $F4, 6, $20, $44, $F8
-byte_12A6C:	dc.b 1
-		dc.b $F4, 6, $20, $4A, $F8
-byte_12A72:	dc.b 1
-		dc.b $F4, 6, $20, $50, $F8
-byte_12A78:	dc.b 1
-		dc.b $F4, 6, $20, $56, $F8
-byte_12A7E:	dc.b 1
-		dc.b $F4, 6, $20, $5C, $F8
-byte_12A84:	dc.b 1
-		dc.b $F4, 6, $20, $62, $F8
-byte_12A8A:	dc.b 1
-		dc.b $F8, 5, 0,	$68, $F8
-byte_12A90:	dc.b 1
-		dc.b $F8, 5, 0,	$6C, $F8
-byte_12A96:	dc.b 1
-		dc.b $F8, 5, 0,	$70, $F8
-byte_12A9C:	dc.b 0
-		even
+bubmap:
+bubmap_0: 	dc.w bubmap_2E-bubmap
+bubmap_2: 	dc.w bubmap_34-bubmap
+bubmap_4: 	dc.w bubmap_3A-bubmap
+bubmap_6: 	dc.w bubmap_40-bubmap
+bubmap_8: 	dc.w bubmap_46-bubmap
+bubmap_A: 	dc.w bubmap_4C-bubmap
+bubmap_C: 	dc.w bubmap_52-bubmap
+bubmap_E: 	dc.w bubmap_58-bubmap
+bubmap_10: 	dc.w bubmap_6D-bubmap
+bubmap_12: 	dc.w bubmap_82-bubmap
+bubmap_14: 	dc.w bubmap_88-bubmap
+bubmap_16: 	dc.w bubmap_8E-bubmap
+bubmap_18: 	dc.w bubmap_94-bubmap
+bubmap_1A: 	dc.w bubmap_9A-bubmap
+bubmap_1C: 	dc.w bubmap_A0-bubmap
+bubmap_1E: 	dc.w bubmap_A6-bubmap
+bubmap_20: 	dc.w bubmap_AC-bubmap
+bubmap_22: 	dc.w bubmap_B2-bubmap
+bubmap_24: 	dc.w bubmap_B8-bubmap
+bubmap_26: 	dc.w bubmap_BE-bubmap
+bubmap_28: 	dc.w bubmap_C4-bubmap
+bubmap_2A: 	dc.w bubmap_CA-bubmap
+bubmap_2C: 	dc.w bubmap_D0-bubmap
+bubmap_2E: 	dc.b $1
+	dc.b $FC, $0, $60, $0, $FC
+bubmap_34: 	dc.b $1
+	dc.b $FC, $0, $60, $1, $FC
+bubmap_3A: 	dc.b $1
+	dc.b $FC, $0, $60, $2, $FC
+bubmap_40: 	dc.b $1
+	dc.b $F8, $5, $60, $3, $F8
+bubmap_46: 	dc.b $1
+	dc.b $F8, $5, $60, $7, $F8
+bubmap_4C: 	dc.b $1
+	dc.b $F4, $A, $60, $B, $F4
+bubmap_52: 	dc.b $1
+	dc.b $F0, $F, $60, $14, $F0
+bubmap_58: 	dc.b $4
+	dc.b $F0, $5, $60, $24, $F0
+	dc.b $F0, $5, $68, $24, $0
+	dc.b $0, $5, $70, $24, $F0
+	dc.b $0, $5, $78, $24, $0
+bubmap_6D: 	dc.b $4
+	dc.b $F0, $5, $60, $28, $F0
+	dc.b $F0, $5, $68, $28, $0
+	dc.b $0, $5, $70, $28, $F0
+	dc.b $0, $5, $78, $28, $0
+bubmap_82: 	dc.b $1
+	dc.b $F4, $6, $0, $2C, $F8
+bubmap_88: 	dc.b $1
+	dc.b $F4, $6, $0, $32, $F8
+bubmap_8E: 	dc.b $1
+	dc.b $F4, $6, $0, $38, $F8
+bubmap_94: 	dc.b $1
+	dc.b $F4, $6, $0, $3E, $F8
+bubmap_9A: 	dc.b $1
+	dc.b $F4, $6, $20, $44, $F8
+bubmap_A0: 	dc.b $1
+	dc.b $F4, $6, $20, $4A, $F8
+bubmap_A6: 	dc.b $1
+	dc.b $F4, $6, $20, $50, $F8
+bubmap_AC: 	dc.b $1
+	dc.b $F4, $6, $20, $56, $F8
+bubmap_B2: 	dc.b $1
+	dc.b $F4, $6, $20, $5C, $F8
+bubmap_B8: 	dc.b $1
+	dc.b $F4, $6, $20, $62, $F8
+bubmap_BE: 	dc.b $1
+	dc.b $F8, $5, $60, $68, $F8
+bubmap_C4: 	dc.b $1
+	dc.b $F8, $5, $60, $6C, $F8
+bubmap_CA: 	dc.b $1
+	dc.b $F8, $5, $60, $70, $F8
+bubmap_D0: 	dc.b $0
+	even

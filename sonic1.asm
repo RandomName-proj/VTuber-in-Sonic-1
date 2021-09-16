@@ -2041,11 +2041,11 @@ loc_1A0A:
 		add.w	d0,d0
 		add.w	d1,d0
 		lea	(Pal_LZCyc2).l,a0
-		lea	($FFFFFB76).w,a1
+		lea	($FFFFFB78).w,a1
 		move.l	(a0,d0.w),(a1)+
 		move.w	4(a0,d0.w),(a1)
 		lea	(Pal_LZCyc3).l,a0
-		lea	($FFFFFAF6).w,a1
+		lea	($FFFFFAF8).w,a1
 		move.l	(a0,d0.w),(a1)+
 		move.w	4(a0,d0.w),(a1)
 
@@ -14064,8 +14064,8 @@ Obj2D_Main:				; XREF: Obj2D_Index
 		move.b	#4,$18(a0)
 		move.b	#5,$20(a0)
 		move.b	#$C,$19(a0)
-		addq.b	#6,$25(a0)	; run "Obj2D_ChkSonic" routine
-		move.b	#2,$1C(a0)
+		addq.b	#8,$25(a0)	; run "Obj2D_ChkSonic" routine
+		move.b	#4,$1C(a0)
 
 Obj2D_Action:				; XREF: Obj2D_Index
 		moveq	#0,d0
@@ -14079,6 +14079,7 @@ Obj2D_Action:				; XREF: Obj2D_Index
 Obj2D_Index2:	dc.w Obj2D_ChgDir-Obj2D_Index2
 		dc.w Obj2D_Move-Obj2D_Index2
 		dc.w Obj2D_Jump-Obj2D_Index2
+		dc.w Obj2D_Jump2-Obj2D_Index2
 		dc.w Obj2D_ChkSonic-Obj2D_Index2
 ; ===========================================================================
 
@@ -14152,7 +14153,16 @@ Obj2D_Jump:				; XREF: Obj2D_Index2
 		move.b	#1,$1C(a0)
 		move.w	#$FF,$30(a0)
 		subq.b	#2,$25(a0)
-		bsr.w	Obj2D_ChkSonic2
+		bra.w	Obj2D_ChkSonic2
+; ===========================================================================
+
+Obj2D_Jump2:				; XREF: Obj2D_Index2
+		bsr.w	SpeedToPos
+		addi.w	#$18,$12(a0)
+		subq.w	#1,$30(a0)
+		bpl.s	locret_ADF0
+		move.b	#2,$1C(a0)
+		subq.b	#2,$25(a0)
 
 locret_ADF0:
 		rts	
@@ -14170,6 +14180,7 @@ Obj2D_ChkSonic:				; XREF: Obj2D_Index2
 		tst.w	($FFFFFE08).w
 		bne.s	locret_AE20
 		subq.b	#2,$25(a0)
+		move.w	#4,$30(a0)
 		move.w	d1,$10(a0)
 		move.w	#-$400,$12(a0)
 
@@ -17437,8 +17448,7 @@ BldSpr_ScrPos:	dc.l 0			; blank
 
 BuildSprites:                ; XREF: TitleScreen; et al
         lea    ($FFFFF800).w,a2 ; set address for sprite table
-        moveq    #0,d5
-        moveq    #0,d4
+        jsr		Obj02
         tst.b    ($FFFFFFD0).w ; this was level_started_flag
         beq.s    BuildSprites_2
         jsr    loc_40804
@@ -39784,37 +39794,37 @@ Blk16_GHZ:	incbin	map16\ghz.bin
 		even
 Nem_GHZ_1st:	incbin	artnem\8x8ghz1.bin	; GHZ primary patterns
 		even
-Nem_GHZ_2nd:	incbin	artnem\8x8ghz.kos	; GHZ secondary patterns
+Nem_GHZ_2nd:	incbin	artkos\8x8ghz.kos	; GHZ secondary patterns
 		even
 Blk256_GHZ:	incbin	map256_u\ghz.bin
 		even
 Blk16_LZ:	incbin	map16\lz.bin
 		even
-Nem_LZ:		incbin	artnem\8x8lz.kos	; LZ primary patterns
+Nem_LZ:		incbin	artkos\8x8lz.kos	; LZ primary patterns
 		even
 Blk256_LZ:	incbin	map256_u\lz.bin
 		even
 Blk16_MZ:	incbin	map16\mz.bin
 		even
-Nem_MZ:		incbin	artnem\8x8mz.kos	; MZ primary patterns
+Nem_MZ:		incbin	artkos\8x8mz.kos	; MZ primary patterns
 		even
 Blk256_MZ:	incbin	map256_u\mz.bin
 		even
 Blk16_SLZ:	incbin	map16\slz.bin
 		even
-Nem_SLZ:	incbin	artnem\8x8slz.kos	; SLZ primary patterns
+Nem_SLZ:	incbin	artkos\8x8slz.kos	; SLZ primary patterns
 		even
 Blk256_SLZ:	incbin	map256_u\slz.bin
 		even
 Blk16_SYZ:	incbin	map16\syz.bin
 		even
-Nem_SYZ:	incbin	artnem\8x8syz.kos	; SYZ primary patterns
+Nem_SYZ:	incbin	artkos\8x8syz.kos	; SYZ primary patterns
 		even
 Blk256_SYZ:	incbin	map256_u\syz.bin
 		even
 Blk16_SBZ:	incbin	map16\sbz.bin
 		even
-Nem_SBZ:	incbin	artnem\8x8sbz.kos	; SBZ primary patterns
+Nem_SBZ:	incbin	artkos\8x8sbz.kos	; SBZ primary patterns
 		even
 Blk256_SBZ:	incbin	map256_u\sbz.bin
 		even
