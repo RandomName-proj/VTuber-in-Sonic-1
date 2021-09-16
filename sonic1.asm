@@ -3128,15 +3128,13 @@ Title_LoadText:
 		move.w	#0,($FFFFFFEA).w
 		move.w	#0,($FFFFFE10).w ; set level to	GHZ (00)
 		move.w	#0,($FFFFF634).w ; disable pallet cycling
+		move.b	#0,(Level_started_flag).w
 		bsr.w	LevelSizeLoad
 		bsr.w	DeformBgLayer
 		lea	($FFFFB000).w,a1
 		lea	(Blk16_GHZ).l,a0 ; load	GHZ 16x16 mappings
 		move.w	#0,d0
 		bsr.w	EniDec
-;		lea	(Blk256_GHZ).l,a0 ; load GHZ 256x256 mappings
-;		lea	($FF0000).l,a1
-;		bsr.w	KosDec
 		bsr.w	LevelLayoutLoad
 		move.w	#$202F,($FFFFF626).w
 		tst.b	(FromSEGA).w
@@ -3827,6 +3825,7 @@ Level_ChkDebug:
 Level_ChkWater:
 		move.w	#0,($FFFFF602).w
 		move.w	#0,($FFFFF604).w
+		move.b	#0,(Level_started_flag).w
 		cmpi.b	#1,($FFFFFE10).w ; is level LZ?
 		bne.s	Level_LoadObj	; if not, branch
 		move.b	#$1B,($FFFFD780).w ; load water	surface	object
@@ -3925,6 +3924,7 @@ Level_ClrCardArt:
 		jsr	(LoadPLC).l	; load animal patterns (level no. + $15)
 
 Level_StartGame:
+		move.b	#1,(Level_started_flag).w
 		bclr	#7,($FFFFF600).w ; subtract 80 from screen mode
 
 ; ---------------------------------------------------------------------------
@@ -3950,6 +3950,7 @@ loc_3B10:
 loc_3B14:
 		jsr	BuildSprites
 		jsr	ObjPosLoad
+		jsr	RingsManager
 		bsr.w	PalCycle_Load
 		bsr.w	RunPLC_RAM
 		bsr.w	OscillateNumDo
@@ -4408,12 +4409,12 @@ LZSlide_Move:				; XREF: LZWaterSlides
 loc_3F84:
 		bclr	#0,$22(a1)
 		move.b	byte_3FC0(pc,d1.w),d0
-		move.b	d0,$14(a1)
+		move.b	d0,$20(a1)
 		bpl.s	loc_3F9A
 		bset	#0,$22(a1)
 
 loc_3F9A:
-		clr.b	$15(a1)
+		clr.b	$21(a1)
 		move.b	#$1B,$1C(a1)	; use Sonic's "sliding" animation
 		move.b	#1,($FFFFF7CA).w ; lock	controls (except jumping)
 		move.b	($FFFFFE0F).w,d0
@@ -4806,6 +4807,7 @@ SS_ClrNemRam:
 		moveq	#$A,d0
 		bsr.w	PalLoad1	; load special stage pallet
 		jsr	SS_Load
+		move.b	#0,(Level_started_flag).w
 		move.l	#0,($FFFFF700).w
 		move.l	#0,($FFFFF704).w
 		move.b	#9,($FFFFD000).w ; load	special	stage Sonic object
@@ -5370,6 +5372,7 @@ Cont_ClrObjRam:
 		move.b	#$90,d0
 		bsr.w	PlaySound	; play continue	music
 		move.w	#659,($FFFFF614).w ; set time delay to 11 seconds
+		move.b	#0,(Level_started_flag).w
 		clr.l	($FFFFF700).w
 		move.l	#$1000000,($FFFFF704).w
 		move.b	#$81,($FFFFD000).w ; load Sonic	object
@@ -5594,20 +5597,20 @@ Obj81_GetUp:				; XREF: Obj81_Animate
 		move.l	#Map_Sonic,4(a0)
 		move.w	#$780,2(a0)
 		move.b	#$1E,$1C(a0)	; use "getting up" animation
-		clr.w	$14(a0)
+		clr.w	$20(a0)
 		subq.w	#8,$C(a0)
 		move.b	#$E0,d0
 		bsr.w	PlaySound_Special ; fade out music
 
 Obj81_Run:				; XREF: Obj81_Index
-		cmpi.w	#$800,$14(a0)	; check	Sonic's "run speed" (not moving)
+		cmpi.w	#$800,$20(a0)	; check	Sonic's "run speed" (not moving)
 		bne.s	Obj81_AddSpeed	; if too low, branch
 		move.w	#$1000,$10(a0)	; move Sonic to	the right
 		bra.s	Obj81_ShowRun
 ; ===========================================================================
 
 Obj81_AddSpeed:				; XREF: Obj81_Run
-		addi.w	#$20,$14(a0)	; increase "run	speed"
+		addi.w	#$20,$20(a0)	; increase "run	speed"
 
 Obj81_ShowRun:				; XREF: Obj81_Run
 		jsr	SpeedToPos
@@ -5712,7 +5715,7 @@ End_LoadSonic:
 		bset	#0,($FFFFD022).w ; make	Sonic face left
 		move.b	#1,($FFFFF7CC).w ; lock	controls
 		move.w	#$400,($FFFFF602).w ; move Sonic to the	left
-		move.w	#$F800,($FFFFD014).w ; set Sonic's speed
+		move.w	#$F800,($FFFFD020).w ; set Sonic's speed
 		move.b	#$21,($FFFFD040).w ; load HUD object
         move.b    #1,($FFFFFFD0).w
 		jsr	ObjPosLoad
@@ -5836,7 +5839,7 @@ End_MoveSonic2:				; XREF: End_MoveSonic
 		moveq	#0,d0
 		move.b	d0,($FFFFF7CC).w
 		move.w	d0,($FFFFF602).w ; stop	Sonic moving
-		move.w	d0,($FFFFD014).w
+		move.w	d0,($FFFFD020).w
 		move.b	#$81,($FFFFF7C8).w
 		move.b	#3,($FFFFD01A).w
 		move.w	#$505,($FFFFD01C).w ; use "standing" animation
@@ -6905,82 +6908,120 @@ Deform_GHZ_9:				; XREF: Deform_GHZ
 		rts	
 ; End of function Deform_GHZ
 
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Scroll routine for Labyrinth Zone - optimised by MarkeyJester
+; ---------------------------------------------------------------------------
 
 Deform_LZ:
-		move.w	($FFFFF73A).w,d4
-		ext.l	d4
-		asl.l	#7,d4
-		move.w	($FFFFF73C).w,d5
-		ext.l	d5
-		asl.l	#7,d5
-		bsr.w	ScrollBlock1
-		move.w	($FFFFF70C).w,($FFFFF618).w
-		lea	(LZ_Wave_Data).l,a3
-		lea	(Obj0A_WobbleData).l,a2
-		move.b	($FFFFF7D8).w,d2
-		move.b	d2,d3
-		addi.w	#$80,($FFFFF7D8).w ; '€'
-		add.w	($FFFFF70C).w,d2
-		andi.w	#$FF,d2
-		add.w	($FFFFF704).w,d3
-		andi.w	#$FF,d3
-		lea	($FFFFCC00).w,a1
-		move.w	#$DF,d1	; 'ß'
-		move.w	($FFFFF700).w,d0
-		neg.w	d0
-		move.w	d0,d6
-		swap	d0
-		move.w	($FFFFF708).w,d0
-		neg.w	d0
-		move.w	($FFFFF646).w,d4
-		move.w	($FFFFF704).w,d5
+		moveq	#$07,d0					; prepare multiplication 100 / 2 for BG scrolling
+		move.w	($FFFFF73A).w,d4			; load horizontal movement distance (Since last frame)
+		ext.l	d4					; extend to long-word signed
+		asl.l	d0,d4					; align as fixed point 16, but divide by 2 for BG
+		move.w	($FFFFF73C).w,d5			; load vertical movement distance (Since last frame)
+		ext.l	d5					; extend to long-word signed
+		asl.l	d0,d5					; align as fixed point 16, but divide by 2 for BG
+		bsr.w	ScrollBlock1				; adjust BG scroll positions (and set draw code direction flags)
+		move.w	($FFFFF70C).w,($FFFFF618).w		; set BG V-scroll position
+		lea	($FFFFCC00).w,a1			; load H-scroll buffer
+		move.w	($FFFFF700).w,d0			; load FG X position
+		neg.w	d0					; reverse
+		swap	d0					; send to upper word
+		move.w	($FFFFF708).w,d0			; load BG X position
+		neg.w	d0					; reverse
+		moveq	#$00,d3					; clear d3
+		move.b	($FFFFF7D8).w,d3			; load wave-scroll timer
+		addi.w	#$0080,($FFFFF7D8).w			; increase wave-scroll timer
+		move.w	#$00E0,d2				; prepare water-line count
+		move.w	($FFFFF646).w,d1			; load water line position
+		sub.w	($FFFFF704).w,d1			; minus FG Y position
+		bmi.s	DLZ_Water				; if the screen is already underwater, branch
+		cmp.w	d2,d1					; is the water line below the screen?
+		ble.s	DLZ_NoWater				; if not, branch
+		move.w	d2,d1					; set at maximum
 
-Deform_LZ_1:				; XREF: Deform_LZ
-		cmp.w	d4,d5
-		bge.s	Deform_LZ_2
-		move.l	d0,(a1)+
-		addq.w	#1,d5
-		addq.b	#1,d2
-		addq.b	#1,d3
-		dbf	d1,Deform_LZ_1
-		rts	
+DLZ_NoWater:
+		sub.w	d1,d2					; subtract from water-line count
+		add.b	d1,d3					; advance scroll wave timer to correct amount
+		subq.b	#$01,d1					; decrease above water count
+		bcs.s	DLZ_Water				; if finished, branch
+
+DLZ_Above:
+		move.l	d0,(a1)+				; save scroll position to buffer
+		dbf	d1,DLZ_Above				; repeat for all above water lines
+
+DLZ_Water:
+		subq.b	#$01,d2					; decrease below water count
+		bcs.s	DLZ_Finish				; if finished, branch
+		move.w	d0,d1					; copy BG position back to d1
+		swap	d0					; move FG position back to lower word in d0
+		move.w	d3,d4					; copy sroll timer for BG use
+		add.b	($FFFFF704+$01).w,d3			; add FG Y position
+		add.b	($FFFFF70C+$01).w,d4			; add BG Y position
+		add.w	d3,d3					; multiply by word size (2)
+		add.w	d4,d4					; ''
+		lea	(DLZ_WaveBG).l,a3			; load beginning of BG wave data
+		adda.w	d4,a3					; advance to correct starting point
+		move.b	(a3),d4					; get current position byte
+		asr.b	#$02,d4					; get only the position bits
+		ext.w	d4					; extend to word
+		add.w	d4,d1					; adjust BG's current position
+		lea	DLZ_WaveFG(pc,d3.w),a2			; load correct starting point of FG wave data
+		move.b	(a2),d4					; get current position byte
+		asr.b	#$02,d4					; get only the position bits
+		ext.w	d4					; extend to word
+		add.w	d4,d0					; adjust FG's current position
+
+DLZ_Below:
+		add.w	(a2)+,d0				; alter FG horizontal position
+		move.w	d0,(a1)+				; save to scroll buffer
+		add.w	(a3)+,d1				; alter BG horizontal position
+		move.w	d1,(a1)+				; save to scroll buffer
+		dbf	d2,DLZ_Below				; repeat for all below water lines
+
+DLZ_Finish:
+		rts						; return
+
+; ---------------------------------------------------------------------------
+; Scroll data for the FG
+; ---------------------------------------------------------------------------
+
+DLZ_WaveFG:
+		rept	$02
+		dc.w	$0001,$0400,$0401,$0800,$0801,$0C00,$0C00,$0C00,$0FFF,$0800,$0BFF,$0400,$07FF,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$03FF,$FC00,$FFFF,$F800,$FBFF,$F400,$F400,$F400,$F401,$F800,$F801,$FC00,$FC01,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0001,$0400,$0401,$0800,$0801,$0C00,$0C00,$0C00,$0FFF,$0800,$0BFF,$0400,$07FF,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		dc.w	$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+		endr
+
+; ---------------------------------------------------------------------------
+; Scroll data for the BG
+; ---------------------------------------------------------------------------
+
+DLZ_WaveBG:	rept	$04
+		dc.w	$FC01,$0000,$0000,$0000,$0000,$0000,$0001,$0400,$0400,$0400,$0400,$0401,$0800,$0800,$0800,$0800
+		dc.w	$0800,$0800,$0801,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00
+		dc.w	$0C01,$13FF,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0C00,$0FFF
+		dc.w	$0800,$0800,$0800,$0800,$0800,$0800,$0BFF,$0400,$0400,$0400,$0400,$07FF,$0000,$0000,$0000,$0000
+		dc.w	$0000,$03FF,$FC00,$FC00,$FC00,$FC00,$FFFF,$F800,$F800,$F800,$F800,$FBFF,$F400,$F400,$F400,$F400
+		dc.w	$F400,$F400,$F7FF,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000
+		dc.w	$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F000,$F001
+		dc.w	$F400,$F400,$F400,$F400,$F400,$F400,$F401,$F800,$F800,$F800,$F800,$F801,$FC00,$FC00,$FC00,$FC00
+		endr
+
 ; ===========================================================================
-
-Deform_LZ_2:				; XREF: Deform_LZ
-		move.b	(a3,d3.w),d4
-		ext.w	d4
-		add.w	d6,d4
-		move.w	d4,(a1)+
-		move.b	(a2,d2.w),d4
-		ext.w	d4
-		add.w	d0,d4
-		move.w	d4,(a1)+
-		addq.b	#1,d2
-		addq.b	#1,d3
-		dbf	d1,Deform_LZ_2
-		rts	
-; End of function Deform_LZ
-
-; ===========================================================================
-LZ_Wave_Data:	dc.b   1,  1,  2,  2,  3,  3,  3,  3,  2,  2,  1,  1,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b $FF,$FF,$FE,$FE,$FD,$FD,$FD,$FD,$FE,$FE,$FF,$FF,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   1,  1,  2,  2,  3,  3,  3,  3,  2,  2,  1,  1,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-		dc.b   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -7500,7 +7541,7 @@ loc_6656:
 loc_665C:
 		cmpi.w	#$60,($FFFFF73E).w
 		bne.s	loc_6684
-		move.w	($FFFFD014).w,d1
+		move.w	($FFFFD020).w,d1
 		bpl.s	loc_666C
 		neg.w	d1
 
@@ -8838,8 +8879,6 @@ MainLoadBlockLoad:			; XREF: Level; EndingSequence
 		move.w	#0,d0
 		bsr.w	EniDec
 		movea.l	(a2)+,a0
-		lea	($FF0000).l,a1	; RAM address for 256x256 mappings
-		bsr.w	KosDec
 		tst.b	($FFFFFE10).w	; are we in Green Hill Zone?
 		beq.s	@no_dec		; if yes, branch
 		cmpi.b	#6,($FFFFFE10).w ; are we in the ending sequence?
@@ -9793,7 +9832,7 @@ loc_74DC:
 		move.b	d0,$3D(a1)
 		move.b	#0,$26(a1)
 		move.w	#0,$12(a1)
-		move.w	$10(a1),$14(a1)
+		move.w	$10(a1),$20(a1)
 		btst	#1,$22(a1)
 		beq.s	loc_7512
 		move.l	a0,-(sp)
@@ -10044,7 +10083,14 @@ Obj11_ChkDel:				; XREF: Obj11_Display; Obj11_Action2
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	Obj11_DelAll
+		bls.s	Obj11_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj11_DelAll		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj11_DelAll	; and delete object
+
+Obj11_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -10394,7 +10440,14 @@ Obj15_ChkDel:				; XREF: Obj15_Action; Obj15_Action2
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	Obj15_DelAll
+		bls.s	Obj15_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj15_DelAll		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj15_DelAll	; and delete object
+
+Obj15_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -10539,7 +10592,14 @@ Obj17_ChkDel:				; XREF: Obj17_Action
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	Obj17_DelAll
+		bls.s	Obj17_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj17_DelAll		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj17_DelAll	; and delete object
+
+Obj17_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -10876,7 +10936,14 @@ Obj18_ChkDel:				; XREF: Obj18_Action; Obj18_Action2
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj18_Delete
+		bls.s	Obj18_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj18_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj18_Delete	; and delete object
+
+Obj18_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -11311,8 +11378,12 @@ Obj1C_ChkDel:				; XREF: Obj1C_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Variables for	object $1C are stored in an array
@@ -11388,7 +11459,14 @@ Obj1D_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	Obj1D_Delete
+		bls.s	Obj1D_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj1D_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj1D_Delete	; and delete object
+
+Obj1D_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -11531,7 +11609,7 @@ loc_8A7C:
 
 loc_8A82:
 		sub.w	d0,8(a1)
-		move.w	#0,$14(a1)
+		move.w	#0,$20(a1)
 		move.w	#0,$10(a1)
 
 loc_8A92:
@@ -12861,116 +12939,28 @@ Obj25_Index:	dc.w Obj25_Main-Obj25_Index
 		dc.w Obj25_Collect-Obj25_Index
 		dc.w Obj25_Sparkle-Obj25_Index
 		dc.w Obj25_Delete-Obj25_Index
-; ---------------------------------------------------------------------------
-; Distances between rings (format: horizontal, vertical)
-; ---------------------------------------------------------------------------
-Obj25_PosData:	dc.b $10, 0		; horizontal tight
-		dc.b $18, 0		; horizontal normal
-		dc.b $20, 0		; horizontal wide
-		dc.b 0,	$10		; vertical tight
-		dc.b 0,	$18		; vertical normal
-		dc.b 0,	$20		; vertical wide
-		dc.b $10, $10		; diagonal
-		dc.b $18, $18
-		dc.b $20, $20
-		dc.b $F0, $10
-		dc.b $E8, $18
-		dc.b $E0, $20
-		dc.b $10, 8
-		dc.b $18, $10
-		dc.b $F0, 8
-		dc.b $E8, $10
 ; ===========================================================================
 
-Obj25_Main:				; XREF: Obj25_Index
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		lea	2(a2,d0.w),a2
-		move.b	(a2),d4
-		move.b	$28(a0),d1
-		move.b	d1,d0
-		andi.w	#7,d1
-		cmpi.w	#7,d1
-		bne.s	loc_9B80
-		moveq	#6,d1
-
-loc_9B80:
-		swap	d1
-		move.w	#0,d1
-		lsr.b	#4,d0
-		add.w	d0,d0
-		move.b	Obj25_PosData(pc,d0.w),d5 ; load ring spacing data
-		ext.w	d5
-		move.b	Obj25_PosData+1(pc,d0.w),d6
-		ext.w	d6
-		movea.l	a0,a1
-		move.w	8(a0),d2
-		move.w	$C(a0),d3
-		lsr.b	#1,d4
-		bcs.s	loc_9C02
-		bclr	#7,(a2)
-		bra.s	loc_9BBA
-; ===========================================================================
-
-Obj25_MakeRings:
-		swap	d1
-		lsr.b	#1,d4
-		bcs.s	loc_9C02
-		bclr	#7,(a2)
-		bsr.w	SingleObjLoad
-		bne.s	loc_9C0E
-
-loc_9BBA:				; XREF: Obj25_Main
-		move.b	#$25,0(a1)	; load ring object
-		addq.b	#2,$24(a1)
-		move.w	d2,8(a1)	; set x-axis position based on d2
-		move.w	8(a0),$32(a1)
-		move.w	d3,$C(a1)	; set y-axis position based on d3
-		move.l	#Map_obj25,4(a1)
-		move.w	#($2000+ringart),2(a1)
-		move.b	#4,1(a1)
-		move.b	#2,$18(a1)
-		move.b	#$47,$20(a1)
-		move.b	#8,$19(a1)
-		move.b	$23(a0),$23(a1)
-		move.b	d1,$34(a1)
-
-loc_9C02:
-		addq.w	#1,d1
-		add.w	d5,d2		; add ring spacing value to d2
-		add.w	d6,d3		; add ring spacing value to d3
-		swap	d1
-		dbf	d1,Obj25_MakeRings ; repeat for	number of rings
-
-loc_9C0E:
-		btst	#0,(a2)
-		bne.w	DeleteObject
+Obj25_Main:				; XREF: Obj25_Index		addq.b	#2,$24(a0)
+		move.w	8(a0),$32(a0)
+		move.l	#Map_obj25,4(a0)
+		move.w	#($2000+ringart),2(a0)
+		move.b	#4,1(a0)
+		move.b	#2,$18(a0)
+		move.b	#$47,$20(a0)
+		move.b	#8,$19(a0)
 
 Obj25_Animate:				; XREF: Obj25_Index
-		move.b	($FFFFFEC3).w,$1A(a0) ;	set frame
-		bsr.w	DisplaySprite
+		move.b	($FFFFFEC3).w,$1A(a0)
 		move.w	$32(a0),d0
-		andi.w	#$FF80,d0
-		move.w	($FFFFF700).w,d1
-		subi.w	#$80,d1
-		andi.w	#$FF80,d1
-		sub.w	d1,d0
-		cmpi.w	#$280,d0
-		bhi.s	Obj25_Delete
-		rts	
+		bra.w	MarkObjGone
 ; ===========================================================================
 
 Obj25_Collect:				; XREF: Obj25_Index
 		addq.b	#2,$24(a0)
 		move.b	#0,$20(a0)
-		move.b	#1,$18(a0)
+		move.w	#$80,$18(a0)
 		bsr.w	CollectRing
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		move.b	$34(a0),d1
-		bset	d1,2(a2,d0.w)
 
 Obj25_Sparkle:				; XREF: Obj25_Index
 		lea	(Ani_obj25).l,a1
@@ -13059,7 +13049,7 @@ Obj37_MakeRings:			; XREF: Obj37_CountRings
 		tst.w	d4
 		bmi.s	loc_9D62
 		move.w	d4,d0
-		bsr.w	CalcSine
+		jsr	(CalcSine).l
 		move.w	d4,d2
 		lsr.w	#8,d2
 		asl.w	d2,d0
@@ -13180,8 +13170,12 @@ Obj4B_Animate:				; XREF: Obj4B_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
 ; ===========================================================================
 
 Obj4B_Collect:				; XREF: Obj4B_Index
@@ -13203,7 +13197,7 @@ Obj4B_Collect:				; XREF: Obj4B_Index
 Obj4B_PlaySnd:
 		move.w	#$C3,d0
 		jsr	(PlaySound_Special).l ;	play giant ring	sound
-		bra.s	Obj4B_Animate
+		bra.w	Obj4B_Animate
 ; ===========================================================================
 
 Obj4B_Delete:				; XREF: Obj4B_Index
@@ -13242,8 +13236,12 @@ Obj7C_ChkDel:				; XREF: Obj7C_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -13328,11 +13326,9 @@ Obj26_Main:				; XREF: Obj26_Index
 		move.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		move.b	#$F,$19(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		bclr	#7,2(a2,d0.w)
-		btst	#0,2(a2,d0.w)	; has monitor been broken?
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		movea.w	d0,a2	; load address into a2
+		btst	#0,(a2)	; has monitor been broken?
 		beq.s	Obj26_NotBroken	; if not, branch
 		move.b	#8,$24(a0)	; run "Obj26_Display" routine
 		move.b	#$B,$1A(a0)	; use broken monitor frame
@@ -13410,7 +13406,7 @@ loc_A230:
 
 loc_A236:
 		sub.w	d0,8(a1)
-		move.w	#0,$14(a1)
+		move.w	#0,$20(a1)
 		move.w	#0,$10(a1)
 
 loc_A246:
@@ -13439,16 +13435,7 @@ Obj26_Animate:				; XREF: Obj26_Index
 		bsr.w	AnimateSprite
 
 Obj26_Display:				; XREF: Obj26_Index
-		bsr.w	DisplaySprite
-		move.w	8(a0),d0
-		andi.w	#$FF80,d0
-		move.w	($FFFFF700).w,d1
-		subi.w	#$80,d1
-		andi.w	#$FF80,d1
-		sub.w	d1,d0
-		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		rts	
+		bra.w	MarkObjGone
 ; ===========================================================================
 
 Obj26_BreakOpen:			; XREF: Obj26_Index
@@ -13470,10 +13457,12 @@ Obj26_Explode:
 		move.w	$C(a0),$C(a1)
 
 Obj26_SetBroken:
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	@notremembered			; If it's zero, it isn't remembered
+		movea.w	d0,a2	; load address into a2
+		bset	#0,(a2)
+
+	@notremembered:
 		move.b	#9,$1C(a0)	; set monitor type to broken
 		bra.w	DisplaySprite
 ; ===========================================================================
@@ -14453,7 +14442,14 @@ loc_B0C6:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj2F_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj2F_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -14603,9 +14599,11 @@ Obj30:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	Obj30_Delete
-		bra.w	DisplaySprite
-; ===========================================================================
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj30_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Obj30_Delete:
 		bra.w	DeleteObject
@@ -15000,7 +14998,14 @@ Obj31_ChkDel:				; XREF: Obj31_Display
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj31_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a3	; load address into a2
+		bclr	#7,(a3)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj31_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -15250,7 +15255,14 @@ Obj45_ChkDel:				; XREF: Obj45_Solid
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj45_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj45_NoDel:
 		rts	
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -15408,7 +15420,14 @@ Obj32_Display:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	Obj32_Delete
+		bls.s	Obj32_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj32_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj32_Delete	; and delete object
+
+Obj32_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -15546,12 +15565,11 @@ loc_BF16:
 		move.w	#$C2B8,2(a0)
 
 Obj33_ChkGone:
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_BF6E
-		bclr	#7,2(a2,d0.w)
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_BF6E		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bset	#0,(a2)
 		bne.w	DeleteObject
 
 loc_BF6E:				; XREF: Obj33_Index
@@ -15586,9 +15604,11 @@ loc_BFC6:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	loc_BFE6
-		bra.w	DisplaySprite
-; ===========================================================================
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_BFE6	; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 loc_BFE6:
 		move.w	$34(a0),d0
@@ -15606,11 +15626,10 @@ loc_BFE6:
 ; ===========================================================================
 
 loc_C016:
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_C028
-		bclr	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_C028		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#0,(a2)
 
 loc_C028:
 		bra.w	DeleteObject
@@ -15851,7 +15870,7 @@ loc_C268:
 loc_C294:
 		lea	($FFFFD000).w,a1
 		add.w	d0,8(a1)
-		move.w	d1,$14(a1)
+		move.w	d1,$20(a1)
 		move.w	#0,$10(a1)
 		move.w	d0,-(sp)
 		move.w	#$A7,d0
@@ -16952,7 +16971,14 @@ Obj36_Display:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj36_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj36_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -17067,7 +17093,14 @@ Obj3B_Solid:				; XREF: Obj3B_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj3B_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj3B_NoDel:
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -17103,7 +17136,14 @@ Obj49_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj49_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj49_NoDel:
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -17172,7 +17212,7 @@ Obj3C_ChkSpeed:
 		lea	(Obj3C_FragSpd2).l,a4 ;	use fragments that move	left
 
 Obj3C_Smash:
-		move.w	$10(a1),$14(a1)
+		move.w	$10(a1),$20(a1)
 		bclr	#5,$22(a0)
 		bclr	#5,$22(a1)
 		moveq	#7,d1		; load 8 fragments
@@ -17452,11 +17492,21 @@ BuildSprites:                ; XREF: TitleScreen; et al
         tst.b    ($FFFFFFD0).w ; this was level_started_flag
         beq.s    BuildSprites_2
         jsr    loc_40804
+
 BuildSprites_2:
         lea    ($FFFFAC00).w,a4
         moveq    #7,d7
 
 loc_D66A:
+		cmpi.w	#$07-$02,d7
+		bne.s	BuildSpritesCont
+		tst.b	(Level_started_flag).w
+		beq.s	BuildSpritesCont
+		movem.l	d7/a4,-(sp)
+		bsr.w	BuildRings
+		movem.l	(sp)+,d7/a4
+
+BuildSpritesCont:
 		tst.w	(a4)
 		beq.w	loc_D72E
 		moveq	#2,d6
@@ -17789,220 +17839,456 @@ NotOnScreen2:				; XREF: ChkObjOnScreen2
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-ObjPosLoad:				; XREF: Level; et al
-		moveq	#0,d0
-		move.b	($FFFFF76C).w,d0
-		move.w	OPL_Index(pc,d0.w),d0
-		jmp	OPL_Index(pc,d0.w)
-; End of function ObjPosLoad
-
+; ---------------------------------------------------------------------------
+; Objects Manager
+; Subroutine to load objects whenever they are close to the screen. Unlike in
+; normal s2, in this version every object gets an entry in the respawn table.
+; This is necessary to get the additional y-range checks to work.
+;
+; input variables:
+;  -none-
+;
+; writes:
+;  d0, d1, d2
+;  d3 = upper boundary to load object
+;  d4 = lower boundary to load object
+;  d5 = #$FFF, used to filter out object's y position
+;  d6 = camera position
+;
+;  a0 = address in object placement list
+;  a3 = address in object respawn table
+;  a6 = object loading routine
+; ---------------------------------------------------------------------------
+ 
+; loc_17AA4
+ObjPosLoad:
+	moveq	#0,d0
+	move.b	($FFFFF76C).w,d0
+	jmp	ObjPosLoad_States(pc,d0.w)
+ 
+; ============== JUMP TABLE	=============================================
+ObjPosLoad_States:
+	bra.w	ObjPosLoad_Init		; 0
+	bra.w	ObjPosLoad_Main		; 2
+; ============== END JUMP TABLE	=============================================
+ 
+ObjPosLoad_Init:
+	addq.b	#4,($FFFFF76C).w
+ 
+	lea     (Object_Respawn_Table).w,a0
+	moveq   #0,d0
+	move.w  #$BF,d1 ; set loop counter
+OPLBack1:
+	move.l  d0,(a0)+
+	dbf     d1,OPLBack1
+ 
+	move.w	($FFFFFE10).w,d0
+;
+;	ror.b	#1,d0			; this is from s3k
+;	lsr.w	#5,d0
+;	lea	(Off_Objects).l,a0
+;	movea.l	(a0,d0.w),a0
+;
+	lsl.b	#6,d0
+	lsr.w	#4,d0
+	lea	(ObjPos_Index).l,a0	; load the first pointer in the object layout list pointer index,
+	adda.w	(a0,d0.w),a0		; load the pointer to the current object layout
+ 
+	; initialize each object load address with the first object in the layout
+	move.l	a0,($FFFFF770).w
+	move.l	a0,($FFFFF774).w
+	lea	(Object_Respawn_Table).w,a3
+ 
+	move.w	($FFFFF700).w,d6
+	subi.w	#$80,d6	; look one chunk to the left
+	bcc.s	OPL1	; if the result was negative,
+	moveq	#0,d6	; cap at zero
+	OPL1:	
+	andi.w	#$FF80,d6	; limit to increments of $80 (width of a chunk)
+ 
+	movea.l	($FFFFF770).w,a0	; get first object in layout
+ 
+OPLBack2:	; at the beginning of a level this gives respawn table entries to any object that is one chunk
+	; behind the left edge of the screen that needs to remember its state (Monitors, Badniks, etc.)
+	cmp.w	(a0),d6		; is object's x position >= d6?
+	bls.s	OPL2		; if yes, branch
+	addq.w	#6,a0	; next object
+	addq.w	#1,a3	; respawn index of next object going right
+	bra.s	OPLBack2
+; ---------------------------------------------------------------------------
+ 
+OPL2:	
+	move.l	a0,($FFFFF770).w	; remember rightmost object that has been processed, so far (we still need to look forward)
+	move.w	a3,($FFFFF778).w	; and its respawn table index
+ 
+	lea	(Object_Respawn_Table).w,a3	; reset a3
+	movea.l	($FFFFF774).w,a0	; reset a0
+	subi.w	#$80,d6		; look even farther left (any object behind this is out of range)
+	bcs.s	OPL3		; branch, if camera position would be behind level's left boundary
+ 
+ OPLBack3:	; count how many objects are behind the screen that are not in range and need to remember their state
+	cmp.w	(a0),d6		; is object's x position >= d6?
+	bls.s	OPL3		; if yes, branch
+	addq.w	#6,a0
+	addq.w	#1,a3	; respawn index of next object going left
+	bra.s	OPLBack3	; continue with next object
+; ---------------------------------------------------------------------------
+ 
+OPL3:	
+	move.l	a0,($FFFFF774).w	; remember current object from the left
+	move.w	a3,($FFFFF77C).w	; and its respawn table index
+ 
+	move.w	#-1,(Camera_X_Pos_last).w	; make sure ObjPosLoad_GoingForward is run
+ 
+	move.w	($FFFFF704).w,d0
+	andi.w	#$FF80,d0
+	move.w	d0,(Camera_Y_pos_last).w	; make sure the Y check isn't run unnecessarily during initialization
+; ---------------------------------------------------------------------------
+ 
+ObjPosLoad_Main:
+	; get coarse camera position
+;	move.w	($FFFFF704).w,d1
+;	subi.w	#$80,d1
+;	andi.w	#$FF80,d1
+;	move.w	d1,(Camera_Y_pos_coarse).w
+ 
+;	move.w	($FFFFF700).w,d1
+;	subi.w	#$80,d1
+;	andi.w	#$FF80,d1
+;	move.w	d1,(Camera_X_pos_coarse).w
+ 
+	tst.w	($FFFFF726).w	; does this level y-wrap?
+	bpl.s	ObjMan_Main_NoYWrap	; if not, branch
+	lea	(ChkLoadObj_YWrap).l,a6	; set object loading routine
+	move.w	($FFFFF704).w,d3
+	andi.w	#$FF80,d3	; get coarse value
+	move.w	d3,d4
+	addi.w	#$200,d4	; set lower boundary
+	subi.w	#$80,d3		; set upper boundary
+	bpl.s	OPL4		; branch, if upper boundary > 0
+	andi.w	#$7FF,d3	; wrap value
+	bra.s	ObjMan_Main_Cont
+; ---------------------------------------------------------------------------
+ 
+OPL4:	
+	move.w	#$7FF,d0
+	addq.w	#1,d0
+	cmp.w	d0,d4
+	bls.s	OPL5		; branch, if lower boundary < $7FF
+	andi.w	#$7FF,d4	; wrap value
+	bra.s	ObjMan_Main_Cont
+; ---------------------------------------------------------------------------
+ 
+ObjMan_Main_NoYWrap:
+	move.w	($FFFFF704).w,d3
+	andi.w	#$FF80,d3	; get coarse value
+	move.w	d3,d4
+	addi.w	#$200,d4	; set lower boundary
+	subi.w	#$80,d3		; set upper boundary
+	bpl.s	OPL5
+	moveq	#0,d3	; no negative values allowed
+ 
+OPL5:	
+	lea	(ChkLoadObj).l,a6	; set object loading routine
+ 
+ObjMan_Main_Cont:
+	move.w	#$FFF,d5	; this will be used later when we load objects
+	move.w	($FFFFF700).w,d6
+	andi.w	#$FF80,d6
+	cmp.w	(Camera_X_Pos_last).w,d6	; is the X range the same as last time?
+	beq.w	ObjPosLoad_SameXRange	; if yes, branch
+	bge.s	ObjPosLoad_GoingForward	; if new pos is greater than old pos, branch
+ 
+	; if the player is moving back
+	move.w	d6,(Camera_X_Pos_last).w	; remember current position for next time
+ 
+	movea.l	($FFFFF774).w,a0	; get current object going left
+	movea.w	($FFFFF77C).w,a3	; and its respawn table index
+ 
+	subi.w	#$80,d6			; look one chunk to the left
+	bcs.s	ObjMan_GoingBack_Part2	; branch, if camera position would be behind level's left boundary
+ 
+	jsr	(SingleObjLoad).l		; find an empty object slot
+	bne.s	ObjMan_GoingBack_Part2		; branch, if there are none
+OPLBack4:	; load all objects left of the screen that are now in range
+	cmp.w	-6(a0),d6		; is the previous object's X pos less than d6?
+	bge.s	ObjMan_GoingBack_Part2	; if it is, branch
+	subq.w	#6,a0		; get object's address
+	subq.w	#1,a3		; and respawn table index
+	jsr	(a6)		; load object
+	bne.s	OPL6		; branch, if SST is full
+	subq.w	#6,a0
+	bra.s	OPLBack4	; continue with previous object
+; ---------------------------------------------------------------------------
+ 
+OPL6:	
+	; undo a few things, if the object couldn't load
+	addq.w	#6,a0	; go back to last object
+	addq.w	#1,a3	; since we didn't load the object, undo last change
+ 
+ObjMan_GoingBack_Part2:
+	move.l	a0,($FFFFF774).w	; remember current object going left
+	move.w	a3,($FFFFF77C).w	; and its respawn table index
+	movea.l	($FFFFF770).w,a0	; get next object going right
+	movea.w	($FFFFF778).w,a3	; and its respawn table index
+	addi.w	#$300,d6	; look two chunks beyond the right edge of the screen
+ 
+OPLBack5:	; subtract number of objects that have been moved out of range (from the right side)
+	cmp.w	-6(a0),d6	; is the previous object's X pos less than d6?
+	bgt.s	OPL7		; if it is, branch
+	subq.w	#6,a0		; get object's address
+	subq.w	#1,a3		; and respawn table index
+	bra.s	OPLBack5	; continue with previous object
+; ---------------------------------------------------------------------------
+ 
+OPL7:	
+	move.l	a0,($FFFFF770).w	; remember next object going right
+	move.w	a3,($FFFFF778).w	; and its respawn table index
+	bra.s	ObjPosLoad_SameXRange
+; ---------------------------------------------------------------------------
+ 
+ObjPosLoad_GoingForward:
+	move.w	d6,(Camera_X_Pos_last).w
+ 
+	movea.l	($FFFFF770).w,a0	; get next object from the right
+	movea.w ($FFFFF778).w,a3	; and its respawn table index
+	addi.w	#$280,d6	; look two chunks forward
+	jsr	(SingleObjLoad).l		; find an empty object slot
+	bne.s	ObjMan_GoingForward_Part2	; branch, if there are none
+ 
+OPLBack6:	; load all objects right of the screen that are now in range
+	cmp.w	(a0),d6				; is object's x position >= d6?
+	bls.s	ObjMan_GoingForward_Part2	; if yes, branch
+	jsr	(a6)		; load object (and get address of next object)
+	addq.w	#1,a3		; respawn index of next object to the right
+	beq.s	OPLBack6	; continue loading objects, if the SST isn't full
+ 
+ObjMan_GoingForward_Part2:
+	move.l	a0,($FFFFF770).w	; remember next object from the right
+	move.w	a3,($FFFFF778).w	; and its respawn table index
+	movea.l	($FFFFF774).w,a0	; get current object from the left
+	movea.w	($FFFFF77C).w,a3	; and its respawn table index
+	subi.w	#$300,d6		; look one chunk behind the left edge of the screen
+	bcs.s	ObjMan_GoingForward_End	; branch, if camera position would be behind level's left boundary
+ 
+OPLBack7:	; subtract number of objects that have been moved out of range (from the left)
+	cmp.w	(a0),d6			; is object's x position >= d6?
+	bls.s	ObjMan_GoingForward_End	; if yes, branch
+	addq.w	#6,a0	; next object
+	addq.w	#1,a3	; respawn index of next object to the left
+	bra.s	OPLBack7	; continue with next object
+; ---------------------------------------------------------------------------
+ 
+ObjMan_GoingForward_End:
+	move.l	a0,($FFFFF774).w	; remember current object from the left
+	move.w	a3,($FFFFF77C).w	; and its respawn table index
+ 
+ObjPosLoad_SameXRange:
+	move.w	($FFFFF704).w,d6
+	andi.w	#$FF80,d6
+	move.w	d6,d3
+	cmp.w	(Camera_Y_pos_last).w,d6	; is the y range the same as last time?
+	beq.w	ObjPosLoad_SameYRange	; if yes, branch
+	bge.s	ObjPosLoad_GoingDown	; if the player is moving down
+ 
+	; if the player is moving up
+	tst.w	($FFFFF72C).w	; does the level y-wrap?
+	bpl.s	ObjMan_GoingUp_NoYWrap	; if not, branch
+	tst.w	d6
+	bne.s	ObjMan_GoingUp_YWrap
+	cmpi.w	#$80,(Camera_Y_pos_last).w
+	bne.s	ObjMan_GoingDown_YWrap
+ 
+ObjMan_GoingUp_YWrap:
+	subi.w	#$80,d3			; look one chunk up
+	bpl.s	ObjPosLoad_YCheck	; go to y check, if camera y position >= $80
+	andi.w	#$7FF,d3		; else, wrap value
+	bra.s	ObjPosLoad_YCheck
+ 
+; ---------------------------------------------------------------------------
+ 
+ObjMan_GoingUp_NoYWrap:
+	subi.w	#$80,d3				; look one chunk up
+	bmi.w	ObjPosLoad_SameYRange	; don't do anything if camera y position is < $80
+	bra.s	ObjPosLoad_YCheck
+; ---------------------------------------------------------------------------
+ 
+ObjPosLoad_GoingDown:
+	tst.w	($FFFFF72C).w		; does the level y-wrap?
+	bpl.s	ObjMan_GoingDown_NoYWrap	; if not, branch
+	tst.w	(Camera_Y_pos_last).w
+	bne.s	ObjMan_GoingDown_YWrap
+	cmpi.w	#$80,d6
+	bne.s	ObjMan_GoingUp_YWrap
+ 
+ObjMan_GoingDown_YWrap:
+	addi.w	#$180,d3		; look one chunk down
+	cmpi.w	#$7FF,d3
+	bcs.s	ObjPosLoad_YCheck	; go to  check, if camera y position < $7FF
+	andi.w	#$7FF,d3		; else, wrap value
+	bra.s	ObjPosLoad_YCheck
+; ---------------------------------------------------------------------------
+ 
+ObjMan_GoingDown_NoYWrap:
+	addi.w	#$180,d3			; look one chunk down
+	cmpi.w	#$7FF,d3
+	bhi.s	ObjPosLoad_SameYRange	; don't do anything, if camera is too close to bottom
+ 
+ObjPosLoad_YCheck:
+	jsr	(SingleObjLoad).l		; get an empty object slot
+	bne.s	ObjPosLoad_SameYRange	; branch, if there are none
+	move.w	d3,d4
+	addi.w	#$80,d4
+	move.w	#$FFF,d5	; this will be used later when we load objects
+	movea.l	($FFFFF774).w,a0	; get next object going left
+	movea.w	($FFFFF77C).w,a3	; and its respawn table index
+	move.l	($FFFFF770).w,d7	; get next object going right
+	sub.l	a0,d7	; d7 = number of objects between the left and right boundaries * 6
+	beq.s	ObjPosLoad_SameYRange	; branch if there are no objects inbetween
+	addq.w	#2,a0	; align to object's y position
+ 
+OPLBack8:	; check, if current object needs to be loaded
+	tst.b	(a3)	; is object already loaded?
+	bmi.s	OPL8	; if yes, branch
+	move.w	(a0),d1
+	and.w	d5,d1	; get object's y position
+	cmp.w	d3,d1
+	bcs.s	OPL8	; branch, if object is out of range from the top
+	cmp.w	d4,d1
+	bhi.s	OPL8	; branch, if object is out of range from the bottom
+	bset	#7,(a3)	; mark object as loaded
+	; load object
+	move.w	-2(a0),8(a1)
+	move.w	(a0),d1
+	move.w	d1,d2
+	and.w	d5,d1	; get object's y position
+	move.w	d1,$C(a1)
+	rol.w	#3,d2
+	andi.w	#3,d2	; get object's render flags and status
+	move.b	d2,1(a1)
+	move.b	d2,$22(a1)
+    moveq	#0,d0
+	move.b	2(a0),d0
+	andi.b	#$7F,d0
+	move.b	d0,0(a1)
+	move.b	3(a0),$28(a1)
+	move.w	a3,respawn_index(a1)
+	jsr	(SingleObjLoad).l	; find new object slot
+	bne.s	ObjPosLoad_SameYRange	; brach, if there are none left
+OPL8:
+	addq.w	#6,a0	; address of next object
+	addq.w	#1,a3	; and its respawn index
+	subq.w	#6,d7	; subtract from size of remaining objects
+	bne.s	OPLBack8	; branch, if there are more
+ 
+ObjPosLoad_SameYRange:
+	move.w	d6,(Camera_Y_pos_last).w
+	rts		
 ; ===========================================================================
-OPL_Index:	dc.w OPL_Main-OPL_Index
-		dc.w OPL_Next-OPL_Index
+; ---------------------------------------------------------------------------
+; Subroutines to check if an object needs to be loaded,
+; with and without y-wrapping enabled.
+;
+; input variables:
+;  d3 = upper boundary to load object
+;  d4 = lower boundary to load object
+;  d5 = #$FFF, used to filter out object's y position
+;
+;  a0 = address in object placement list
+;  a1 = object
+;  a3 = address in object respawn table
+;
+; writes:
+;  d1, d2, d7
+; ---------------------------------------------------------------------------
+ChkLoadObj_YWrap:
+	tst.b	(a3)	; is object already loaded?
+	bpl.s	OPL9	; if not, branch
+	addq.w	#6,a0	; address of next object
+	moveq	#0,d1	; let the objects manager know that it can keep going
+	rts	
+; ---------------------------------------------------------------------------
+ 
+OPL9:	
+	move.w	(a0)+,d7	; x_pos
+	move.w	(a0)+,d1	; there are three things stored in this word
+	move.w	d1,d2	; does this object skip y-Checks?
+	bmi.s	OPL10	; if yes, branch
+	and.w	d5,d1	; y_pos
+	cmp.w	d3,d1
+	bcc.s	LoadObj_YWrap
+	cmp.w	d4,d1
+	bls.s	LoadObj_YWrap
+	addq.w	#2,a0	; address of next object
+	moveq	#0,d1	; let the objects manager know that it can keep going
+	rts	
+; ---------------------------------------------------------------------------
+ 
+OPL10:	
+	and.w	d5,d1	; y_pos
+ 
+LoadObj_YWrap:
+	bset	#7,(a3)	; mark object as loaded
+	move.w	d7,8(a1)
+	move.w	d1,$C(a1)
+	rol.w	#3,d2	; adjust bits
+	andi.w	#3,d2	; get render flags and status
+	move.b	d2,1(a1)
+	move.b	d2,$22(a1)
+    moveq	#0,d0
+	move.b	(a0)+,d0
+	andi.b	#$7F,d0
+	move.b	d0,0(a1)
+	move.b	(a0)+,$28(a1)
+	move.w	a3,respawn_index(a1)
+	bra.s	SingleObjLoad	; find new object slot
+ 
+;loc_17F36
+ChkLoadObj:
+	tst.b	(a3)	; is object already loaded?
+	bpl.s	OPL11	; if not, branch
+	addq.w	#6,a0	; address of next object
+	moveq	#0,d1	; let the objects manager know that it can keep going
+	rts
+; ---------------------------------------------------------------------------
+ 
+OPL11:	
+	move.w	(a0)+,d7	; x_pos
+	move.w	(a0)+,d1	; there are three things stored in this word
+	move.w	d1,d2	; does this object skip y-Checks?	;*6
+	bmi.s	OPL13	; if yes, branch
+	and.w	d5,d1	; y_pos
+	cmp.w	d3,d1
+	bcs.s	OPL12	; branch, if object is out of range from the top
+	cmp.w	d4,d1
+	bls.s	LoadObj	; branch, if object is in range from the bottom
+OPL12:
+	addq.w	#2,a0	; address of next object
+	moveq	#0,d1
+	rts		
+; ---------------------------------------------------------------------------
+ 
+OPL13:	
+	and.w	d5,d1	; y_pos
+ 
+LoadObj:
+	bset	#7,(a3)	; mark object as loaded
+	move.w	d7,8(a1)
+	move.w	d1,$C(a1)
+	rol.w	#3,d2	; adjust bits
+	andi.w	#3,d2	; get render flags and status
+	move.b	d2,1(a1)
+	move.b	d2,$22(a1)
+    moveq	#0,d0
+    move.b	(a0)+,d0
+	andi.b	#$7F,d0
+	move.b	d0,0(a1)
+	move.b	(a0)+,$28(a1)
+	move.w	a3,respawn_index(a1)
+	; continue straight to SingleObjLoad
+; End of function ChkLoadObj
 ; ===========================================================================
 
-OPL_Main:				; XREF: OPL_Index
-		addq.b	#2,($FFFFF76C).w
-		move.w	($FFFFFE10).w,d0
-		lsl.b	#6,d0
-		lsr.w	#4,d0
-		lea	(ObjPos_Index).l,a0
-		movea.l	a0,a1
-		adda.w	(a0,d0.w),a0
-		move.l	a0,($FFFFF770).w
-		move.l	a0,($FFFFF774).w
-		adda.w	2(a1,d0.w),a1
-		move.l	a1,($FFFFF778).w
-		move.l	a1,($FFFFF77C).w
-		lea	($FFFFFC00).w,a2
-		move.w	#$101,(a2)+
-		move.w	#$5E,d0
-
-OPL_ClrList:
-		clr.l	(a2)+
-		dbf	d0,OPL_ClrList	; clear	pre-destroyed object list
-
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d2
-		move.w	($FFFFF700).w,d6
-		subi.w	#$80,d6
-		bcc.s	loc_D93C
-		moveq	#0,d6
-
-loc_D93C:
-		andi.w	#$FF80,d6
-		movea.l	($FFFFF770).w,a0
-
-loc_D944:
-		cmp.w	(a0),d6
-		bls.s	loc_D956
-		tst.b	4(a0)
-		bpl.s	loc_D952
-		move.b	(a2),d2
-		addq.b	#1,(a2)
-
-loc_D952:
-		addq.w	#6,a0
-		bra.s	loc_D944
-; ===========================================================================
-
-loc_D956:
-		move.l	a0,($FFFFF770).w
-		movea.l	($FFFFF774).w,a0
-		subi.w	#$80,d6
-		bcs.s	loc_D976
-
-loc_D964:
-		cmp.w	(a0),d6
-		bls.s	loc_D976
-		tst.b	4(a0)
-		bpl.s	loc_D972
-		addq.b	#1,1(a2)
-
-loc_D972:
-		addq.w	#6,a0
-		bra.s	loc_D964
-; ===========================================================================
-
-loc_D976:
-		move.l	a0,($FFFFF774).w
-		move.w	#-1,($FFFFF76E).w
-
-OPL_Next:				; XREF: OPL_Index
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d2
-		move.w	($FFFFF700).w,d6
-		andi.w	#$FF80,d6
-		cmp.w	($FFFFF76E).w,d6
-		beq.w	locret_DA3A
-		bge.s	loc_D9F6
-		move.w	d6,($FFFFF76E).w
-		movea.l	($FFFFF774).w,a0
-		subi.w	#$80,d6
-		bcs.s	loc_D9D2
-
-loc_D9A6:
-		cmp.w	-6(a0),d6
-		bge.s	loc_D9D2
-		subq.w	#6,a0
-		tst.b	4(a0)
-		bpl.s	loc_D9BC
-		subq.b	#1,1(a2)
-		move.b	1(a2),d2
-
-loc_D9BC:
-		bsr.w	loc_DA3C
-		bne.s	loc_D9C6
-		subq.w	#6,a0
-		bra.s	loc_D9A6
-; ===========================================================================
-
-loc_D9C6:
-		tst.b	4(a0)
-		bpl.s	loc_D9D0
-		addq.b	#1,1(a2)
-
-loc_D9D0:
-		addq.w	#6,a0
-
-loc_D9D2:
-		move.l	a0,($FFFFF774).w
-		movea.l	($FFFFF770).w,a0
-		addi.w	#$300,d6
-
-loc_D9DE:
-		cmp.w	-6(a0),d6
-		bgt.s	loc_D9F0
-		tst.b	-2(a0)
-		bpl.s	loc_D9EC
-		subq.b	#1,(a2)
-
-loc_D9EC:
-		subq.w	#6,a0
-		bra.s	loc_D9DE
-; ===========================================================================
-
-loc_D9F0:
-		move.l	a0,($FFFFF770).w
-		rts	
-; ===========================================================================
-
-loc_D9F6:
-		move.w	d6,($FFFFF76E).w
-		movea.l	($FFFFF770).w,a0
-		addi.w	#$280,d6
-
-loc_DA02:
-		cmp.w	(a0),d6
-		bls.s	loc_DA16
-		tst.b	4(a0)
-		bpl.s	loc_DA10
-		move.b	(a2),d2
-		addq.b	#1,(a2)
-
-loc_DA10:
-		bsr.w	loc_DA3C
-		beq.s	loc_DA02
-
-loc_DA16:
-		move.l	a0,($FFFFF770).w
-		movea.l	($FFFFF774).w,a0
-		subi.w	#$300,d6
-		bcs.s	loc_DA36
-
-loc_DA24:
-		cmp.w	(a0),d6
-		bls.s	loc_DA36
-		tst.b	4(a0)
-		bpl.s	loc_DA32
-		addq.b	#1,1(a2)
-
-loc_DA32:
-		addq.w	#6,a0
-		bra.s	loc_DA24
-; ===========================================================================
-
-loc_DA36:
-		move.l	a0,($FFFFF774).w
-
-locret_DA3A:
-		rts	
-; ===========================================================================
-
-loc_DA3C:
-		tst.b	4(a0)
-		bpl.s	OPL_MakeItem
-		bset	#7,2(a2,d2.w)
-		beq.s	OPL_MakeItem
-		addq.w	#6,a0
-		moveq	#0,d0
-		rts	
-; ===========================================================================
-
-OPL_MakeItem:
-		bsr.w	SingleObjLoad
-		bne.s	locret_DA8A
-		move.w	(a0)+,8(a1)
-		move.w	(a0)+,d0
-		move.w	d0,d1
-		andi.w	#$FFF,d0
-		move.w	d0,$C(a1)
-		rol.w	#2,d1
-		andi.b	#3,d1
-		move.b	d1,1(a1)
-		move.b	d1,$22(a1)
-		move.b	(a0)+,d0
-		bpl.s	loc_DA80
-		andi.b	#$7F,d0
-		move.b	d2,$23(a1)
-
-loc_DA80:
-		move.b	d0,0(a1)
-		move.b	(a0)+,$28(a1)
-		moveq	#0,d0
-
-locret_DA8A:
-		rts	
 ; ---------------------------------------------------------------------------
 ; Single object	loading	subroutine
 ; ---------------------------------------------------------------------------
@@ -18046,312 +18332,291 @@ locret_DABC:
 		rts	
 ; End of function SingleObjLoad2
 
-RingsManager:   
- 	moveq	#0,d0
-		move.b	(Rings_manager_routine).w,d0
-		move.w	RingsManager_States(pc,d0.w),d0
-		jmp	RingsManager_States(pc,d0.w)
+; ===========================================================================
+RingsManager:
+	moveq	#0,d0
+	move.b	(Rings_manager_routine).w,d0
+	move.w	RingsManager_States(pc,d0.w),d0
+	jmp	RingsManager_States(pc,d0.w)
 ; ===========================================================================
 ; off_16F96:
 RingsManager_States:
-		dc.w RingsManager_Init-RingsManager_States
-		dc.w RingsManager_Main-RingsManager_States
+	dc.w RingsManager_Init-RingsManager_States
+	dc.w RingsManager_Main-RingsManager_States
 ; ===========================================================================
 ; loc_16F9A:
 RingsManager_Init:
-		addq.b	#2,(Rings_manager_routine).w ; => RingsManager_Main
-		bsr.w	RingsManager_Setup
-		movea.l	(Ring_start_addr_ROM).w,a1
-		lea	(Ring_Positions).w,a2
-		move.w	($FFFFF700).w,d4
-		subq.w	#8,d4
-		bhi.s	loc_16FB6
-		moveq	#1,d4
-		bra.s	loc_16FB6
+	addq.b	#2,(Rings_manager_routine).w ; => RingsManager_Main
+	bsr.w	RingsManager_Setup
+	movea.l	(Ring_start_addr_ROM).w,a1
+	lea	(Ring_Positions).w,a2
+	move.w	($FFFFF700).w,d4
+	subq.w	#8,d4
+	bhi.s	loc_16FB6
+	moveq	#1,d4
+	bra.s	loc_16FB6
 ; ===========================================================================
 
 loc_16FB2:
-		addq.w	#4,a1	; load next ring
-          	addq.w	#2,a2
+	addq.w	#4,a1
+	addq.w	#2,a2
 
 loc_16FB6:
-		cmp.w	(a1),d4
-		bhi.s	loc_16FB2
-		move.l	a1,(Ring_start_addr_ROM).w	; set start addresses in both ROM and RAM
-           	move.w	a2,(Ring_start_addr_RAM).w
-		addi.w	#320+16,d4	; advance by a screen
-		bra.s	loc_16FCE
+	cmp.w	(a1),d4
+	bhi.s	loc_16FB2
+	move.l	a1,(Ring_start_addr_ROM).w
+	move.w	a2,(Ring_start_addr_RAM).w
+	addi.w	#$150,d4
+	bra.s	loc_16FCE
 ; ===========================================================================
 
 loc_16FCA:
-		addq.w	#4,a1
+	addq.w	#4,a1
 
 loc_16FCE:
-		cmp.w	(a1),d4
-		bhi.s	loc_16FCA
-		move.l	a1,(Ring_end_addr_ROM).w
-		rts
+	cmp.w	(a1),d4
+	bhi.s	loc_16FCA
+	move.l	a1,(Ring_end_addr_ROM).w
+	rts
 ; ===========================================================================
 ; loc_16FDE:
 RingsManager_Main:
-		lea	(Ring_consumption_table).w,a2
-		move.w	(a2)+,d1
-		subq.w	#1,d1
-		bcs.s	loc_17014
+	lea	(Ring_consumption_table).w,a2
+	move.w	(a2)+,d1
+	subq.w	#1,d1
+	bcs.s	loc_17014
 
 loc_16FE8:
-		move.w	(a2)+,d0
-		beq.s	loc_16FE8
-		movea.w	d0,a1
-		subq.b	#1,(a1)
-		bne.s	loc_17010
-		move.b	#6,(a1)
-		addq.b	#1,1(a1)
-		cmpi.b	#8,1(a1)
-		bne.s	loc_17010
-		move.w	#-1,(a1)
-		move.w	#0,-2(a2)
-		subq.w	#1,(Ring_consumption_table).w
+	move.w	(a2)+,d0
+	beq.s	loc_16FE8
+	movea.w	d0,a1
+	subq.b	#1,(a1)
+	bne.s	loc_17010
+	move.b	#6,(a1)
+	addq.b	#1,1(a1)
+	cmpi.b	#8,1(a1)
+	bne.s	loc_17010
+	move.w	#-1,(a1)
+	move.w	#0,-2(a2)
+	subq.w	#1,(Ring_consumption_table).w
 
 loc_17010:
-		dbf	d1,loc_16FE8
+	dbf	d1,loc_16FE8
 
 loc_17014:
-		movea.l	(Ring_start_addr_ROM).w,a1
-		movea.w	(Ring_start_addr_RAM).w,a2
-		move.w	($FFFFF700).w,d4
-		subq.w	#8,d4
-		bhi.s	loc_17028
-		moveq	#1,d4
-		bra.s	loc_17028
+	movea.l	(Ring_start_addr_ROM).w,a1
+	movea.w	(Ring_start_addr_RAM).w,a2
+	move.w	($FFFFF700).w,d4
+	subq.w	#8,d4
+	bhi.s	loc_17028
+	moveq	#1,d4
+	bra.s	loc_17028
 ; ===========================================================================
 
 loc_17024:
-		addq.w	#4,a1
-		addq.w	#2,a2
+	addq.w	#4,a1
+	addq.w	#2,a2
 
 loc_17028:
-		cmp.w	(a1),d4
-		bhi.s	loc_17024
-		bra.s	loc_17032
+	cmp.w	(a1),d4
+	bhi.s	loc_17024
+	bra.s	loc_17032
 ; ===========================================================================
 
 loc_17030:
-		subq.w	#4,a1
-		subq.w	#2,a2
+	subq.w	#4,a1
+	subq.w	#2,a2
 
 loc_17032:
-		cmp.w	-4(a1),d4
-		bls.s	loc_17030
-		move.l	a1,(Ring_start_addr_ROM).w
-		move.w	a2,(Ring_start_addr_RAM).w
-		movea.l	(Ring_end_addr_ROM).w,a2
-		addi.w	#$150,d4
-		bra.s	loc_1704A
+	cmp.w	-4(a1),d4
+	bls.s	loc_17030
+	move.l	a1,(Ring_start_addr_ROM).w
+	move.w	a2,(Ring_start_addr_RAM).w
+	movea.l	(Ring_end_addr_ROM).w,a2
+	addi.w	#$150,d4
+	bra.s	loc_1704A
 ; ===========================================================================
 
 loc_17046:
-		addq.w	#4,a2
+	addq.w	#4,a2
 
 loc_1704A:
-		cmp.w	(a2),d4
-		bhi.s	loc_17046
-		bra.s	loc_17054
+	cmp.w	(a2),d4
+	bhi.s	loc_17046
+	bra.s	loc_17054
 ; ===========================================================================
 
 loc_17052:
-		subq.w	#4,a2
+	subq.w	#4,a2
 
 loc_17054:
-		cmp.w	-4(a2),d4
-		bls.s	loc_17052
-		move.l	a2,(Ring_end_addr_ROM).w
-		rts
+	cmp.w	-4(a2),d4
+	bls.s	loc_17052
+	move.l	a2,(Ring_end_addr_ROM).w
+	rts
 
 ; ===========================================================================
 
 Touch_Rings:
-		movea.l	(Ring_start_addr_ROM).w,a1	; load start and end addresses
-          	movea.l	(Ring_end_addr_ROM).w,a2
-         	cmpa.l	a1,a2	; are there no rings in this area?
-           	beq.w	return_17166	; if so, return
-            	movea.w	(Ring_start_addr_RAM).w,a4	; load start address
-
+	movea.l	(Ring_start_addr_ROM).w,a1
+	movea.l	(Ring_end_addr_ROM).w,a2
 
 loc_170D0:
-		cmpi.w	#$5A,$30(a0)
-		bcc.w	return_17166
-		cmpi.b  #$A,($FFFFFE2C).w	; does Sonic have a lightning shield?
-		bne.s	Touch_Rings_NoAttraction	; if not, branch
-		move.w	8(a0),d2
-      	move.w	$C(a0),d3
-      	subi.w	#$40,d2
-      	subi.w	#$40,d3
-      	move.w	#6,d1
-       	move.w	#$C,d6
-      	move.w	#$80,d4
-      	move.w	#$80,d5
-		bra.s	Touch_Rings_Loop
-; ===========================================================================
-
-Touch_Rings_NoAttraction:
-		move.w	8(a0),d2	; get character's position
+	cmpa.l	a1,a2
+	beq.w	return_17166
+	movea.w	(Ring_start_addr_RAM).w,a4
+	cmpi.w	#$5A,$30(a0)
+	bcc.w	return_17166
+	tst.b	($FFFFFE2C).w	; does Sonic have a lightning shield?
+	beq.s	Touch_Rings_NoAttraction	; if not, branch
+	move.w	8(a0),d2
 	move.w	$C(a0),d3
-	subi.w	#8,d2	; assume X radius to be 8
+	subi.w	#$40,d2
+	subi.w	#$40,d3
+	move.w	#6,d1
+	move.w	#$C,d6
+	move.w	#$80,d4
+	move.w	#$80,d5
+	bra.s	loc_17112
+; ===========================================================================
+	
+Touch_Rings_NoAttraction:
+	move.w	8(a0),d2
+	move.w	$C(a0),d3
+	subi.w	#8,d2
 	moveq	#0,d5
 	move.b	$16(a0),d5
 	subq.b	#3,d5
-	sub.w	d5,d3	; subtract (Y radius - 3) from Y pos
-	cmpi.b	#8,$1C(a0)
-	bne.s	@NotDucking	; if you're not ducking, branch
+	sub.w	d5,d3
+	cmpi.b	#$4D,4(a0)
+	bne.s	RM1
 	addi.w	#$C,d3
 	moveq	#$A,d5
- @NotDucking:
-	move.w	#6,d1	; set ring radius
-	move.w	#$C,d6	; set ring diameter
-	move.w	#$10,d4	; set character's X diameter
-	add.w	d5,d5	; set Y diameter
+RM1:
+	move.w	#6,d1
+	move.w	#$C,d6
+	move.w	#$10,d4
+	add.w	d5,d5
 
-Touch_Rings_Loop:
-	tst.w	(a4)	; has this ring already been collided with?
-	bne.w	Touch_NextRing	; if it has, branch
-	move.w	(a1),d0		; get ring X pos
-	sub.w	d1,d0		; get ring left edge X pos
-	sub.w	d2,d0		; subtract character's left edge X pos
-	bcc.s	@goSomeWhere1		; if character's to the left of the ring, branch
-	add.w	d6,d0		; add ring diameter
-	bcs.s	loc_17130		; if character's colliding, branch
-	bra.w	Touch_NextRing	; otherwise, test next ring
+loc_17112:
+	tst.w	(a4)
+	bne.w	loc_1715C
+	move.w	(a1),d0
+	sub.w	d1,d0
+	sub.w	d2,d0
+	bcc.s	loc_1712A
+	add.w	d6,d0
+	bcs.s	loc_17130
+	bra.w	loc_1715C
 ; ===========================================================================
 
-@goSomeWhere1:
-	cmp.w	d4,d0		; has character crossed the ring?
-	bhi.w	Touch_NextRing	; if they have, branch
+loc_1712A:
+	cmp.w	d4,d0
+	bhi.w	loc_1715C
 
 loc_17130:
-	move.w	2(a1),d0	; get ring Y pos	; why is it 2?
-	sub.w	d1,d0		; get ring top edge pos
-	sub.w	d3,d0		; subtract character's top edge pos
-	bcc.s	CheckRingLooping		; if character's above the ring, branch
-	add.w	d6,d0		; add ring diameter
-	bcs.s	CheckForShield			; if character's colliding, branch
-	bra.w	Touch_NextRing	; otherwise, test next ring
+	move.w	2(a1),d0
+	sub.w	d1,d0
+	sub.w	d3,d0
+	bcc.s	loc_17142
+	add.w	d6,d0
+	bcs.s	loc_17148
+	bra.w	loc_1715C
 ; ===========================================================================
 
-CheckRingLooping:
-	cmp.w	d5,d0		; has character crossed the ring?
-	bhi.w	Touch_NextRing	; if they have, branch
+loc_17142:
+	cmp.w	d5,d0
+	bhi.w	loc_1715C
 
-CheckForShield:
-	cmpi.b  #$A,($FFFFFE2C).w
-	beq.s	AttractRing
-
-CheckForShield_cont:
-		move.w	#$604,(a4)
-		bsr.s	loc_17168
-		lea	(Ring_consumption_table+2).w,a3
+loc_17148:
+	move.w	#$604,(a4)
+	bsr.s	loc_17168
+	lea	(Ring_consumption_table+2).w,a3
 
 loc_17152:
-	tst.w	(a3)+		; is this slot free?
-	bne.s	loc_17152		; if not, repeat until you find one
-	move.w	a4,-(a3)	; set ring address
-	addq.w	#1,(Ring_consumption_table).w	; increase count
+	tst.w	(a3)+
+	bne.s	loc_17152
+	move.w	a4,-(a3)
+	addq.w	#1,(Ring_consumption_table).w
 
-Touch_NextRing:
+loc_1715C:
 	addq.w	#4,a1
 	addq.w	#2,a4
-	cmpa.l	a1,a2		; are we at the last ring for this area?
-	bne.w	Touch_Rings_Loop	; if not, branch
+	cmpa.l	a1,a2
+	bne.w	loc_17112
 
 return_17166:
-		rts
+	rts
 ; ===========================================================================
 
 loc_17168:
-		subq.w	#1,(Perfect_rings_left).w
-		bra.w	CollectRing
+	subq.w	#1,(Perfect_rings_left).w
+	bra.w	CollectRing
 ; ===========================================================================
 
-AttractRing:
-		movea.l	a1,a3
-		jsr	(SingleObjLoad).l
-		bne.w	AttractRing_NoFreeSlot
-		move.b	#$92,(a1)	; was Obj07 in the Hive one.
-		move.w	(a3),8(a1)
-		move.w	2(a3),$C(a1)
-		move.w	a0,$34(a1)
-		move.w	#-1,(a4)
-		rts
-; ===========================================================================
-
-AttractRing_NoFreeSlot:
-		movea.l	a3,a1
-		bra.s	loc_17152
-; ===========================================================================
-; this bit is fine
 BuildRings:
-		movea.l	(Ring_start_addr_ROM).w,a0
-		move.l	(Ring_end_addr_ROM).w,d7
-		sub.l	a0,d7
-		bne.s	loc_17186
-		rts
+	movea.l	(Ring_start_addr_ROM).w,a0
+	move.l	(Ring_end_addr_ROM).w,d7
+	sub.l	a0,d7
+	bne.s	loc_17186
+	rts
 ; ===========================================================================
 
 loc_17186:
-		movea.w	(Ring_start_addr_RAM).w,a4
-		lea	($FFFFF700).w,a3
+	movea.w	(Ring_start_addr_RAM).w,a4
+	lea	($FFFFF700).w,a3
 
 loc_1718A:
-		tst.w	(a4)+
-		bmi.w	loc_171EC
-		move.w	(a0),d3
-		sub.w	(a3),d3
-		addi.w	#$80,d3
-		move.w	2(a0),d2
-		sub.w	4(a3),d2
-		andi.w	#$7FF,d2
-		addi.w	#8,d2
-		bmi.s	loc_171EC
-		cmpi.w	#$F0,d2
-		bge.s	loc_171EC
-		addi.w	#$78,d2
-		lea	(Map_Obj25).l,a1
-		moveq	#0,d1
-		move.b	-1(a4),d1
-		bne.s	loc_171C8
-		move.b	($FFFFFEC3).w,d1
+	tst.w	(a4)+
+	bmi.w	loc_171EC
+	move.w	(a0),d3
+	sub.w	(a3),d3
+	addi.w	#$80,d3
+	move.w	2(a0),d2
+	sub.w	4(a3),d2
+	andi.w	#$7FF,d2
+	addi.w	#8,d2
+	bmi.s	loc_171EC
+	cmpi.w	#$F0,d2
+	bge.s	loc_171EC
+	addi.w	#$78,d2
+	lea	(Map_Obj25).l,a1
+	moveq	#0,d1
+	move.b	-1(a4),d1
+	bne.s	loc_171C8
+	move.b	($FFFFFEC3).w,d1
 
 loc_171C8:
-		add.w	d1,d1
-		adda.w	(a1,d1.w),a1
-		moveq	#$00,d1
-		move.b	(a1)+,d1
-		subq.b	#1,d1
-		bmi.s	loc_171EC
-		move.b	(a1)+,d0
-		ext.w	d0
-		add.w	d2,d0
-		move.w	d0,(a2)+
-		move.b	(a1)+,(a2)+
-		addq.b	#1,d5
-		move.b	d5,(a2)+
-		move.b	(a1)+,d0
-		lsl.w	#8,d0
-		move.b	(a1)+,d0
-		addi.w	#$27B2,d0
-		move.w	d0,(a2)+
-		move.b	(a1)+,d0
-		ext.w	d0
-		add.w	d3,d0
-		move.w	d0,(a2)+
+	add.w	d1,d1
+	adda.w	(a1,d1.w),a1
+	moveq	#$00,d1
+	move.b	(a1)+,d1
+	subq.b	#1,d1
+	bmi.s	loc_171EC
+	move.b	(a1)+,d0
+	ext.w	d0
+	add.w	d2,d0
+	move.w	d0,(a2)+
+	move.b	(a1)+,(a2)+
+	addq.b	#1,d5
+	move.b	d5,(a2)+
+	move.b	(a1)+,d0
+	lsl.w	#8,d0
+	move.b	(a1)+,d0
+	addi.w	#($2000+ringart),d0
+	move.w	d0,(a2)+
+	move.b	(a1)+,d0
+	ext.w	d0
+	add.w	d3,d0
+	move.w	d0,(a2)+
 
 loc_171EC:
-		addq.w	#4,a0
-		subq.w	#4,d7
-		bne.w	loc_1718A
-		rts
+	addq.w	#4,a0
+	subq.w	#4,d7
+	bne.w	loc_1718A
+	rts
 ; ===========================================================================
-;this bit is fine
+
 RingsManager_Setup:
 	lea	(Ring_Positions).w,a1
 	moveq	#0,d0
@@ -18368,14 +18633,14 @@ RMBack1:
 	move.l	d0,(a1)+
 	dbf	d1,RMBack1
 
-;	moveq	#0,d5
+	moveq	#0,d5
 	moveq	#0,d0
 	move.w	($FFFFFE10).w,d0
 	lsl.b	#6,d0
 	lsr.w	#4,d0
 	lea	(RingPos_Index).l,a1
-;	move.w	(a1,d0.w),d0
-;	lea	(a1,d0.w),a1
+	move.w	(a1,d0.w),d0
+	lea	(a1,d0.w),a1
 	move.l	a1,(Ring_start_addr_ROM).w
 	addq.w	#4,a1
 	moveq	#0,d5
@@ -18387,9 +18652,8 @@ RMBack2:
 	addq.w	#1,d5
 	dbf	d0,RMBack2
 RM2:
-;	move.w	d5,(Perfect_rings_left).w
+	move.w	d5,(Perfect_rings_left).w
 	rts
-
 ; ===========================================================================
 
 ; ===========================================================================
@@ -18410,7 +18674,14 @@ Obj41:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj41_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj41_NoDel:
 		rts	
 ; ===========================================================================
 Obj41_Index:	dc.w Obj41_Main-Obj41_Index
@@ -18523,7 +18794,7 @@ Obj41_BounceLR:				; XREF: Obj41_LR
 
 loc_DC36:
 		move.w	#$F,$3E(a1)
-		move.w	$10(a1),$14(a1)
+		move.w	$10(a1),$20(a1)
 		bchg	#0,$22(a1)
 		btst	#2,$22(a1)
 		bne.s	loc_DC56
@@ -18825,11 +19096,10 @@ Obj43_Action:				; XREF: Obj43_Index
 ; ===========================================================================
 
 Obj43_ChkGone:				; XREF: Obj43_Action
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj43_Delete
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj43_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Obj43_Delete:
 		bra.w	DeleteObject
@@ -18985,7 +19255,14 @@ Obj44_Display:				; XREF: Obj44_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj44_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj44_NoDel:
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -19113,7 +19390,14 @@ Obj14_ChkDel:				; XREF: Obj13
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj14_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj14_NoDel:
 		rts	
 ; ===========================================================================
 Obj14_TypeIndex:dc.w Obj14_Type00-Obj14_TypeIndex, Obj14_Type00-Obj14_TypeIndex
@@ -19273,8 +19557,12 @@ Obj6D_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
+		bra.w	DeleteObject
 ; ===========================================================================
 Ani_obj6D:
 	include "_anim\obj6D.asm"
@@ -19336,7 +19624,14 @@ Obj46_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj46_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj46_NoDel:
 		rts	
 ; ===========================================================================
 Obj46_TypeIndex:dc.w Obj46_Type00-Obj46_TypeIndex
@@ -19451,8 +19746,12 @@ Obj12_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - lamp (SYZ)
@@ -19510,13 +19809,12 @@ Obj47_Hit:				; XREF: Obj47_Index
 		move.b	#1,$1C(a0)
 		move.w	#$B4,d0
 		jsr	(PlaySound_Special).l ;	play bumper sound
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj47_Score
-		cmpi.b	#$8A,2(a2,d0.w)	; has bumper been hit $8A times?
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj47_Score		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		cmpi.b	#$8A,(a2)	; has bumper been hit $8A times?
 		bcc.s	Obj47_Display	; if yes, Sonic	gets no	points
-		addq.b	#1,2(a2,d0.w)
+		addq.b	#1,(a2)
 
 Obj47_Score:
 		moveq	#1,d0
@@ -19543,11 +19841,10 @@ Obj47_Display:
 ; ===========================================================================
 
 Obj47_ChkHit:				; XREF: Obj47_Display
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj47_Delete
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj47_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Obj47_Delete:
 		bra.w	DeleteObject
@@ -19581,7 +19878,14 @@ Obj0D:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj0D_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj0D_NoDel:
 		rts	
 ; ===========================================================================
 Obj0D_Index:	dc.w Obj0D_Main-Obj0D_Index
@@ -19943,7 +20247,14 @@ Obj4D_ChkDel:				; XREF: Obj4C
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj4D_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj4D_NoDel:
 		rts	
 ; ===========================================================================
 Obj4D_TypeIndex:dc.w Obj4D_Type00-Obj4D_TypeIndex
@@ -20129,10 +20440,9 @@ locret_F17E:
 ; ===========================================================================
 
 Obj4E_ChkGone:				; XREF: Obj4E_ChkDel
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 		move.b	#8,$24(a0)
 		rts	
 ; ===========================================================================
@@ -20182,7 +20492,14 @@ Obj54_ChkDel:				; XREF: Obj54_Index
 		sub.w	d1,d0
 		bmi.w	DeleteObject
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj54_NoDel
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.w	DeleteObject		; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj54_NoDel:
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -20280,11 +20597,10 @@ MarkObjGone:
 ; ===========================================================================
 
 Mark_ChkGone:
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Mark_Delete
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Mark_Delete:
 		bra.w	DeleteObject
@@ -20672,7 +20988,7 @@ loc_FB5E:
 		bpl.s	loc_FB70
 
 loc_FB64:
-		move.w	#0,$14(a1)	; stop Sonic moving
+		move.w	#0,$20(a1)	; stop Sonic moving
 		move.w	#0,$10(a1)
 
 loc_FB70:
@@ -20795,7 +21111,7 @@ loc_FC4E:
 		move.b	d0,$3D(a1)
 		move.b	#0,$26(a1)
 		move.w	#0,$12(a1)
-		move.w	$10(a1),$14(a1)
+		move.w	$10(a1),$20(a1)
 		btst	#1,$22(a1)
 		beq.s	loc_FC84
 		move.l	a0,-(sp)
@@ -20992,8 +21308,12 @@ Obj52_ChkDel:				; XREF: Obj52_Platform
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
 ; ===========================================================================
 
 Obj52_Move:				; XREF: Obj52_Platform; Obj52_StandOn
@@ -21412,12 +21732,11 @@ loc_10332:
 		move.w	#$80,$3A(a0)
 
 Obj56_ChkGone:
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj56_Action
-		bclr	#7,2(a2,d0.w)
-		btst	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj56_Action		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		btst	#0,(a2)
 		beq.s	Obj56_Action
 		addq.b	#1,$28(a0)
 		clr.w	$3A(a0)
@@ -21450,8 +21769,12 @@ Obj56_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
+		bra.w	DeleteObject
 ; ===========================================================================
 Obj56_TypeIndex:dc.w Obj56_Type00-Obj56_TypeIndex, Obj56_Type01-Obj56_TypeIndex
 		dc.w Obj56_Type02-Obj56_TypeIndex, Obj56_Type03-Obj56_TypeIndex
@@ -21565,11 +21888,10 @@ loc_104BC:
 loc_104C8:
 		addq.b	#1,$28(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_104AE
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_104AE		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bset	#0,(a2)
 		bra.s	loc_104AE
 ; ===========================================================================
 
@@ -21607,11 +21929,10 @@ loc_10520:
 loc_1052C:
 		subq.b	#1,$28(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_10512
-		bclr	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_10512		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#0,(a2)
 		bra.s	loc_10512
 ; ===========================================================================
 
@@ -21667,11 +21988,10 @@ loc_105B4:
 loc_105C0:
 		addq.b	#1,$28(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_105A2
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_105A2		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bset	#0,(a2)
 		bra.s	loc_105A2
 ; ===========================================================================
 
@@ -21708,11 +22028,10 @@ loc_10618:
 loc_10624:
 		subq.b	#1,$28(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_10606
-		bclr	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_10606		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#0,(a2)
 		bra.s	loc_10606
 ; ===========================================================================
 
@@ -21949,8 +22268,11 @@ Obj57_ChkDel:				; XREF: Obj57_Move
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	Obj57_Delete
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj57_Delete	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
 ; ===========================================================================
 
 Obj57_Delete:				; XREF: Obj57_ChkDel
@@ -22035,8 +22357,12 @@ Obj58_Move:				; XREF: Obj58_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
+		bra.w	DeleteObject
 ; ===========================================================================
 Obj58_TypeIndex:dc.w Obj58_Type00-Obj58_TypeIndex
 		dc.w Obj58_Type01-Obj58_TypeIndex
@@ -22123,8 +22449,12 @@ Obj59:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
+		bra.w	DeleteObject
 ; ===========================================================================
 Obj59_Index:	dc.w Obj59_Main-Obj59_Index
 		dc.w Obj59_Platform-Obj59_Index
@@ -22389,8 +22719,12 @@ Obj5A:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
+		bra.w	DeleteObject
 ; ===========================================================================
 Obj5A_Index:	dc.w Obj5A_Main-Obj5A_Index
 		dc.w Obj5A_Platform-Obj5A_Index
@@ -22511,8 +22845,12 @@ Obj5B:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
+		bra.w	DeleteObject
 ; ===========================================================================
 Obj5B_Index:	dc.w Obj5B_Main-Obj5B_Index
 		dc.w Obj5B_Move-Obj5B_Index
@@ -23011,7 +23349,14 @@ Obj71_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj71_Delete
+		bls.s	Obj71_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj71_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj71_Delete	; and delete object
+
+Obj71_NoDel:
 		tst.w	($FFFFFE08).w	; are you using	debug mode?
 		beq.s	Obj71_NoDisplay	; if not, branch
 		jmp	DisplaySprite	; if yes, display the object
@@ -23132,7 +23477,14 @@ Obj5D_ChkDel:				; XREF: Obj5D_Animate
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj5D_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj5D_NoDel:
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -23159,8 +23511,12 @@ Obj5E:					; XREF: Obj_Index
 		sub.w	d1,d0
 		bmi.w	DeleteObject
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object		
 ; ===========================================================================
 Obj5E_Index:	dc.w Obj5E_Main-Obj5E_Index
 		dc.w Obj5E_Slope-Obj5E_Index
@@ -23745,11 +24101,10 @@ Obj60_ChkDel:				; XREF: Obj60_Animate
 ; ===========================================================================
 
 Obj60_ChkGone:				; XREF: Obj60_ChkDel
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_11E34
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_11E34		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 loc_11E34:
 		lea	$37(a0),a2
@@ -23953,8 +24308,12 @@ Obj61_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
-		bra.w	DisplaySprite
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject	; if it's zero, object was placed in debug mode
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn entry, so object can be loaded again
+		bra.w	DeleteObject
 ; ===========================================================================
 Obj61_TypeIndex:dc.w Obj61_Type00-Obj61_TypeIndex, Obj61_Type01-Obj61_TypeIndex
 		dc.w Obj61_Type02-Obj61_TypeIndex, Obj61_Type01-Obj61_TypeIndex
@@ -24215,7 +24574,12 @@ Obj63:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	loc_1236A
+		bls.s	Obj63_Display
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_1236A		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	loc_1236A	; and delete object
 
 Obj63_Display:				; XREF: loc_1236A
 		bra.w	DisplaySprite
@@ -24578,7 +24942,7 @@ Obj64_Wobble:				; XREF: Obj64_ChkWater
 		lea	($FFFFD000).w,a1
 		clr.w	$10(a1)
 		clr.w	$12(a1)
-		clr.w	$14(a1)
+		clr.w	$20(a1)
 		move.b	#$15,$1C(a1)
 		move.w	#$23,$3E(a1)
 		move.b	#0,$3C(a1)
@@ -24711,7 +25075,14 @@ Obj64_ChkDel:				; XREF: Obj64_BblMaker
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.w	DeleteObject
+		bls.s	Obj64_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+
+Obj64_NoDel:	
 		move.w	($FFFFF646).w,d0
 		cmp.w	$C(a0),d0
 		bcs.w	DisplaySprite
@@ -25181,7 +25552,7 @@ Obj01_NotRight:
 		addi.b	#$20,d0
 		andi.b	#$C0,d0		; is Sonic on a	slope?
 		bne.w	Obj01_ResetScr	; if yes, branch
-		tst.w	$14(a0)		; is Sonic moving?
+		tst.w	$20(a0)		; is Sonic moving?
 		bne.w	Obj01_ResetScr	; if yes, branch
 		bclr	#5,$22(a0)
 		move.b	#5,$1C(a0)	; use "standing" animation
@@ -25265,7 +25636,7 @@ loc_12FC2:
 		move.b	($FFFFF602).w,d0
 		andi.b	#$C,d0		; is left/right	pressed?
 		bne.s	loc_12FEE	; if yes, branch
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		beq.s	loc_12FEE
 		bmi.s	loc_12FE2
 		sub.w	d5,d0
@@ -25273,7 +25644,7 @@ loc_12FC2:
 		move.w	#0,d0
 
 loc_12FDC:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		bra.s	loc_12FEE
 ; ===========================================================================
 
@@ -25283,15 +25654,15 @@ loc_12FE2:
 		move.w	#0,d0
 
 loc_12FEA:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 
 loc_12FEE:
 		move.b	$26(a0),d0
 		jsr	(CalcSine).l
-		muls.w	$14(a0),d1
+		muls.w	$20(a0),d1
 		asr.l	#8,d1
 		move.w	d1,$10(a0)
-		muls.w	$14(a0),d0
+		muls.w	$20(a0),d0
 		asr.l	#8,d0
 		move.w	d0,$12(a0)
 
@@ -25300,7 +25671,7 @@ loc_1300C:
 		addi.b	#$40,d0
 		bmi.s	locret_1307C
 		move.b	#$40,d1
-		tst.w	$14(a0)
+		tst.w	$20(a0)
 		beq.s	locret_1307C
 		bmi.s	loc_13024
 		neg.w	d1
@@ -25323,7 +25694,7 @@ loc_13024:
 		beq.s	loc_13060
 		add.w	d1,$10(a0)
 		bset	#5,$22(a0)
-		move.w	#0,$14(a0)
+		move.w	#0,$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -25335,7 +25706,7 @@ loc_13060:
 loc_13066:
 		sub.w	d1,$10(a0)
 		bset	#5,$22(a0)
-		move.w	#0,$14(a0)
+		move.w	#0,$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -25351,7 +25722,7 @@ locret_1307C:
 
 
 Sonic_MoveLeft:				; XREF: Sonic_Move
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		beq.s	loc_13086
 		bpl.s	loc_130B2
 
@@ -25370,7 +25741,7 @@ loc_1309A:
 		move.w	d1,d0
 
 loc_130A6:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		move.b	#0,$1C(a0)	; use walking animation
 		rts	
 ; ===========================================================================
@@ -25381,7 +25752,7 @@ loc_130B2:				; XREF: Sonic_MoveLeft
 		move.w	#-$80,d0
 
 loc_130BA:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		move.b	$26(a0),d0
 		addi.b	#$20,d0
 		andi.b	#$C0,d0
@@ -25402,7 +25773,7 @@ locret_130E8:
 
 
 Sonic_MoveRight:			; XREF: Sonic_Move
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		bmi.s	loc_13118
 		bclr	#0,$22(a0)
 		beq.s	loc_13104
@@ -25416,7 +25787,7 @@ loc_13104:
 		move.w	d6,d0
 
 loc_1310C:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		move.b	#0,$1C(a0)	; use walking animation
 		rts	
 ; ===========================================================================
@@ -25427,7 +25798,7 @@ loc_13118:				; XREF: Sonic_MoveRight
 		move.w	#$80,d0
 
 loc_13120:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		move.b	$26(a0),d0
 		addi.b	#$20,d0
 		andi.b	#$C0,d0
@@ -25471,7 +25842,7 @@ loc_1317C:
 		bsr.w	Sonic_RollRight
 
 loc_13188:
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		beq.s	loc_131AA
 		bmi.s	loc_1319E
 		sub.w	d5,d0
@@ -25479,7 +25850,7 @@ loc_13188:
 		move.w	#0,d0
 
 loc_13198:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		bra.s	loc_131AA
 ; ===========================================================================
 
@@ -25489,10 +25860,10 @@ loc_1319E:				; XREF: Sonic_RollSpeed
 		move.w	#0,d0
 
 loc_131A6:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 
 loc_131AA:
-		tst.w	$14(a0)		; is Sonic moving?
+		tst.w	$20(a0)		; is Sonic moving?
 		bne.s	loc_131CC	; if yes, branch
 
 	@NoReset:
@@ -25505,10 +25876,10 @@ loc_131AA:
 loc_131CC:
 		move.b	$26(a0),d0
 		jsr	(CalcSine).l
-		muls.w	$14(a0),d0
+		muls.w	$20(a0),d0
 		asr.l	#8,d0
 		move.w	d0,$12(a0)
-		muls.w	$14(a0),d1
+		muls.w	$20(a0),d1
 		asr.l	#8,d1
 		cmpi.w	#$1000,d1
 		ble.s	loc_131F0
@@ -25529,7 +25900,7 @@ loc_131FA:
 
 
 Sonic_RollLeft:				; XREF: Sonic_RollSpeed
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		beq.s	loc_1320A
 		bpl.s	loc_13218
 
@@ -25545,7 +25916,7 @@ loc_13218:
 		move.w	#-$80,d0
 
 loc_13220:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		rts	
 ; End of function Sonic_RollLeft
 
@@ -25554,7 +25925,7 @@ loc_13220:
 
 
 Sonic_RollRight:			; XREF: Sonic_RollSpeed
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		bmi.s	loc_1323A
 		bclr	#0,$22(a0)
 		move.b	#2,$1C(a0)	; use "rolling"	animation
@@ -25567,7 +25938,7 @@ loc_1323A:
 		move.w	#$80,d0
 
 loc_13242:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		rts	
 ; End of function Sonic_RollRight
 
@@ -25656,7 +26027,7 @@ locret_132D2:
 		bsr.w	Sonic_DontRunOnWalls
 		tst.w	d1
 		bpl.s	locret_13302
-		move.w	#0,$14(a0)	; stop Sonic moving
+		move.w	#0,$20(a0)	; stop Sonic moving
 		move.w	#0,$10(a0)
 		move.w	#0,$12(a0)
 		move.b	#$B,$1C(a0)	; use "warping"	animation
@@ -25714,7 +26085,7 @@ Boundary_Sides:
 		move.w	d0,8(a0)
 		move.w	#0,$A(a0)
 		move.w	#0,$10(a0)	; stop Sonic moving
-		move.w	#0,$14(a0)
+		move.w	#0,$20(a0)
 		bra.s	loc_13336
 
 JMPKillSonic:
@@ -25733,7 +26104,7 @@ JMPKillSonic:
 Sonic_Roll:				; XREF: Obj01_MdNormal
 		tst.b	($FFFFF7CA).w
 		bne.s	Obj01_NoRoll
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		bpl.s	loc_13392
 		neg.w	d0
 
@@ -25764,9 +26135,9 @@ Obj01_DoRoll:
 		addq.w	#5,$C(a0)
 		move.w	#$BE,d0
 		jsr	(PlaySound_Special).l ;	play rolling sound
-		tst.w	$14(a0)
+		tst.w	$20(a0)
 		bne.s	locret_133E8
-		move.w	#$200,$14(a0)
+		move.w	#$200,$20(a0)
 
 locret_133E8:
 		rts	
@@ -25886,19 +26257,19 @@ Sonic_SlopeResist:			; XREF: Obj01_MdNormal
 		jsr	(CalcSine).l
 		muls.w	#$20,d0
 		asr.l	#8,d0
-		tst.w	$14(a0)
+		tst.w	$20(a0)
 		beq.s	locret_13508
 		bmi.s	loc_13504
 		tst.w	d0
 		beq.s	locret_13502
-		add.w	d0,$14(a0)	; change Sonic's inertia
+		add.w	d0,$20(a0)	; change Sonic's inertia
 
 locret_13502:
 		rts	
 ; ===========================================================================
 
 loc_13504:
-		add.w	d0,$14(a0)
+		add.w	d0,$20(a0)
 
 locret_13508:
 		rts	
@@ -25920,14 +26291,14 @@ Sonic_RollRepel:			; XREF: Obj01_MdRoll
 		jsr	(CalcSine).l
 		muls.w	#$50,d0
 		asr.l	#8,d0
-		tst.w	$14(a0)
+		tst.w	$20(a0)
 		bmi.s	loc_1353A
 		tst.w	d0
 		bpl.s	loc_13534
 		asr.l	#2,d0
 
 loc_13534:
-		add.w	d0,$14(a0)
+		add.w	d0,$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -25937,7 +26308,7 @@ loc_1353A:
 		asr.l	#2,d0
 
 loc_13540:
-		add.w	d0,$14(a0)
+		add.w	d0,$20(a0)
 
 locret_13544:
 		rts	
@@ -25960,14 +26331,14 @@ Sonic_SlopeRepel:			; XREF: Obj01_MdNormal; Obj01_MdRoll
 		addi.b	#$20,d0
 		andi.b	#$C0,d0
 		beq.s	locret_13580
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		bpl.s	loc_1356A
 		neg.w	d0
 
 loc_1356A:
 		cmpi.w	#$280,d0
 		bcc.s	locret_13580
-		clr.w	$14(a0)
+		clr.w	$20(a0)
 		bset	#1,$22(a0)
 		move.w	#$1E,$3E(a0)
 
@@ -26079,7 +26450,7 @@ loc_1361E:
 
 loc_1364E:
 		move.w	#0,$12(a0)
-		move.w	$10(a0),$14(a0)
+		move.w	$10(a0),$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -26090,10 +26461,10 @@ loc_1365C:
 		move.w	#$FC0,$12(a0)
 
 loc_13670:
-		move.w	$12(a0),$14(a0)
+		move.w	$12(a0),$20(a0)
 		tst.b	d3
 		bpl.s	locret_1367E
-		neg.w	$14(a0)
+		neg.w	$20(a0)
 
 locret_1367E:
 		rts	
@@ -26105,7 +26476,7 @@ loc_13680:
 		bpl.s	loc_1369A
 		sub.w	d1,8(a0)
 		move.w	#0,$10(a0)
-		move.w	$12(a0),$14(a0)
+		move.w	$12(a0),$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -26133,7 +26504,7 @@ loc_136B4:
 		bsr.w	Sonic_ResetOnFloor
 		move.b	#0,$1C(a0)
 		move.w	#0,$12(a0)
-		move.w	$10(a0),$14(a0)
+		move.w	$10(a0),$20(a0)
 
 locret_136E0:
 		rts	
@@ -26169,10 +26540,10 @@ loc_13706:
 loc_13726:
 		move.b	d3,$26(a0)
 		bsr.w	Sonic_ResetOnFloor
-		move.w	$12(a0),$14(a0)
+		move.w	$12(a0),$20(a0)
 		tst.b	d3
 		bpl.s	locret_1373C
-		neg.w	$14(a0)
+		neg.w	$20(a0)
 
 locret_1373C:
 		rts	
@@ -26184,7 +26555,7 @@ loc_1373E:
 		bpl.s	loc_13758
 		add.w	d1,8(a0)
 		move.w	#0,$10(a0)
-		move.w	$12(a0),$14(a0)
+		move.w	$12(a0),$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -26212,7 +26583,7 @@ loc_13772:
 		bsr.w	Sonic_ResetOnFloor
 		move.b	#0,$1C(a0)
 		move.w	#0,$12(a0)
-		move.w	$10(a0),$14(a0)
+		move.w	$10(a0),$20(a0)
 
 locret_1379E:
 		rts	
@@ -26292,7 +26663,7 @@ Sonic_HurtStop:				; XREF: Obj01_Hurt
 		moveq	#0,d0
 		move.w	d0,$12(a0)
 		move.w	d0,$10(a0)
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		move.b	#0,$1C(a0)
 		subq.b	#2,$24(a0)
 		move.w	#$78,$30(a0)
@@ -26561,7 +26932,7 @@ loc_13A78:
 		bne.w	SAnim_Push
 		lsr.b	#4,d0		; divide angle by $10
 		andi.b	#6,d0		; angle	must be	0, 2, 4	or 6
-		move.w	$14(a0),d2	; get Sonic's speed
+		move.w	$20(a0),d2	; get Sonic's speed
 		bpl.s	loc_13A9C
 		neg.w	d2
 
@@ -26593,7 +26964,7 @@ loc_13AC2:
 SAnim_RollJump:				; XREF: SAnim_WalkRun
 		addq.b	#1,d0		; is animation rolling/jumping?
 		bne.s	SAnim_Push	; if not, branch
-		move.w	$14(a0),d2	; get Sonic's speed
+		move.w	$20(a0),d2	; get Sonic's speed
 		bpl.s	loc_13ADE
 		neg.w	d2
 
@@ -26620,7 +26991,7 @@ loc_13AFA:
 ; ===========================================================================
 
 SAnim_Push:				; XREF: SAnim_RollJump
-		move.w	$14(a0),d2	; get Sonic's speed
+		move.w	$20(a0),d2	; get Sonic's speed
 		bmi.s	loc_13B1E
 		neg.w	d2
 
@@ -27187,7 +27558,7 @@ Obj0A_ReduceAir:
 		bset	#7,2(a0)
 		move.w	#0,$12(a0)
 		move.w	#0,$10(a0)
-		move.w	#0,$14(a0)
+		move.w	#0,$20(a0)
 		move.b	#$A,$24(a0)		; Force the character to drown		
 		move.b	#1,($FFFFF744).w
 		move.b	#0,($FFFFFE1E).w	; Stop the timer immediately		
@@ -28945,7 +29316,7 @@ Obj66_GrabSonic:
 		addq.b	#4,$24(a0)
 		move.b	#1,($FFFFF7C8).w ; lock	controls
 		move.b	#2,$1C(a1)	; make Sonic use "rolling" animation
-		move.w	#$800,$14(a1)
+		move.w	#$800,$20(a1)
 		move.w	#0,$10(a1)
 		move.w	#0,$12(a1)
 		bclr	#5,$22(a0)
@@ -29154,19 +29525,19 @@ loc_155D0:
 		move.b	#1,$38(a1)
 
 loc_155E2:
-		move.w	$14(a1),d0
+		move.w	$20(a1),d0
 		tst.w	$36(a0)
 		bpl.s	loc_15608
 		cmpi.w	#-$400,d0
 		ble.s	loc_155FA
-		move.w	#-$400,$14(a1)
+		move.w	#-$400,$20(a1)
 		rts	
 ; ===========================================================================
 
 loc_155FA:
 		cmpi.w	#-$F00,d0
 		bge.s	locret_15606
-		move.w	#-$F00,$14(a1)
+		move.w	#-$F00,$20(a1)
 
 locret_15606:
 		rts	
@@ -29175,14 +29546,14 @@ locret_15606:
 loc_15608:
 		cmpi.w	#$400,d0
 		bge.s	loc_15616
-		move.w	#$400,$14(a1)
+		move.w	#$400,$20(a1)
 		rts	
 ; ===========================================================================
 
 loc_15616:
 		cmpi.w	#$F00,d0
 		ble.s	locret_15622
-		move.w	#$F00,$14(a1)
+		move.w	#$F00,$20(a1)
 
 locret_15622:
 		rts	
@@ -29272,7 +29643,14 @@ Obj68_Action:				; XREF: Obj68_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj68_Delete
+		bls.s	Obj68_NoDel
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.s	Obj68_Delete		; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj68_Delete	; and delete object
+
+Obj68_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -29486,7 +29864,14 @@ Obj6A_Action:				; XREF: Obj6A_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj6A_Delete
+		bls.s	Obj6A_NoDel
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.s	Obj6A_Delete		; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj6A_Delete	; and delete object
+
+Obj6A_NoDel:
 		jmp	DisplaySprite
 ; ===========================================================================
 
@@ -29690,11 +30075,10 @@ Obj6B_Main:				; XREF: Obj6B_Index
 		beq.s	Obj6B_SBZ3
 
 Obj6B_ChkGone:				; XREF: Obj6B_SBZ3
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj6B_Delete
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj6B_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Obj6B_Delete:
 		jmp	DeleteObject
@@ -29704,11 +30088,10 @@ Obj6B_SBZ3:				; XREF: Obj6B_Main
 		move.w	#$41F0,2(a0)
 		cmpi.w	#$A80,8(a0)
 		bne.s	Obj6B_SBZ12
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj6B_SBZ12
-		btst	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj6B_SBZ12		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		btst	#0,(a2)
 		beq.s	Obj6B_SBZ12
 		clr.b	($FFFFF7CB).w
 		bra.s	Obj6B_ChkGone
@@ -29733,11 +30116,10 @@ Obj6B_SBZ12:				; XREF: Obj6B_Main
 		bset	#4,1(a0)
 
 Obj6B_ChkGone2:
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj6B_Action
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj6B_Action		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Obj6B_Action:				; XREF: Obj6B_Index
 		move.w	8(a0),-(sp)
@@ -29775,11 +30157,10 @@ loc_15D64:
 		cmpi.b	#1,($FFFFFE10).w
 		bne.s	Obj6B_Delete2
 		clr.b	($FFFFF7CB).w
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	Obj6B_Delete2
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj6B_Delete2		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Obj6B_Delete2:
 		jmp	DeleteObject
@@ -29827,11 +30208,10 @@ loc_15DE0:
 		addq.b	#1,$28(a0)
 		move.w	#$B4,$36(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_15DC2
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_15DC2		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bset	#0,(a2)
 		bra.s	loc_15DC2
 ; ===========================================================================
 
@@ -29864,11 +30244,10 @@ loc_15E30:
 loc_15E3C:
 		subq.b	#1,$28(a0)
 		clr.b	$38(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_15E1E
-		bclr	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_15E1E		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#0,(a2)
 		bra.s	loc_15E1E
 ; ===========================================================================
 
@@ -29960,11 +30339,10 @@ Obj6B_Type05:				; XREF: Obj6B_TypeIndex
 		btst	#0,(a2,d0.w)
 		beq.s	locret_15F5C
 		move.b	#1,$38(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_15F3E
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_15F3E		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 loc_15F3E:
 		subi.l	#$10000,8(a0)
@@ -30174,7 +30552,12 @@ Obj6F:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	loc_1629A
+		bls.s	Obj6F_Display
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.s	loc_1629A		; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	loc_1629A	; and delete object
 
 Obj6F_Display:
 		jmp	DisplaySprite
@@ -30434,7 +30817,14 @@ Obj70_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj70_Delete
+		bls.s	Obj70_NoDel
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.s	Obj70_Delete		; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj70_Delete	; and delete object
+
+Obj70_NoDel:
 		jmp	DisplaySprite
 ; ===========================================================================
 
@@ -30481,7 +30871,14 @@ Obj72:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj72_Delete
+		bls.s	Obj72_NoDel
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.s	Obj72_Delete	; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj72_Delete	; and delete object
+
+Obj72_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -30533,7 +30930,7 @@ loc_1670E:
 		addq.b	#2,$24(a0)
 		move.b	#$81,($FFFFF7C8).w ; lock controls
 		move.b	#2,$1C(a1)	; use Sonic's rolling animation
-		move.w	#$800,$14(a1)
+		move.w	#$800,$20(a1)
 		move.w	#0,$10(a1)
 		move.w	#0,$12(a1)
 		bclr	#5,$22(a0)
@@ -30839,11 +31236,10 @@ Obj78_Display:
 ; ===========================================================================
 
 Obj78_ChkGone:
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		beq.s	loc_16ABC
-		bclr	#7,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_16ABC		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 loc_16ABC:
 		move.b	#$A,$24(a0)	; run "Obj78_Delete" routine
@@ -30867,11 +31263,11 @@ Obj78_Move2:
 		addq.b	#2,$25(a0)
 		move.b	#$10,$2A(a0)
 		move.w	#-$C0,$10(a0)
-		move.w	#$40,$14(a0)
+		move.w	#$40,$1C(a0)
 		bchg	#4,$2B(a0)
 		bne.s	loc_16AFC
 		clr.w	$10(a0)
-		neg.w	$14(a0)
+		neg.w	$1C(a0)
 
 loc_16AFC:
 		bset	#7,$2B(a0)
@@ -30954,9 +31350,9 @@ Obj78_BodySeg1:				; XREF: Obj78_Index
 		move.b	$2B(a1),$2B(a0)
 		move.b	$25(a1),$25(a0)
 		beq.w	loc_16C64
-		move.w	$14(a1),$14(a0)
+		move.w	$1C(a1),$1C(a0)
 		move.w	$10(a1),d0
-		add.w	$14(a1),d0
+		add.w	$1C(a1),d0
 		move.w	d0,$10(a0)
 		move.l	8(a0),d2
 		move.l	d2,d3
@@ -31080,11 +31476,9 @@ Obj79_Main:				; XREF: Obj79_Index
 		move.b	#4,1(a0)
 		move.b	#8,$19(a0)
 		move.b	#5,$18(a0)
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		bclr	#7,2(a2,d0.w)
-		btst	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		movea.w	d0,a2	; load address into a2
+		btst	#0,(a2)
 		bne.s	Obj79_RedLamp
 		move.b	($FFFFFE30).w,d1
 		andi.b	#$7F,d1
@@ -31094,7 +31488,7 @@ Obj79_Main:				; XREF: Obj79_Index
 		bcs.s	Obj79_BlueLamp	; if yes, branch
 
 Obj79_RedLamp:
-		bset	#0,2(a2,d0.w)
+		bset	#0,(a2)
 		move.b	#4,$24(a0)	; run "Obj79_AfterHit" routine
 		move.b	#3,$1A(a0)	; use red lamppost frame
 		rts	
@@ -31111,10 +31505,9 @@ Obj79_BlueLamp:				; XREF: Obj79_Index
 		andi.b	#$7F,d2
 		cmp.b	d2,d1
 		bcs.s	Obj79_HitLamp
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		movea.w	d0,a2	; load address into a2
+		bset	#0,(a2)
 		move.b	#4,$24(a0)
 		move.b	#3,$1A(a0)
 		bra.w	locret_16F90
@@ -31152,10 +31545,9 @@ Obj79_HitLamp:
 loc_16F76:
 		move.b	#1,$1A(a0)	; use "post only" frame, with no lamp
 		bsr.w	Obj79_StoreInfo
-		lea	($FFFFFC00).w,a2
-		moveq	#0,d0
-		move.b	$23(a0),d0
-		bset	#0,2(a2,d0.w)
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		movea.w	d0,a2	; load address into a2
+		bset	#0,(a2)
 
 locret_16F90:
 		rts	
@@ -31324,7 +31716,14 @@ Obj7D_ChkDel:
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj7D_Delete
+		bls.s	Obj7D_NoDel
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj7D_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj7D_Delete	; and delete object
+
+Obj7D_NoDel:
 		rts	
 ; ===========================================================================
 
@@ -33473,7 +33872,16 @@ Obj7B:					; XREF: Obj_Index
 		sub.w	d1,d0
 		bmi.w	Obj7A_Delete
 		cmpi.w	#$280,d0
-		bhi.w	Obj7A_Delete
+		bls.s	Obj7B_NoDel
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.s	Obj7B_Delete		; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+
+Obj7B_Delete:
+		jmp	DeleteObject	; and delete object
+
+Obj7B_NoDel:
 		jmp	DisplaySprite
 ; ===========================================================================
 Obj7B_Index:	dc.w Obj7B_Main-Obj7B_Index
@@ -35358,7 +35766,7 @@ loc_1A216:
 		blt.s	loc_1A23A
 		move.b	#1,($FFFFF7CC).w
 		move.w	#0,($FFFFF602).w
-		clr.w	($FFFFD014).w
+		clr.w	($FFFFD020).w
 		tst.w	$12(a0)
 		bpl.s	loc_1A248
 		move.w	#$100,($FFFFF602).w
@@ -35953,7 +36361,14 @@ Obj3E:					; XREF: Obj_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
-		bhi.s	Obj3E_Delete
+		bls.s	Obj3E_NoDel
+	;	move.w	respawn_index(a0),d0	; get address in respawn table
+	;	beq.s	Obj3E_Delete		; if it's zero, don't remember object
+	;	movea.w	d0,a2	; load address into a2
+	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.s	Obj3E_Delete	; and delete object
+
+Obj3E_NoDel:
 		jmp	DisplaySprite
 ; ===========================================================================
 
@@ -36163,6 +36578,7 @@ Map_obj3E:
 
 TouchResponse:				; XREF: Obj01
 		nop	
+		jsr	(Touch_Rings).l
 		move.w	8(a0),d2	; load Sonic's x-axis value
 		move.w	$C(a0),d3	; load Sonic's y-axis value
 		subq.w	#8,d2
@@ -36492,7 +36908,7 @@ Hurt_Reverse:
 		neg.w	$10(a0)		; if Sonic is right of the object, reverse
 
 Hurt_ChkSpikes:
-		move.w	#0,$14(a0)
+		move.w	#0,$20(a0)
 		move.b	#$1A,$1C(a0)
 		move.w	#$78,$30(a0)
 		move.w	#$A3,d0		; load normal damage sound
@@ -36529,7 +36945,7 @@ KillSonic:
 		bset	#1,$22(a0)
 		move.w	#-$700,$12(a0)
 		move.w	#0,$10(a0)
-		move.w	#0,$14(a0)
+		move.w	#0,$20(a0)
 		move.w	$C(a0),$38(a0)
 		move.b	#$18,$1C(a0)
 		bset	#7,2(a0)
@@ -37307,7 +37723,7 @@ loc_1BA78:
 		move.b	($FFFFF602).w,d0
 		andi.b	#$C,d0
 		bne.s	loc_1BAA8
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		beq.s	loc_1BAA8
 		bmi.s	loc_1BA9A
 		subi.w	#$C,d0
@@ -37315,7 +37731,7 @@ loc_1BA78:
 		move.w	#0,d0
 
 loc_1BA94:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		bra.s	loc_1BAA8
 ; ===========================================================================
 
@@ -37325,7 +37741,7 @@ loc_1BA9A:
 		move.w	#0,d0
 
 loc_1BAA4:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 
 loc_1BAA8:
 		move.b	($FFFFF780).w,d0
@@ -37333,9 +37749,9 @@ loc_1BAA8:
 		andi.b	#$C0,d0
 		neg.b	d0
 		jsr	(CalcSine).l
-		muls.w	$14(a0),d1
+		muls.w	$20(a0),d1
 		add.l	d1,8(a0)
-		muls.w	$14(a0),d0
+		muls.w	$20(a0),d0
 		add.l	d0,$C(a0)
 		movem.l	d0-d1,-(sp)
 		move.l	$C(a0),d2
@@ -37345,7 +37761,7 @@ loc_1BAA8:
 		movem.l	(sp)+,d0-d1
 		sub.l	d1,8(a0)
 		sub.l	d0,$C(a0)
-		move.w	#0,$14(a0)
+		move.w	#0,$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -37360,7 +37776,7 @@ loc_1BAF2:
 
 Obj09_MoveLeft:				; XREF: Obj09_Move
 		bset	#0,$22(a0)
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		beq.s	loc_1BB06
 		bpl.s	loc_1BB1A
 
@@ -37371,7 +37787,7 @@ loc_1BB06:
 		move.w	#-$800,d0
 
 loc_1BB14:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		rts	
 ; ===========================================================================
 
@@ -37381,7 +37797,7 @@ loc_1BB1A:
 		nop	
 
 loc_1BB22:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		rts	
 ; End of function Obj09_MoveLeft
 
@@ -37391,7 +37807,7 @@ loc_1BB22:
 
 Obj09_MoveRight:			; XREF: Obj09_Move
 		bclr	#0,$22(a0)
-		move.w	$14(a0),d0
+		move.w	$20(a0),d0
 		bmi.s	loc_1BB48
 		addi.w	#$C,d0
 		cmpi.w	#$800,d0
@@ -37399,7 +37815,7 @@ Obj09_MoveRight:			; XREF: Obj09_Move
 		move.w	#$800,d0
 
 loc_1BB42:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 		bra.s	locret_1BB54
 ; ===========================================================================
 
@@ -37409,7 +37825,7 @@ loc_1BB48:
 		nop	
 
 loc_1BB50:
-		move.w	d0,$14(a0)
+		move.w	d0,$20(a0)
 
 locret_1BB54:
 		rts	
