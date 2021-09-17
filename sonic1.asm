@@ -2861,14 +2861,13 @@ loc_29C0:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-CalcSine:				; XREF: SS_BGAnimate; et al
-		andi.w	#$FF,d0
-		add.w	d0,d0
-		addi.w	#$80,d0
-		move.w	Sine_Data(pc,d0.w),d1
-		subi.w	#$80,d0
-		move.w	Sine_Data(pc,d0.w),d0
-		rts	
+CalcSine:
+        andi.w  #$FF,d0
+        addq.w  #8,d0
+        add.w   d0,d0
+        move.w  Sine_Data+($40*2)-16(pc,d0.w),d1
+        move.w  Sine_Data-16(pc,d0.w),d0
+        rts
 ; End of function CalcSine
 
 ; ===========================================================================
