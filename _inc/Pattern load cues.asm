@@ -217,7 +217,7 @@ PLC_SYZ:	dc.w 3
 		dc.w $8F60
 		dc.l Nem_Roller		; roller enemy
 		dc.w $9700
-PLC_SYZ2:	dc.w 7
+PLC_SYZ2:	dc.w 6
 		dc.l Nem_Bumper		; bumper
 		dc.w $7000
 		dc.l Nem_SyzSpike1	; large	spikeball
