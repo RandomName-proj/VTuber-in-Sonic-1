@@ -27916,6 +27916,7 @@ InvStars_PrevPosIndex: equ $36 ; clear and unused in main object
 
 
 Obj4A_Init:
+		PlayPCM2	SonimeInvincibility
 		move.l	#ArtUnc_InvStars,d1
 		move.w	#$A820,d2
 		move.w	#$200,d3
@@ -37204,6 +37205,7 @@ Hurt_Sound:
 Hurt_NoRings:
 		tst.w	($FFFFFFFA).w	; is debug mode	cheat on?
 		bne.w	Hurt_Shield	; if yes, branch
+		PlayPCM2	SonimeDies
 ; End of function HurtSonic
 
 ; ---------------------------------------------------------------------------
