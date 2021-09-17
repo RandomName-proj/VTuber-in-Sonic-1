@@ -11,8 +11,8 @@
 ; This file should be compiled with "as	-M"
 
 ; ===========================================================================
-		org 0
 
+		include	"Equates.asm"
 		include	"Equz80.asm"
 		include	"Macros.asm"
 
@@ -63,6 +63,13 @@ sub9_y_pos        = $3C
 sub9_mapframe        = $3F
 next_subspr       = $6	
 	
+Yes		=	1
+No		=	0
+
+MUTEDAC		=	No
+MUTEFM		=	No
+MUTEPSG		=	No
+
 StartOfRom:
 Vectors:	dc.l $FFFE00, EntryPoint, BusError, AddressError
 		dc.l IllegalInstr, ZeroDivide, ChkInstr, TrapvInstr
@@ -234,11 +241,24 @@ GameClrRAM:
 		bsr.w	JoypadInit
 		move.b	#0,($FFFFF600).w ; set Game Mode to Sega Screen
 
+		lea	GML_Int(pc),a0				; load interrupt list
+		movea.w	(a0)+,a1				; load dump address
+		move.l	(a0)+,(a1)+				; jmp $0000
+		move.l	(a0)+,(a1)+				; $0000 jmp
+		move.l	(a0)+,(a1)+				; $00000000
+
 MainGameLoop:
 		move.b	($FFFFF600).w,d0 ; load	Game Mode
 		andi.w	#$1C,d0
 		jsr	GameModeArray(pc,d0.w) ; jump to apt location in ROM
 		bra.s	MainGameLoop
+
+GML_Int:	dc.w	HBlankRAM&$FFFF
+		jmp	PalToCRAM
+		jmp	loc_B10
+
+NullBlank:	rte
+
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Main game mode array
@@ -446,7 +466,6 @@ loc_BB6:
 
 loc_BBA:
 		move.w	#1,($FFFFF644).w
-	Z80DMA_ON
 		tst.b	($FFFFF64E).w
 		bne.s	loc_BFE
 		lea	($C00004).l,a5
@@ -472,7 +491,6 @@ loc_BFE:				; XREF: loc_BC8
 
 loc_C22:				; XREF: loc_BC8
 		move.w	($FFFFF624).w,(a5)
-	Z80DMA_OFF
 		bra.w	loc_B5E
 ; ===========================================================================
 
@@ -504,7 +522,7 @@ loc_C5E:				; XREF: off_B6E
 		bsr.w	sub_106E
 		rts
 
-Return:
+; Return:
 		bsr.w	ReadJoypads
 		rts	
 ; ===========================================================================
@@ -514,7 +532,6 @@ loc_C64:				; XREF: off_B6E
 		beq.w	loc_DA6		; if yes, branch
 
 loc_C6E:				; XREF: off_B6E
-	Z80DMA_ON
 		bsr.w	ReadJoypads
 		tst.b	($FFFFF64E).w
 		bne.s	loc_CB0
@@ -558,7 +575,6 @@ loc_CD4:				; XREF: loc_C76
 		jsr	(ProcessDMAQueue).l
 
 loc_D50:
-	Z80DMA_OFF
 		movem.l	($FFFFF700).w,d0-d7
 		movem.l	d0-d7,($FFFFFF10).w
 		movem.l	($FFFFF754).w,d0-d1
@@ -593,7 +609,6 @@ Demo_TimeEnd:
 
 loc_DA6:				; XREF: off_B6E
 		bsr.w	ReadJoypads
-	Z80DMA_ON
 		lea	($C00004).l,a5
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
@@ -619,7 +634,6 @@ loc_DA6:				; XREF: off_B6E
 		jsr	(ProcessDMAQueue).l
 
 loc_E64:
-	Z80DMA_OFF
 		cmpi.b	#96,($FFFFF625).w
 		bcc.s	@update
 		bra.w	locret_E70
@@ -636,7 +650,6 @@ locret_E70:
 
 loc_E72:				; XREF: off_B6E
 		bsr.w	ReadJoypads
-	Z80DMA_ON
 		tst.b	($FFFFF64E).w
 		bne.s	loc_EB4
 		lea	($C00004).l,a5
@@ -681,7 +694,6 @@ loc_EEE:
 		jsr	(ProcessDMAQueue).l
 
 loc_F54:
-	Z80DMA_OFF
 		movem.l	($FFFFF700).w,d0-d7
 		movem.l	d0-d7,($FFFFFF10).w
 		movem.l	($FFFFF754).w,d0-d1
@@ -708,7 +720,6 @@ loc_F9A:				; XREF: off_B6E
 
 loc_FA6:				; XREF: off_B6E
 		bsr.w	ReadJoypads
-	Z80DMA_ON
 		lea	($C00004).l,a5
 		move.l	#$94009340,(a5)
 		move.l	#$96FD9580,(a5)
@@ -733,7 +744,6 @@ loc_FA6:				; XREF: off_B6E
 		jsr	(ProcessDMAQueue).l
 
 loc_1060:
-	Z80DMA_OFF
 		tst.w	($FFFFF614).w
 		beq.w	locret_106C
 		subq.w	#1,($FFFFF614).w
@@ -746,7 +756,6 @@ locret_106C:
 
 sub_106E:				; XREF: loc_C32; et al
 		bsr.w	ReadJoypads
-	Z80DMA_ON
 		tst.b	($FFFFF64E).w
 		bne.s	loc_10B0
 		lea	($C00004).l,a5
@@ -787,7 +796,6 @@ loc_10D4:
 		move.w	#$83,($FFFFF640).w
 		move.w	($FFFFF640).w,(a5)
 		jsr	(ProcessDMAQueue).l
-	Z80DMA_OFF
 		rts	
 ; End of function sub_106E
 
@@ -1010,12 +1018,25 @@ SM_LoadZ80:
 		move.b	(a0)+,(a1)+				; copy pointer over into Z80
 		move.b	(a0)+,(a1)+				; ''
 		move.b	(a0)+,(a1)+				; ''
+		move.b	(a0)+,(a1)+				; CHG: copy "reverse" pointer over into Z80
+		move.b	(a0)+,(a1)+				; ''
+		move.b	(a0)+,(a1)+				; ''
+		lea	($A00000+SV_VolumeBank).l,a1		; load volume bank address write routine
+		move.b 	#$74|((PCM_Volumes>>$0F)&1),(a1)+	; write "ld  (hl),?" instructions
+		move.b	#$74|((PCM_Volumes>>$10)&1),(a1)+	; ''
+		move.b	#$74|((PCM_Volumes>>$11)&1),(a1)+	; ''
+		move.b	#$74|((PCM_Volumes>>$12)&1),(a1)+	; ''
+		move.b	#$74|((PCM_Volumes>>$13)&1),(a1)+	; ''
+		move.b	#$74|((PCM_Volumes>>$14)&1),(a1)+	; ''
+		move.b	#$74|((PCM_Volumes>>$15)&1),(a1)+	; ''
+		move.b	#$74|((PCM_Volumes>>$16)&1),(a1)+	; ''
+		move.b	#$74|((PCM_Volumes>>$17)&1),(a1)+	; ''
 		move.w	#$0000,($A11200).l			; request Z80 reset (ON)
 		moveq	#$7F,d1					; set repeat times
 		dbf	d1,*					; there's no way of checking for reset, so a manual delay is necessary
 		move.w	#$0000,($A11100).l			; request Z80 stop (OFF)
 		move.w	#$0100,($A11200).l			; request Z80 reset (OFF)
-		rts
+		rts						; return
 ; End of function SoundDriverLoad
 
 ; ---------------------------------------------------------------------------
@@ -2820,7 +2841,7 @@ Pal_Ending:	incbin	pallet\ending.bin	; ending sequence pallets
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-
+WaitVBlank:
 DelayProgram:				; XREF: PauseGame
 		move	#$2300,sr
 
@@ -3619,6 +3640,8 @@ loc_3550:
 		move.l	#$6C300003,($C00004).l ; screen	position (sound	test)
 		move.w	($FFFFFF84).w,d0
 		addi.w	#$80,d0
+
+DRAWNUMBER:
 		move.b	d0,d2
 		lsr.b	#4,d0
 		bsr.w	LevSel_ChgSnd
@@ -13593,20 +13616,6 @@ Obj2E_ChkInvinc:
 		bne.w Obj2E_ChkRings
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
-
-		movem.l	a0-a2,-(sp)
-		StopZ80
-		lea	(SegaPCM).l,a0				; MJ: load stop sample address
-		lea	($A00000+PCM1_Sample).l,a1			; MJ: load PCM 1 slot address
-		move.b	(a0)+,(a1)+					; MJ: set address of sample
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; MJ: set routine to run
-		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; MJ: ''
-		move.b	#%11001001,($A00000+CUPCM1_RET).l		; MJ: change "NOP" to "RET"
-		StartZ80
-		movem.l	(sp)+,a0-a2
-
 		move.b #1,($FFFFFE2D).w ; Set Invisibility to 1
 		move.w #$4B0,($FFFFD032).w ; Set Invisibility timer to 4B0
 		move.b #$4A,($FFFFD200).w ; load stars object ($3801)
@@ -37141,6 +37150,30 @@ Touch_Hurt:				; XREF: Touch_ChkHurt
 HurtSonic:
 		move.b	#face_frustrated,(SonimeSST+sonime_face).w
 		move.w	#$100,(SonimeSST+sonime_facetimer).w
+
+		stopZ80
+		lea (SonimeHurt).l,a2 ; load sample pointers
+		lea ($A00C75).l,a3 ; load PCM2 pointers
+		lea ($A00651).l,a4 ; load PCM2 request switch
+		move.w #$0100,($A11100).l ; request Z80 stop (ON)
+		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
+		bne.s *-$08 ; if not, branch
+		move.b (a2)+,(a3)+ ; set address of sample
+		move.b (a2)+,(a3)+ ; ''
+		move.b (a2)+,(a3)+ ; ''
+		move.b (a2)+,(a3)+ ; set address of reverse sample
+		move.b (a2)+,(a3)+ ; ''
+		move.b (a2)+,(a3)+ ; ''
+		move.b (a2)+,(a3)+ ; set address of loop sample
+		move.b (a2)+,(a3)+ ; ''
+		move.b (a2)+,(a3)+ ; ''
+		move.b (a2)+,(a3)+ ; set address of loop reverse sample
+		move.b (a2)+,(a3)+ ; ''
+		move.b (a2)+,(a3)+ ; ''
+		move.b #%11011010,(a4) ; set request
+		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
+		startZ80
+
 		tst.b	($FFFFFE2C).w	; does Sonic have a shield?
 		bne.s	Hurt_Shield	; if yes, branch
 		tst.w	($FFFFFE20).w	; does Sonic have any rings?
@@ -40952,27 +40985,25 @@ SoundTypes:	dc.b $90, $90, $90, $90, $90, $90, $90,	$90, $90, $90, $90, $90, $90
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-YM_Access_WaitRead:
-		StartZ80					; EXT: request Z80 stop off (allow it to continue)
-		rept	$10					; EXT: delay for a long enough time to allow the...
-		nop						; EXT: '' ...68k pointer to be saved correctly.
-		endr						; EXT: ''
-
 sub_71B4C:	
 		lea	($FFF000).l,a6
 
-		lea	($A00000+YM_Access).l,a0		; EXT: load access address in Z80
-		move.l	#$A00000,d0				; EXT: prepare Z80 RAM address in d0 (i.e. start of Cue list address)
-		StopZ80						; EXT: request Z80 stop on
-		tst.b	(a0)+					; EXT: is the Z80 accessing the 68k pointer?
-		bne.s	YM_Access_WaitRead			; EXT: if so, branch and wait for it to finish...
-		move.b	(a0)+,d1				; EXT: load lower byte of pointer
-		move.b	(a0)+,d0				; EXT: load upper byte of pointer
-		StartZ80					; EXT: request Z80 stop off
-		lsl.w	#$08,d0					; EXT: shift upper byte up
-		move.b	d1,d0					; EXT: put lower byte with it
-		move.l	d0,$10(a6)				; EXT: store the cue address
+		lea	($A00000+YM_Buffer).l,a0		; CHG: load buffer ID address
+		StopZ80						; CHG: request Z80 stop on
+		move.b	(a0),d0					; CHG: load buffer ID
+		StartZ80					; CHG: request Z80 stop off
+		cmp.b	$10(a6),d0				; CHG: has the 68k recently written to this buffer?
+		bne.s	SD_ValidList				; CHG: if not, branch
+		rts						; CHG: return (cannot write to YM cue until Z80 is finished with it)
 
+SD_ValidList:
+		move.l	#$A00000+YM_Buffer1,$10(a6)		; set the cue address to buffer 1
+		tst.b	d0					; is the Z80 accessing buffer 1?
+		bne.s	SD_WriteBuffer1				; if not, branch
+		move.l	#$A00000+YM_Buffer2,$10(a6)		; set the cue address to buffer 2
+
+SD_WriteBuffer1:
+		move.b	d0,$10(a6)				; set buffer ID the 68k is writing to
 		clr.b	$E(a6)
 		tst.b	3(a6)		; is music paused?
 		bne.w	loc_71E50	; if yes, branch
@@ -41072,112 +41103,388 @@ loc_71C38:
 		jsr	sub_72850(pc)
 
 loc_71C44:
-		bra.s	YM_Access_TestWrite			; EXT: jump into the access loop
-
-YM_Access_WaitWrite:
-		StartZ80					; EXT: request Z80 stop off (allow it to continue)
-		rept	$10					; EXT: delay for a long enough time to let the Z80...
-		nop						; EXT: '' ...finish writing the 68k pointer, so it doesn't...
-		endr						; EXT: '' ...clash with 68k's pointer writing.
-
-YM_Access_TestWrite:
-		lea	($A00000+YM_Access).l,a0		; EXT: load access address in Z80
-		lea	$13(a6),a1				; EXT: load the 68k's pointer finish location
-		StopZ80						; EXT: request Z80 stop on
-		tst.b	(a0)+					; EXT: is the Z80 accessing the 68k pointer?
-		bne.s	YM_Access_WaitWrite			; EXT: if so, branch and wait for it to finish...
-		move.b	(a1),(a0)+				; EXT: save lower byte of pointer
-		move.b	-(a1),(a0)				; EXT: save upper byte of pointer
-		StartZ80					; EXT: request Z80 stop off
-
 		rts	
 
 ; End of function sub_71B4C
 
 
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-sub_71C4E:				; XREF: sub_71B4C
-		subq.b	#1,$E(a5)
-		bne.w	locret_71CAA
-		movea.l	4(a5),a4
-
-loc_71C5E:
-		moveq	#0,d5
-		move.b	(a4)+,d5
-		cmpi.b	#-$20,d5
-		bcs.s	loc_71C6E
-		jsr	sub_72A5A(pc)
-		bra.s	loc_71C5E
 ; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to run an FM channel ; EXTRA - ON/OFF
+; ---------------------------------------------------------------------------
 
-loc_71C6E:
-		tst.b	d5
-		bpl.s	loc_71C84
-		move.b	d5,$10(a5)
-		move.b	(a4)+,d5
-		bpl.s	loc_71C84
-		subq.w	#1,a4
-		move.b	$F(a5),$E(a5)
-		bra.s	loc_71C88
-; ===========================================================================
+SDAC_CheckMute:
+	move.b	$21(a5),d0
+	cmp.b	$22(a5),d0
+	beq.s	S71C4E_NoCHG
+	tst.b	d0
+	bpl.s	S71C4E_NoMute
 
-loc_71C84:
-		jsr	sub_71D40(pc)
+		moveq	#%11011010|$FFFFFF00,d0			; prepare "JP Z" instruction
+		lea	(StopSample).l,a4		; MUTE
+		lea	($A00000+PCM2_Sample).l,a1		; load PCM 2 slot address
+		lea	($A00000+PCM2_NewRET).l,a0		; ''
+		cmpi.b	#$80,$08(a6)				; is this PCM 1?
+		bne.s	SDAC_CM_NotePCM2				; if not, branch for PCM 2 writing
+		lea	($A00000+PCM1_Sample).l,a1		; load PCM 1 slot address
+		lea	($A00000+PCM1_NewRET).l,a0		; ''
 
-loc_71C88:
-		move.l	a4,4(a5)
-		btst	#2,(a5)
-		bne.s	locret_71CAA
-		moveq	#0,d0
-		move.b	$10(a5),d0
-		subi.b	#$80,d0					; MJ: minus 80
-		add.w	d0,d0					; MJ: multiply by 4 (long-word size)
-		add.w	d0,d0					; MJ: ''
-		movem.l	a0/a1,-(sp)				; MJ: store register data
-		lea	(SampleList).l,a0			; MJ: load sample list
-		move.l	(a0,d0.w),a0				; MJ: load correct sample z80 pointer address
-
-		cmpi.b	#$80,$08(a6)				; MJ: is this PCM 1?
-		bne.s	WritePCM2				; MJ: if not, branch for PCM 2 writing
-
-	; --- Writing to PCM 1 ---
-
+SDAC_CM_NotePCM2:
 		StopZ80
-		lea	($A00000+PCM1_Sample).l,a1			; MJ: load PCM 1 slot address
-		move.b	(a0)+,(a1)+					; MJ: set address of sample
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; MJ: set routine to run
-		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; MJ: ''
-		move.b	#%11001001,($A00000+CUPCM1_RET).l		; MJ: change "NOP" to "RET"
+		move.b	(a4)+,(a1)+				; set address of sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; set address of reverse sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; set address of next sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; set address of next reverse sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	d0,(a0)					; change "JP NC" to "JP C"
 		StartZ80
 
-		movem.l	(sp)+,a0/a1				; MJ: restore register data
+;	jsr	sub_726FE(pc)
+;	move.b	$0A(a5),d1
+;	andi.b	#%00111111,d1
+;	move.b	#$B4,d0
+;	jsr	loc_72716
+	bset.b	#$06,(a5)
+	move.b	$21(a5),$22(a5)
 
-locret_71CAA:
-		rts						; MJ: return
+S71C4E_NoCHG:
+	rts
 
-	; --- Writing to PCM 2 ---
-
-WritePCM2:
-		StopZ80
-		lea	($A00000+PCM2_Sample).l,a1			; MJ: load PCM 2 slot address
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	#%00101000,($A00000+CUPCM2_RET).l		; change "JR NZ" to "JR Z"
-		StartZ80
-
-		movem.l	(sp)+,a0/a1				; MJ: restore register data
-		rts						; MJ: return
+S71C4E_NoMute:
+	move.b	d0,$22(a5)
+;	move.b	$0B(a5),d0
+;	jsr	SFM_UpdateVoice(pc)
+;	move.b	$0A(a5),d1
+;	move.b	#$B4,d0
+;	jsr	loc_72716
+	bset.b	#$06,(a5)
+	rts
 
 ; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to run a DAC channel ; CHG: The entire routine...
+; ---------------------------------------------------------------------------
+
+sub_71C4E:
+	bsr.w	SDAC_CheckMute			; EXTRA - ON/OFF
+
+	; Volume is being done first, as it'll update with a single
+	; frame delay, the PCM playback is a frame behind, as is the
+	; pitch control, but the volume change happens immediately,
+	; thus, a delay is needed.
+
+	; *VOLUME DELAY WAS HERE*
+
+		; And now back to the normal DAC
+		; SMPS routine
+
+		subq.b	#$01,$0E(a5)				; decrease note timer
+		bne.w	SDAC_HoldNote				; if still running, branch
+		bclr.b	#$04,(a5)				; disable softkey
+	bclr.b	#$06,(a5)			; EXTRA
+		movea.l	$04(a5),a4				; load tracker address
+		bra.s	SDAC_ReadTracker			; continue into loop
+
+SDAC_ReadFlag:
+		jsr	sub_72A5A(pc)				; run flags subroutine
+
+SDAC_ReadTracker:
+		moveq	#$00,d5					; clear d5
+		move.b	(a4)+,d5				; load byte from SMPS track
+		bpl.w	SDAC_Timer				; if it's a timer, branch
+		cmpi.b	#$E0,d5					; is it a flag?
+		bcc.s	SDAC_ReadFlag				; if so, branch
+	move.b	d5,$20(a5)			; EXTRA
+
+	SDAC_Update:				; EXTRA
+		bset.b	#$01,(a5)				; set channel as resting
+		subi.b	#$80,d5					; minus starting note
+		beq.s	SDAC_NoFrequency			; if it's mute, branch
+		subq.b	#$02,(a5)				; set channel as NOT resting
+		add.b	$08(a5),d5				; add pitch to it
+	add.b	$14(a6),d5			; EXTRA
+		add.w	d5,d5					; multiply by size of word
+		move.w	(FrequenciesPCM-2)(pc,d5.w),$10(a5)	; save frequency to use
+
+SDAC_NoFrequency:
+
+	bclr.b	#$06,(a5)			; EXTRA
+	bne.w	SDAC_Frequency			; EXTRA
+		move.b	(a4)+,d5				; load next note
+		bpl.w	SDAC_Timer				; if it's a timer, branch
+		subq.w	#$01,a4					; move back (it's not a timer after all)
+		move.b	$0F(a5),$0E(a5)				; reset timer
+		bra.w	SDAC_PlayNote				; continue
+
+; ---------------------------------------------------------------------------
+; Note to PCM frequency conversion table
+; ---------------------------------------------------------------------------
+; The octave numbers below assume the samples are playing a default pitch/note
+; of C3 (A5)
+; ---------------------------------------------------------------------------
+
+	;	dc.w	  C     C#    D     Eb    E     F     F#    G     G#    A     Bb    B
+
+FrequenciesPCM:	dc.w	$0010,$0011,$0012,$0013,$0014,$0015,$0017,$0018,$0019,$001B,$001D,$001E   ; Octave 0 - (81 - 8C)
+		dc.w	$0020,$0022,$0024,$0026,$0028,$002B,$002D,$0030,$0033,$0036,$0039,$003C   ; Octave 1 - (8D - 98)
+		dc.w	$0040,$0044,$0048,$004C,$0051,$0055,$005B,$0060,$0066,$006C,$0072,$0079   ; Octave 2 - (99 - A4)
+		dc.w	$0080,$0088,$0090,$0098,$00A1,$00AB,$00B5,$00C0,$00CB,$00D7,$00E4,$00F2   ; Octave 3 - (A5 - B0)
+		dc.w	$0100,$010F,$011F,$0130,$0143,$0156,$016A,$0180,$0196,$01AF,$01C8,$01E3   ; Octave 4 - (B1 - BC)
+		dc.w	$0200,$021E,$023F,$0261,$0285,$02AB,$02D4,$02FF,$032D,$035D,$0390,$03C7   ; Octave 5 - (BD - C8)
+		dc.w	$0400,$043D,$047D,$04C2,$050A,$0557,$05A8,$05FE,$0659,$06BA,$0721,$078D   ; Octave 6 - (C9 - D4)
+		dc.w	$0800,$087A,$08FB,$0983,$0A14,$0AAE,$0B50,$0BFD,$0CB3,$0D74,$0E41,$0F1A   ; Octave 7 - (D5 - DF)
+
+; ---------------------------------------------------------------------------
+; Writing the sample to Dual PCM
+; ---------------------------------------------------------------------------
+
+SDAC_Timer:
+		jsr	sub_71D40(pc)				; correct timer
+
+SDAC_PlayNote:
+		move.l	a4,$04(a5)				; update tracker address
+
+	SDAC_MuteNote:
+		lea	(StopSample).l,a4			; load "stop sample" address
+	tst.b	$22(a5)
+	bmi.s	SDAC_Rest
+		move.b	(a5),d0					; load flags
+		btst	#$04,d0					; is soft key set?
+		bne.s	SDAC_SoftKey				; if so, branch
+		roxr.b	#$03,d0					; rotate around
+		bcs.w	SDAC_Return				; if the channel is being interrupted (bit 2), branch
+		bmi.s	SDAC_Rest				; if the rest bit was set, branch
+		moveq	#$00,d0					; clear d0
+		move.b	$0B(a5),d0				; load sample ID
+		add.w	d0,d0					; multiply by 4 (long-word size)
+		add.w	d0,d0					; ''
+		lea	(SampleList).l,a4			; load sample list
+		move.l	(a4,d0.w),a4				; load correct sample z80 pointer address
+
+SDAC_Rest:
+		moveq	#%11011010|$FFFFFF00,d0			; prepare "JP Z" instruction
+	if MUTEDAC=1
+		lea	(StopSample).l,a4		; MUTE
+	endif
+		lea	($A00000+PCM2_Sample).l,a1		; load PCM 2 slot address
+		lea	($A00000+PCM2_NewRET).l,a0		; ''
+		cmpi.b	#$80,$08(a6)				; is this PCM 1?
+		bne.s	SDAC_NotePCM2				; if not, branch for PCM 2 writing
+		lea	($A00000+PCM1_Sample).l,a1		; load PCM 1 slot address
+		lea	($A00000+PCM1_NewRET).l,a0		; ''
+
+SDAC_NotePCM2:
+		StopZ80
+		move.b	(a4)+,(a1)+				; set address of sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; set address of reverse sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; set address of next sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; set address of next reverse sample
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	d0,(a0)					; change "JP NC" to "JP C"
+		StartZ80
+
+SDAC_SoftKey:
+
+	SDAC_Frequency:
+
+		move.b	$09(a5),d0				; load current volume
+	moveq	#$00,d1				; EXTRA
+	move.b	$16(a6),d1			; EXTRA
+;	lea	(FOP_VolumeList).l,a0		; EXTRA
+;	move.b	(a0,d1.w),d1			; EXTRA
+	add.b	d1,d1
+	add.b	d1,d0
+
+		move.b	d0,d1					; copy volume to d1
+		bpl.s	SDAC_ValidVolume			; if it is between 00 and 80, branch
+		moveq	#$FFFFFF80,d0				; set volume to mute (81 - FF is out of bounds)
+
+SDAC_ValidVolume:
+		cmp.b	$0C(a5),d0				; has the volume changed?
+		beq.s	SDAC_NoVolume				; if not, branch (don't bother)
+		move.b	d0,$0C(a5)				; update volume
+		moveq	#($FFFFFF00|%11010010),d1		; prepare Z80 "JP NC" instruction
+		lea	($A00000+PCM_ChangeVolume).l,a1		; load volume change instruction address
+		lea	($A00000+PCM2_Volume+1).l,a0		; load PCM 2 volume address
+		cmpi.b	#$80,$08(a6)				; is this PCM 1?
+		bne.s	SDAC_VolumePCM2				; if not, branch for PCM 2 writing
+		lea	($A00000+PCM1_Volume+1).l,a0		; load PCM 1 volume address
+
+SDAC_VolumePCM2:
+		StopZ80
+		move.b	d0,(a0)					; change PCM volume
+		move.b	d1,(a1)					; change "JP C" to "JP NC"
+		StartZ80
+
+SDAC_NoVolume:
+
+		move.w	$10(a5),d6				; load frequency
+		btst	#$03,(a5)				; is modulation turned on?
+		beq.s	SDAC_WriteFrequency			; if not, branch
+		movea.l	$14(a5),a4				; load modulation address
+		lea	$18(a5),a1				; load modulation settings RAM
+		btst.b	#$04,(a5)				; is soft key set?
+		bne.s	SDAC_NoResetModulation			; if so, branch
+		move.b	(a4)+,(a1)+				; reset settings...
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,(a1)+				; ''
+		move.b	(a4)+,d0				; ''
+		lsr.b	#$01,d0					; ''
+		move.b	d0,(a1)+				; ''
+		clr.w	(a1)+					; clear modulation frequency
+
+SDAC_NoResetModulation:
+		add.w	$1C(a5),d6				; add modulation pitch
+		bra.s	SDAC_WriteFrequency			; continue
+
+; ---------------------------------------------------------------------------
+; Holding a note...
+; ---------------------------------------------------------------------------
+
+SDAC_HoldNote:
+		move.b	(a5),d0					; load flags
+		andi.b	#%00000011,d0				; is the channel being interrupted by an SFX, or is resting?
+		bne.w	SDAC_Return				; if so, branch
+
+	btst.b	#$06,(a5)			; EXTRA
+	beq.s	SDAC_NoUpdate			; EXTRA
+	moveq	#$00,d5				; EXTRA
+	move.b	$20(a5),d5			; EXTRA
+	bra.w	SDAC_Update			; EXTRA
+
+	SDAC_NoUpdate:				; EXTRA
+		jsr	sub_71D9E(pc)				; check for release
+		jsr	sub_71DC6(pc)				; run modulation and get right frequency to d6
+
+	; d6 = frequency
+
+SDAC_WriteFrequency:
+		move.b	$1E(a5),d0				; load detune
+		ext.w	d0					; sign extend to word
+		add.w	d6,d0					; add to frequency (move it up or down subtly)
+		btst.b	#$05,(a5)				; is the reverse flag set?
+		beq.s	SDAC_NoReverse				; if not, branch
+		neg.w	d0					; reverse
+	;	subi.w	#$0100*2,d0				; move back to Dual PCM's neutral
+
+SDAC_NoReverse:
+	;	move.w	d0,d3					; copy to d3
+	;	smi	d2					; set extend byte if value is negative
+	;	addi.w	#$0100,d3				; convert to true neutral (for overflow)
+	;	muls.w	#Z80E_Read,d3				; multiply by number of reads the Z80 performs (read 18 vs playback 10)
+	;	move.b	d3,d5					; load fraction to d5
+	;	asr.l	#$08,d3					; divide by 100
+	;	move.w	d3,-(sp)				; get upper byte of overflow value
+	;	move.b	(sp),d4					; ''
+	;	move.w	d0,(sp)					; get upper byte of pitch/frequency
+	;	move.b	(sp),d1					; ''
+	;	addq.w	#$02,sp					; move stack forwards (would've done via increment and back...
+								; ...index, but interrupts could be a problem).
+	; d0 = XXXX.DD
+	; d1 = XXQQ.XX
+	; d2 = QQXX.XX
+	; d3 = XXVV.XX
+	; d4 = VVXX.XX
+	; d5 = XXXX.OO
+
+		moveq	#$FFFFFF00|%11010010,d2
+		move.b	d0,d1
+		lsr.w	#$08,d0
+		cmpi.b	#$80,$08(a6)				; is this PCM 1?
+		bne.s	SDAC_FrequePCM2				; if not, branch for PCM 2 writing
+		StopZ80
+	;	move.b	d0,($A00000+PCM1_RateDiv+1)		; write pitch main dividend
+	;	move.b	d1,($A00000+PCM1_RateQuo+1)		; write pitch quotient low
+	;	move.b	d2,($A00000+PCM1_RateQuo+2)		; write pitch quotient high
+	;	move.b	d3,($A00000+PCM1_Overflow+1)		; write low overflow
+	;	move.b	d4,($A00000+PCM1_Overflow+2)		; write high overflow
+	;	move.b	d5,($A00000+PCM1_OverDiv+1)		; write dividend overflow
+	;	move.b	#%11010010,($A00000+PCM_ChangePitch)	; change "JP C" to "JP NC"
+
+		move.b	d0,($A00000+PCM1_PitchHigh+1)
+		move.b	d1,($A00000+PCM1_PitchLow+1)
+		move.b	d2,($A00000+PCM1_ChangePitch)		; change "JP C" to "JP NC"
+		StartZ80
+
+SDAC_Return:
+		rts						; return
+
+SDAC_FrequePCM2:
+		StopZ80
+	;	move.b	d0,($A00000+PCM2_RateDiv+1)		; write pitch main dividend
+	;	move.b	d1,($A00000+PCM2_RateQuo+1)		; write pitch quotient low
+	;	move.b	d2,($A00000+PCM2_RateQuo+2)		; write pitch quotient high
+	;	move.b	d3,($A00000+PCM2_Overflow+1)		; write low overflow
+	;	move.b	d4,($A00000+PCM2_Overflow+2)		; write high overflow
+	;	move.b	d5,($A00000+PCM2_OverDiv+1)		; write dividend overflow
+	;	move.b	#%11010010,($A00000+PCM_ChangePitch)	; change "JP C" to "JP NC"
+
+		move.b	d0,($A00000+PCM2_PitchHigh+1)
+		move.b	d1,($A00000+PCM2_PitchLow+1)
+		move.b	d2,($A00000+PCM2_ChangePitch)		; change "JP C" to "JP NC"
+		StartZ80
+		rts						; return
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to run an FM channel ; EXTRA - ON/OFF
+; ---------------------------------------------------------------------------
+
+SFM_CheckMute:
+	tst.b	$0E(a6)
+	bne.s	S71CCA_NoCHG
+	move.b	$21(a5),d0
+	cmp.b	$22(a5),d0
+	beq.s	S71CCA_NoCHG
+	tst.b	d0
+	bpl.s	S71CCA_NoMute
+	jsr	sub_726FE(pc)
+	move.b	$0A(a5),d1
+	andi.b	#%00111111,d1
+	move.b	#$B4,d0
+	jsr	loc_72716
+	bset.b	#$06,(a5)
+	move.b	$21(a5),$22(a5)
+
+S71CCA_NoCHG:
+	rts
+
+S71CCA_NoMute:
+	move.b	d0,$22(a5)
+	move.b	$0B(a5),d0
+	jsr	SFM_UpdateVoice(pc)
+;	jsr	loc_726E2(pc)
+	move.b	$0A(a5),d1
+	move.b	#$B4,d0
+	jsr	loc_72716
+	bset.b	#$06,(a5)
+	rts
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to run an FM channel
+; ---------------------------------------------------------------------------
 
 sub_71CCA:				; XREF: sub_71B4C
+	bsr.s	SFM_CheckMute			; EXTRA - ON/OFF
+
 		subq.b	#1,$E(a5)
 		bne.s	loc_71CE0
+	bclr.b	#$06,(a5)			; EXTRA
 		bclr	#4,(a5)
 		jsr	sub_71CEC(pc)
 		jsr	sub_71E18(pc)
@@ -41185,6 +41492,17 @@ sub_71CCA:				; XREF: sub_71B4C
 ; ===========================================================================
 
 loc_71CE0:
+	bclr.b	#$06,(a5)			; EXTRA
+	beq.s	SFM_NoUpdate			; EXTRA
+	jsr	sub_72CB4			; EXTRA
+	moveq	#$00,d5				; EXTRA
+	move.b	$20(a5),d5			; EXTRA
+	subi.b	#$80,d5				; EXTRA
+	beq.s	SFM_NoUpdate			; EXTRA
+	jsr	SFM_UpdateFreque		; EXTRA
+	bra.w	loc_71E24			; EXTRA
+
+	SFM_NoUpdate:				; EXTRA
 		jsr	sub_71D9E(pc)
 		jsr	sub_71DC6(pc)
 		bra.w	loc_71E24
@@ -41211,6 +41529,7 @@ loc_71D04:
 		jsr	sub_726FE(pc)
 		tst.b	d5
 		bpl.s	loc_71D1A
+	move.b	d5,$20(a5)			; EXTRA
 		jsr	sub_71D22(pc)
 		move.b	(a4)+,d5
 		bpl.s	loc_71D1A
@@ -41230,7 +41549,10 @@ loc_71D1A:
 sub_71D22:				; XREF: sub_71CEC
 		subi.b	#$80,d5
 		beq.s	loc_71D58
+
+	SFM_UpdateFreque:			; EXTRA
 		add.b	8(a5),d5
+	add.b	$14(a6),d5			; EXTRA
 		andi.w	#$7F,d5
 		lsl.w	#1,d5
 		lea	word_72790(pc),a0
@@ -41300,6 +41622,8 @@ sub_71D9E:				; XREF: sub_71CCA; sub_72850
 		beq.s	locret_71DC4
 		subq.b	#1,$12(a5)
 		bne.s	locret_71DC4
+		tst.b	$08(a6)						; CHG: is this a PCM channel?
+		bmi.s	SDCR_StopPCM					; if so, branch (skipping rest flag setting)
 		bset	#1,(a5)
 		tst.b	1(a5)
 		bmi.w	loc_71DBE
@@ -41316,23 +41640,59 @@ locret_71DC4:
 		rts	
 ; End of function sub_71D9E
 
+SDCR_StopPCM:
+		StopZ80
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM1_Sample).l,a1			; CHG: load PCM 1 slot address
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM1_NewRET).l		; CHG: change "JP Nc" to "JP c"
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM2_Sample).l,a1			; CHG: load PCM 2 slot address
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM2_NewRET).l		; CHG: change "JP Nc" to "JP c"
+		StartZ80
+		addq.w	#$04,sp						; CHG: skip return address
+		rts							; CHG: return
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
 sub_71DC6:				; XREF: sub_71CCA; sub_72850
-		addq.w	#4,sp
 		btst	#3,(a5)
 		beq.s	locret_71E16
 		tst.b	$18(a5)
 		beq.s	loc_71DDA
 		subq.b	#1,$18(a5)
+		addq.w	#$04,sp						; CHG: skip return address
 		rts	
 ; ===========================================================================
 
 loc_71DDA:
 		subq.b	#1,$19(a5)
 		beq.s	loc_71DE2
+		addq.w	#$04,sp						; CHG: skip return address
 		rts	
 ; ===========================================================================
 
@@ -41343,6 +41703,7 @@ loc_71DE2:
 		bne.s	loc_71DFE
 		move.b	3(a0),$1B(a5)
 		neg.b	$1A(a5)
+		addq.w	#$04,sp						; CHG: skip return address
 		rts	
 ; ===========================================================================
 
@@ -41353,9 +41714,10 @@ loc_71DFE:
 		add.w	$1C(a5),d6
 		move.w	d6,$1C(a5)
 		add.w	$10(a5),d6
-		subq.w	#4,sp
+		rts							; CHG: return (don't skip)
 
 locret_71E16:
+		addq.w	#$04,sp						; CHG: skip return address
 		rts	
 ; End of function sub_71DC6
 
@@ -41375,6 +41737,12 @@ loc_71E24:				; XREF: sub_71CCA
 		add.w	d0,d6
 		btst	#2,(a5)
 		bne.s	locret_71E48
+	tst.b	$0E(a6)
+	bne.s	locret_71E48_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_71E48
+
+	locret_71E48_2:
 		move.w	d6,d1
 		lsr.w	#8,d1
 		move.b	#-$5C,d0
@@ -41434,6 +41802,12 @@ loc_71EA0:
 		beq.s	loc_71EB8
 		btst	#2,(a5)
 		bne.s	loc_71EB8
+	tst.b	$0E(a6)
+	bne.s	loc_71EB8_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	loc_71EB8
+
+	loc_71EB8_2:
 		move.b	#-$4C,d0
 		move.b	$A(a5),d1
 		jsr	sub_72722(pc)
@@ -41450,6 +41824,12 @@ loc_71EC4:
 		beq.s	loc_71EDC
 		btst	#2,(a5)
 		bne.s	loc_71EDC
+	tst.b	$0E(a6)
+	bne.s	loc_71EDC_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	loc_71EDC
+
+	loc_71EDC_2:
 		move.b	#-$4C,d0
 		move.b	$A(a5),d1
 		jsr	sub_72722(pc)
@@ -41463,6 +41843,12 @@ loc_71EDC:
 		beq.s	loc_71EFE
 		btst	#2,(a5)
 		bne.s	loc_71EFE
+	tst.b	$0E(a6)
+	bne.s	loc_71EFE_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	loc_71EFE
+
+	loc_71EFE_2:
 		move.b	#-$4C,d0
 		move.b	$A(a5),d1
 		jsr	sub_72722(pc)
@@ -41591,27 +41977,39 @@ PlayPCM_Loop:
 ; Play music track $81-$9F
 ; ---------------------------------------------------------------------------
 
-Sound_81to9F:				; XREF: Sound_ChkValue
-
-
+Sound_81to9F:
 		StopZ80
-		lea	(StopSample).l,a0				; MJ: load stop sample address
-		lea	($A00000+PCM1_Sample).l,a1			; MJ: load PCM 1 slot address
-		move.b	(a0)+,(a1)+					; MJ: set address of sample
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; MJ: set routine to run
-		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; MJ: ''
-		move.b	#%11001001,($A00000+CUPCM1_RET).l		; MJ: change "NOP" to "RET"
-		lea	(StopSample).l,a0				; MJ: load stop sample address
-		lea	($A00000+PCM2_Sample).l,a1			; MJ: load PCM 2 slot address
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	(a0)+,(a1)+					; MJ: ''
-		move.b	#%00101000,($A00000+CUPCM2_RET).l		; MJ: change "JR NZ" to "JR Z"
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM1_Sample).l,a1			; CHG: load PCM 1 slot address
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM1_NewRET).l		; CHG: change "JP Nc" to "JP c"
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM2_Sample).l,a1			; CHG: load PCM 2 slot address
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM2_NewRET).l		; CHG: change "JP Nc" to "JP c"
 		StartZ80
-
-
 
 		cmpi.b	#$88,d7		; is "extra life" music	played?
 		bne.s	loc_72024	; if not, branch
@@ -41652,6 +42050,7 @@ loc_72024:
 
 loc_7202C:
 		jsr	sub_725CA(pc)
+
 		movea.l	(off_719A0).l,a4
 		subi.b	#$81,d7
 		move.b	(a4,d7.w),$29(a6)
@@ -41694,6 +42093,7 @@ loc_72098:
 		move.b	d5,$E(a1)
 		moveq	#0,d0
 		move.w	d0,$10(a1)				; MJ: clear FM's frequency (ensures no frequency writing)
+		move.b	#$80,$0C(a1)				; MJ: set last frame's volume to something impossible (volume is from C0 - 40)
 		move.w	(a4)+,d0
 		add.l	a3,d0
 		move.l	d0,4(a1)
@@ -41712,9 +42112,15 @@ loc_72098:
 
 loc_720D8:
 		jsr	sub_7272E(pc)				; MJ: added... (turn DAC on)
+
+	; --- Key off FM 6 ---
+
 		moveq	#$28,d0
 		moveq	#6,d1
 		jsr	sub_7272E(pc)
+
+	; --- Sets FM 6 to mute ---
+
 		move.b	#$42,d0
 		moveq	#$7F,d1
 		jsr	sub_72764(pc)
@@ -41863,7 +42269,7 @@ Sound_notA7:
 loc_72228:
 		moveq	#0,d3
 		move.b	1(a1),d3
-		moveq	#$02,d2					; EXT: set PSG to delay for 1 extra frame (This is to match the PSG with the FM/DAC which is delayed a frame by the Z80)
+		moveq	#$03,d2					; EXT: set PSG to delay for 2 extra frames (This is to match the PSG with the FM/DAC which is delayed a frame by the Z80)
 		move.b	d3,d4
 		bmi.s	loc_72244
 		move.b	#$01,d2					; EXT: set DAC/FM to delay for 0 frames like normal (these have an auto delay of 1 frame in the Z80)
@@ -41906,6 +42312,7 @@ loc_72276:
 		move.w	(a1)+,8(a5)
 		move.b	d2,$E(a5)				; EXT: moving d2 contents (1 for FM/4 for PSG)
 		move.b	d6,$D(a5)
+		move.w	#$FFFF,$10(a5)				; CHG: clear PSG's frequency (ensures no frequency writing)
 		tst.b	d4
 		bmi.s	loc_722A8
 		move.b	#$C0,$A(a5)
@@ -42112,6 +42519,12 @@ Snd_FadeOut2:				; XREF: Sound_E0
 		bclr	#7,(a5)
 		btst	#2,(a5)
 		bne.s	loc_724AE
+	tst.b	$0E(a6)
+	bne.s	loc_724AE_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	loc_724AE
+
+	loc_724AE_2:
 		jsr	loc_7270A(pc)
 		lea	$130(a6),a5				; MJ: new BGM location
 		bclr	#2,(a5)
@@ -42129,6 +42542,12 @@ loc_724AE:
 		bclr	#7,(a5)
 		btst	#2,(a5)
 		bne.s	locret_724E4
+	tst.b	$0E(a6)
+	bne.s	locret_724E4_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_724E4
+
+	locret_724E4_2:
 		jsr	loc_729A6(pc)
 		lea	$220(a6),a5				; MJ: new BGM location
 		bclr	#2,(a5)
@@ -42153,8 +42572,8 @@ Sound_E0:				; XREF: Sound_ExIndex
 		jsr	Snd_FadeOut2(pc)
 		move.b	#3,6(a6)
 		move.b	#$28,4(a6)
-		clr.b	$40(a6)
-		clr.b	$70(a6)					; MJ: stop PCM 2 as well
+	;	clr.b	$40(a6)
+	;	clr.b	$70(a6)					; MJ: stop PCM 2 as well
 		clr.b	$2A(a6)
 		rts	
 
@@ -42172,7 +42591,71 @@ loc_72510:
 		subq.b	#1,4(a6)
 		beq.w	Sound_E4
 		move.b	#3,6(a6)
-		lea	$A0(a6),a5				; MJ: new FM location
+
+
+		lea	($A00000+PCM_ChangeVolume).l,a1		; CHG: load volume change instruction address
+		moveq	#$00,d6					; CHG: clear d6
+		move.b	$04(a6),d6				; CHG: load fade counter
+		moveq	#($FFFFFF00|%11010010),d1		; prepare Z80 "JP NC" instruction
+		lea	$40(a6),a5				; CHG: load PCM 1 address
+		lea	($A00000+PCM1_Volume+1).l,a0		; CHG: load PCM 1 volume address
+		bsr.s	FadeOut_PCM				; CHG: do PCM 1
+		lea	($A00000+PCM2_Volume+1).l,a0		; CHG: load PCM 2 volume address
+		bsr.s	FadeOut_PCM				; CHG: do PCM 2
+		bra.w	FadeOut_FM				; CHG: continue to FM fade out
+
+FadeOut_PCM:
+		tst.b	(a5)					; CHG: is the channel running?
+		bpl.s	FOP_NotRunning				; CHG: if not, branch
+		moveq	#$00,d0					; CHG: clear d0
+		move.b	$09(a5),d0				; CHG: load volume
+		bpl.s	FOP_NoMute				; CHG: if the channel is not mute (not from 80 - FF), branch
+		moveq	#$FFFFFF80,d0				; CHG: force volume 80 (mute)
+		bclr	#$07,(a5)				; CHG: stop PCM channel
+		bra.s	FOP_Mute				; CHG: continue to mute the channel
+
+FOP_NoMute:
+	;	add.b	FOP_FadeList(pc,d0.w),d0		; CHG: reduce the volume
+	addq.b	#$02,d0					; reduce the volume
+
+FOP_Mute:
+		move.b	d0,$09(a5)				; CHG: update
+		cmp.b	$0C(a5),d0				; CHG: has the volume changed?
+		beq.s	FOP_NotRunning				; CHG: if not, branch
+		move.b	d0,$0C(a5)				; CHG: update volume
+	move.b	$04(a6),d2				; CHG: load fade timer
+	andi.b	#$03,d2					; CHG: has it been four frames?
+	bne.s	FOP_NotRunning				; CHG: if not, branch (temp until Z80 volume struggling is fixed)
+		StopZ80
+		move.b	d0,(a0)					; change PCM volume
+		move.b	d1,(a1)					; change "JP C" to "JP NC"
+		StartZ80
+
+FOP_NotRunning:
+		lea	$30(a5),a5				; CHG: advance to next channel
+		rts						; CHG: return
+
+;FOP_FadeList:	dc.b	$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10
+;		dc.b	$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10,$10
+;		dc.b	$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+;		dc.b	$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08,$08
+;		dc.b	$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
+;		dc.b	$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04,$04
+;		dc.b	$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02,$02
+;		dc.b	$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01,$01
+
+;FOP_VolumeList:	dc.b	$00,$0C,$18,$20,$28,$30,$34,$38,$3C,$40,$44,$48,$4C,$50,$56,$5A
+;		dc.b	$60,$63,$66,$69,$6B,$6D,$6F,$70,$71,$72,$73,$74,$75,$76,$76,$77
+;		dc.b	$77,$78,$78,$79,$79,$79,$7A,$7A,$7A,$7B,$7B,$7B,$7C,$7C,$7C,$7C
+;		dc.b	$7D,$7D,$7D,$7D,$7D,$7D,$7D,$7D,$7E,$7E,$7E,$7E,$7E,$7E,$7E,$7E
+;		dc.b	$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F
+;		dc.b	$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F,$7F
+;		dc.b	$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80
+;		dc.b	$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80
+
+; ===========================================================================
+
+FadeOut_FM:
 		moveq	#5,d7
 
 loc_72524:
@@ -42205,6 +42688,7 @@ loc_72542:
 
 loc_72558:
 		move.b	9(a5),d6
+	add.b	$16(a6),d6			; EXTRA
 		jsr	sub_7296A(pc)
 
 loc_72560:
@@ -42255,20 +42739,36 @@ loc_72586:
 
 Sound_E4:
 		StopZ80
-		lea	(StopSample).l,a0				; EXT: load stop sample address
-		lea	($A00000+PCM1_Sample).l,a1			; EXT: load PCM 1 slot address
-		move.b	(a0)+,(a1)+					; EXT: set address of sample
-		move.b	(a0)+,(a1)+					; EXT: ''
-		move.b	(a0)+,(a1)+					; EXT: ''
-		move.b	#(CUPCM1_NewSample&$FF),($A00000+CU_Stack).l	; EXT: set routine to run
-		move.b	#(CUPCM1_NewSample>>$08),($A00000+CU_Stack+1).l	; EXT: ''
-		move.b	#%11001001,($A00000+CUPCM1_RET).l		; EXT: change "NOP" to "RET"
-		lea	(StopSample).l,a0				; EXT: load stop sample address
-		lea	($A00000+PCM2_Sample).l,a1			; EXT: load PCM 2 slot address
-		move.b	(a0)+,(a1)+					; EXT: ''
-		move.b	(a0)+,(a1)+					; EXT: ''
-		move.b	(a0)+,(a1)+					; EXT: ''
-		move.b	#%00101000,($A00000+CUPCM2_RET).l		; EXT: change "JR NZ" to "JR Z"
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM1_Sample).l,a1			; CHG: load PCM 1 slot address
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM1_NewRET).l		; CHG: change "JP Nc" to "JP c"
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM2_Sample).l,a1			; CHG: load PCM 2 slot address
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM2_NewRET).l		; CHG: change "JP Nc" to "JP c"
 		StartZ80
 
 		moveq	#$2B,d0
@@ -42279,6 +42779,7 @@ Sound_E4:
 		jsr	sub_7272E(pc)
 		movea.l	a6,a0
 		move.l	$10(a6),d6					; EXT: store YM Cue list pointer
+	move.l	$14(a6),-(sp)			; EXTRA
 		move.w	#$EF,d0						; MJ: new size of data to clear
 
 loc_725B6:
@@ -42286,6 +42787,7 @@ loc_725B6:
 		dbf	d0,loc_725B6
 
 		move.l	d6,$10(a6)					; EXT: restore YM Cue list pointer
+	move.l	(sp)+,$14(a6)			; EXTRA
 		move.b	#$80,9(a6)	; set music to $80 (silence)
 		jsr	sub_7256A(pc)
 		bra.w	sub_729B6
@@ -42301,6 +42803,7 @@ sub_725CA:				; XREF: Sound_ChkValue
 		move.b	$26(a6),d4
 		move.w	$A(a6),d5
 		move.l	$10(a6),d6					; EXT: store YM Cue list pointer
+	move.l	$14(a6),-(sp)			; EXTRA
 		move.w	#$93,d0						; MJ: new size
 
 loc_725E4:
@@ -42313,6 +42816,7 @@ loc_725E4:
 		move.b	d4,$26(a6)
 		move.w	d5,$A(a6)
 		move.l	d6,$10(a6)					; EXT: restore YM Cue list pointer
+	move.l	(sp)+,$14(a6)			; EXTRA
 		move.b	#$80,9(a6)
 		jsr	sub_7256A(pc)
 		bra.w	sub_729B6
@@ -42323,10 +42827,24 @@ loc_725E4:
 
 
 sub_7260C:				; XREF: sub_71B4C
-		move.b	2(a6),1(a6)
+	;	move.b	2(a6),1(a6)
+	move.b	$15(a6),d0			; EXTRA
+	bpl.s	STempo_CheckMax			; EXTRA
+	add.b	$02(a6),d0			; EXTRA
+	cmpi.b	#$02,d0				; EXTRA
+	bpl.s	STempo_Valid			; EXTRA
+	moveq	#$02,d0				; EXTRA
+	bra.s	STempo_Valid			; EXTRA
+
+STempo_CheckMax:
+	add.b	$02(a6),d0			; EXTRA
+
+STempo_Valid:
+	move.b	d0,$01(a6)			; EXTRA
+
 		lea	$4E(a6),a0
 		moveq	#$30,d0
-		moveq	#10,d1				; MJ: new number of channels
+		moveq	#10,d1						; MJ: new number of channels
 
 loc_7261A:
 		addq.b	#1,(a0)
@@ -42390,7 +42908,21 @@ loc_72688:
 		beq.s	loc_726D6
 		subq.b	#1,$26(a6)
 		move.b	#2,$25(a6)
-		lea	$A0(a6),a5				; MJ: new SFX location
+
+		lea	$40(a6),a5				; CHG: load starting from PCM channels
+		moveq	#$02-1,d7				; CHG: set number of PCM channels to alter
+
+FadeIn_NextPCM:
+		tst.b	(a5)					; CHG: is this channel running?
+		bpl.s	FadeIn_NoPCM				; CHG: if not, branch
+		subq.b	#$03,$09(a5)				; CHG: increase volume
+
+FadeIn_NoPCM:
+		lea	$30(a5),a5				; CHG: advance to next channel
+		dbf	d7,FadeIn_NextPCM			; CHG: repeat for all channels
+
+	;	lea	$A0(a6),a5				; MJ: new SFX location
+
 		moveq	#5,d7
 
 loc_7269E:
@@ -42423,18 +42955,10 @@ loc_726CC:
 ; ===========================================================================
 
 loc_726D6:
-		bclr	#2,$40(a6)
+	;	bclr	#2,$40(a6)
+	;	bclr	#2,$70(a6)				; MJ: do PCM 2 as well...
 		clr.b	$24(a6)
-
-		tst.b	$40(a6)					; is the DAC channel running?
-		bpl.s	Resume_NoDAC				; if not, branch
-
-		moveq	#$FFFFFFB6,d0				; prepare FM channel 3/6 L/R/AMS/FMS address
-		move.b	$4A(a6),d1				; load DAC channel's L/R/AMS/FMS value
-		jmp	sub_72764(pc)				; write to FM 6
-
-Resume_NoDAC:
-		rts
+		rts	
 ; End of function sub_7267C
 
 ; ===========================================================================
@@ -42444,6 +42968,12 @@ loc_726E2:				; XREF: sub_71CCA
 		bne.s	locret_726FC
 		btst	#2,(a5)
 		bne.s	locret_726FC
+	tst.b	$0E(a6)
+	bne.s	locret_726FC_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_726FC
+
+	locret_726FC_2:
 		moveq	#$28,d0
 		move.b	1(a5),d1
 		ori.b	#-$10,d1
@@ -42461,6 +42991,10 @@ sub_726FE:				; XREF: sub_71CEC; sub_71D9E; Sound_ChkValue; Snd_FadeOut1
 		bne.s	locret_72714
 		btst	#2,(a5)
 		bne.s	locret_72714
+	tst.b	$0E(a6)
+	bne.s	loc_7270A
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_72714
 
 loc_7270A:				; XREF: Snd_FadeOut2
 		moveq	#$28,d0
@@ -42477,11 +43011,15 @@ locret_72714:
 loc_72716:				; XREF: sub_72A5A
 		btst	#2,(a5)
 		bne.s	locret_72720
+	tst.b	$0E(a6)
+	bne.s	sub_72722
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_72720
 		bra.w	sub_72722
 ; ===========================================================================
 
 locret_72720:
-		rts
+		rts	
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -42498,17 +43036,18 @@ sub_72722:				; XREF: sub_71E18; sub_72C4E; sub_72CB4
 sub_7272E:
 		movem.l	d2/a0,-(sp)				; EXT: store register data
 		movea.l	$10(a6),a0				; EXT: load Cue pointer
-		addq.w	#$01,a0					; EXT: skip $40
 		move.b	#$00,d2					; EXT: prepare d2 for YM2612 port address ($4000 - $4001)
+	if MUTEFM=1
+		move.b	#$B8,d0	; MUTE
+		move.b	#$00,d1
+	endif
 		StopZ80						; EXT: request Z80 stop "ON"
 		move.b	d2,(a0)+				; EXT: write YM2612 port address
 		move.b	d1,(a0)+				; EXT: write YM2612 data
 		move.b	d0,(a0)+				; EXT: write YM2612 address
+		st.b	(a0)					; EXT: set end of list marker
 		StartZ80					; EXT: request Z80 stop "OFF"
-		move.w	a0,d2					; EXT: load Cue pointer
-		andi.w	#$0FFF,d2				; EXT: wrap it
-		ori.w	#$1000,d2				; EXT: ''
-		move.w	d2,$12(a6)				; EXT: update it
+		move.l	a0,$10(a6)				; EXT: store cue address
 		movem.l	(sp)+,d2/a0				; EXT: restore register data
 		rts						; EXT: return
 
@@ -42525,17 +43064,18 @@ loc_7275A:				; XREF: sub_72722
 sub_72764:
 		movem.l	d2/a0,-(sp)				; EXT: store register data
 		movea.l	$10(a6),a0				; EXT: load Cue pointer
-		addq.w	#$01,a0					; EXT: skip $40
 		move.b	#$02,d2					; EXT: prepare d2 for YM2612 port address ($4002 - $4003)
+	if MUTEFM=1
+		move.b	#$B8,d0	; MUTE
+		move.b	#$00,d1
+	endif
 		StopZ80						; EXT: request Z80 stop "ON"
 		move.b	d2,(a0)+				; EXT: write YM2612 port address
 		move.b	d1,(a0)+				; EXT: write YM2612 data
 		move.b	d0,(a0)+				; EXT: write YM2612 address
+		st.b	(a0)					; EXT: set end of list marker
 		StartZ80					; EXT: request Z80 stop "OFF"
-		move.w	a0,d2					; EXT: load Cue pointer
-		andi.w	#$0FFF,d2				; EXT: wrap it
-		ori.w	#$1000,d2				; EXT: ''
-		move.w	d2,$12(a6)				; EXT: update it
+		move.l	a0,$10(a6)				; EXT: store cue address
 		movem.l	(sp)+,d2/a0				; EXT: restore register data
 		rts						; EXT: return
 
@@ -42556,9 +43096,42 @@ word_72790:	dc.w $25E, $284, $2AB, $2D3, $2FE, $32D, $35C, $38F, $3C5
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to run an FM channel ; EXTRA - ON/OFF
+; ---------------------------------------------------------------------------
+
+SPSG_CheckMute:
+	tst.b	$0E(a6)
+	bne.s	S72850_NoCHG
+	move.b	$21(a5),d0
+	cmp.b	$22(a5),d0
+	beq.s	S72850_NoCHG
+	tst.b	d0
+	bpl.s	S72850_NoMute
+	bset.b	#$06,(a5)
+	move.b	$21(a5),$22(a5)
+	jsr	SPSG_UpdateTone
+
+S72850_NoCHG:
+	rts
+
+S72850_NoMute:
+	move.b	d0,$22(a5)
+	bset.b	#$06,(a5)
+	jsr	loc_7292E
+	rts
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to run a PSG channel
+; ---------------------------------------------------------------------------
+
 sub_72850:				; XREF: sub_71B4C
+	bsr.s	SPSG_CheckMute			; EXTRA - ON/OFF
 		subq.b	#1,$E(a5)
 		bne.s	loc_72866
+	bclr.b	#$06,(a5)			; EXTRA
 		bclr	#4,(a5)
 		jsr	sub_72878(pc)
 		jsr	sub_728DC(pc)
@@ -42566,9 +43139,23 @@ sub_72850:				; XREF: sub_71B4C
 ; ===========================================================================
 
 loc_72866:
+	btst.b	#$06,(a5)			; EXTRA
+	beq.s	SPSG_NoUpdate			; EXTRA
+	moveq	#$00,d5				; EXTRA
+	move.b	$20(a5),d5			; EXTRA
+	subi.b	#$81,d5				; EXTRA
+	bcs.s	SPSG_NoUpdate			; EXTRA
+	jsr	SPSG_UpdateFreque		; EXTRA
+	move.w	$10(a5),d6			; EXTRA
+	bra.w	SPSG_Update			; EXTRA
+
+	SPSG_NoUpdate:				; EXTRA
 		jsr	sub_71D9E(pc)
 		jsr	sub_72926(pc)
 		jsr	sub_71DC6(pc)
+
+	SPSG_Update:				; EXTRA
+	bclr.b	#$06,(a5)			; EXTRA
 		jsr	sub_728E2(pc)
 		rts	
 ; End of function sub_72850
@@ -42593,6 +43180,7 @@ loc_72880:
 loc_72890:
 		tst.b	d5
 		bpl.s	loc_728A4
+	move.b	d5,$20(a5)			; EXTRA
 		jsr	sub_728AC(pc)
 		move.b	(a4)+,d5
 		tst.b	d5
@@ -42613,11 +43201,16 @@ loc_728A4:
 sub_728AC:				; XREF: sub_72878
 		subi.b	#$81,d5
 		bcs.s	loc_728CA
+
+	SPSG_UpdateFreque:			; EXTRA
 		add.b	8(a5),d5
+	add.b	$14(a6),d5			; EXTRA
 		andi.w	#$7F,d5
 		lsl.w	#1,d5
 		lea	word_729CE(pc),a0
 		move.w	(a0,d5.w),$10(a5)
+	btst.b	#$06,(a5)			; EXTRA
+	bne.s	SPSG_Update			; EXTRA
 		bra.w	sub_71D60
 ; ===========================================================================
 
@@ -42647,6 +43240,12 @@ sub_728E2:				; XREF: sub_72850
 		add.w	d0,d6
 		btst	#2,(a5)
 		bne.s	locret_7291E
+	tst.b	$0E(a6)
+	bne.s	locret_7291E_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_7291E
+
+	locret_7291E_2:
 		btst	#1,(a5)
 		bne.s	locret_7291E
 		move.b	1(a5),d0
@@ -42681,7 +43280,10 @@ sub_72926:				; XREF: sub_72850
 		beq.w	locret_7298A
 
 loc_7292E:				; XREF: sub_72850
-		move.b	9(a5),d6
+	;	move.b	9(a5),d6
+	move.b	$16(a6),d6			; EXTRA
+	asr.b	#$02,d6				; EXTRA
+	add.b	$09(a5),d6			; EXTRA
 		moveq	#0,d0
 		move.b	$B(a5),d0
 		beq.s	sub_7296A
@@ -42711,14 +43313,30 @@ loc_72960:
 sub_7296A:				; XREF: sub_72504; sub_7267C; sub_72926
 		btst	#1,(a5)
 		bne.s	locret_7298A
+
+	SPSG_UpdateTone:
 		btst	#2,(a5)
 		bne.s	locret_7298A
+	tst.b	$0E(a6)
+	bne.s	locret_7298A_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	beq.s	locret_7298A_2
+	move.b	$01(a5),d6
+	addi.b	#$10,d6
+	ori.b	#$0F,d6
+	move.b	d6,($C00011).l
+	rts
+
+	locret_7298A_2:
 		btst	#4,(a5)
 		bne.s	loc_7298C
 
 loc_7297C:
 		or.b	1(a5),d6
 		addi.b	#$10,d6
+	if MUTEPSG=1
+		ori.b	#$F,d6	; MUTE
+	endif
 		move.b	d6,($C00011).l
 
 locret_7298A:
@@ -42745,6 +43363,10 @@ loc_7299A:				; XREF: sub_72926
 sub_729A0:				; XREF: sub_71D9E; Sound_ChkValue; Snd_FadeOut1; sub_728AC
 		btst	#2,(a5)
 		bne.s	locret_729B4
+	tst.b	$0E(a6)
+	bne.s	loc_729A6
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_729B4
 
 loc_729A6:				; XREF: Snd_FadeOut2
 		move.b	1(a5),d0
@@ -42778,6 +43400,23 @@ word_729CE:	dc.w $356, $326, $2F9, $2CE, $2A5, $280, $25C, $23A, $21A
 		dc.w $1F, $1D, $1B, $1A, $18, $17, $16,	$15, $13, $12
 		dc.w $11, 0
 
+	; PSG can overflow here by accident (SYZ does when it plays low notes
+	; but the pitch of the channel is low, and wraps to high).
+
+	; The flag pointers have been altered slightly, causing the frequencies
+	; to be different, even though it's wrong in the first place, this
+	; table will ensure it's put back the original way (not correct, just
+	; original).
+
+		dc.w	$0445,$00E0,$E54D,$4EFB,$5002,$6000,$0066,$6000	; CHG: end of table
+		dc.w	$0082,$6000,$0084,$6000,$0086,$6000,$009E,$6000
+		dc.w	$0124,$6000,$0126,$6000,$012C,$6000,$012E,$6000
+		dc.w	$0134,$6000,$0138,$6000,$013E,$6000,$0150,$6000
+		dc.w	$0154,$6000,$0156,$6000,$0184,$6000,$028A,$6000
+		dc.w	$02A8,$6000,$02AA,$6000,$0354,$6000,$036A,$6000
+		dc.w	$036C,$6000,$036E,$6000,$0376,$6000,$038C,$6000
+		dc.w	$039A,$121C
+
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
@@ -42790,57 +43429,66 @@ sub_72A5A:				; XREF: sub_71C4E; sub_71CEC; sub_72878
 ; ===========================================================================
 
 loc_72A64:
-		bra.w	loc_72ACC
+		bra.w	loc_72ACC			; E0
 ; ===========================================================================
-		bra.w	loc_72AEC
+		bra.w	loc_72AEC			; E1
 ; ===========================================================================
-		bra.w	loc_72AF2
+		bra.w	loc_72AF2			; E2
 ; ===========================================================================
-		bra.w	loc_72AF8
+		bra.w	loc_72AF8			; E3
 ; ===========================================================================
-		bra.w	loc_72B14
+		bra.w	loc_72B14			; E4
 ; ===========================================================================
-		bra.w	loc_72B9E
+		bra.w	loc_72B9E			; E5
 ; ===========================================================================
-		bra.w	loc_72BA4
+		bra.w	loc_72BA4			; E6
 ; ===========================================================================
-		bra.w	loc_72BAE
+		bra.w	loc_72BAE			; E7
 ; ===========================================================================
-		bra.w	loc_72BB4
+		bra.w	loc_72BB4			; E8
 ; ===========================================================================
-		bra.w	loc_72BBE
+		bra.w	loc_72BBE			; E9
 ; ===========================================================================
-		bra.w	loc_72BC6
+		bra.w	loc_72BC6			; EA
 ; ===========================================================================
-		bra.w	loc_72BD0
+		bra.w	loc_72BD0			; EB
 ; ===========================================================================
-		bra.w	loc_72BE6
+		bra.w	loc_72BE6			; EC
 ; ===========================================================================
-		bra.w	loc_72BEE
+		bra.w	loc_72BEE			; ED
 ; ===========================================================================
-		bra.w	loc_72BF4
+		bra.w	loc_72BF4			; EE
 ; ===========================================================================
-		bra.w	loc_72C26
+		bra.w	loc_72C26			; EF
 ; ===========================================================================
-		bra.w	loc_72D30
+		bra.w	loc_72D30			; F0
 ; ===========================================================================
-		bra.w	loc_72D52
+		bra.w	loc_72D52			; F1
 ; ===========================================================================
-		bra.w	loc_72D58
+		bra.w	loc_72D58			; F2
 ; ===========================================================================
-		bra.w	loc_72E06
+		bra.w	loc_72E06			; F3
 ; ===========================================================================
-		bra.w	loc_72E20
+		bra.w	loc_72E20			; F4
 ; ===========================================================================
-		bra.w	loc_72E26
+		bra.w	loc_72E26			; F5
 ; ===========================================================================
-		bra.w	loc_72E2C
+		bra.w	loc_72E2C			; F6
 ; ===========================================================================
-		bra.w	loc_72E38
+		bra.w	loc_72E38			; F7
 ; ===========================================================================
-		bra.w	loc_72E52
+		bra.w	loc_72E52			; F8
 ; ===========================================================================
-		bra.w	loc_72E64
+		bra.w	loc_72E64			; F9
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Flag FA - Reverse flag
+; ---------------------------------------------------------------------------
+
+FlagFA:
+		bchg.b	#$05,(a5)			; CHG: change reverse flag
+		rts					; CHG: return
+
 ; ===========================================================================
 
 loc_72ACC:				; XREF: loc_72A64
@@ -42883,19 +43531,37 @@ loc_72AF8:				; XREF: loc_72A64
 loc_72B14:				; XREF: loc_72A64
 		movea.l	a6,a0
 		lea	$3D0(a6),a1				; MJ: new SFX location
+	move.l	$10(a6),$10(a1)				; CHG: copy buffer address across
 		move.w	#$93,d0					; MJ: new size to store
 
 loc_72B1E:
 		move.l	(a1)+,(a0)+
 		dbf	d0,loc_72B1E
 
-		bset	#2,$40(a6)
-		bset	#2,$70(a6)				; MJ: enable PCM 2
+	;	bset	#2,$40(a6)
+	;	bset	#2,$70(a6)				; MJ: enable PCM 2
 		movea.l	a5,a3
 		move.b	#$28,d6
 		sub.b	$26(a6),d6
+	move.b	d6,d5
+	add.b	d5,d5
+	add.b	d6,d5
+
+		moveq	#$02-1,d7				; CHG: set number of PCM channels to do
+		lea	$40(a6),a5				; CHG: start from PCM 1
+
+FE4_NextPCM:
+		btst	#$07,(a5)				; CHG: is the channel running?
+		beq.s	FE4_NoPCM				; CHG: if not, branch
+	;	bset	#$01,(a5)				; CHG: set the channel as resting
+		add.b	d5,$09(a5)				; CHG: reduce its volume
+
+FE4_NoPCM:
+		lea	$30(a5),a5				; CHG: advance to next channel
+		dbf	d7,FE4_NextPCM				; CHG: repeat for all channels
+
 		moveq	#5,d7
-		lea	$A0(a6),a5				; MJ: new FM location
+	;	lea	$A0(a6),a5				; MJ: new FM location
 
 loc_72B3A:
 		btst	#7,(a5)
@@ -42904,6 +43570,12 @@ loc_72B3A:
 		add.b	d6,9(a5)
 		btst	#2,(a5)
 		bne.s	loc_72B5C
+	tst.b	$0E(a6)
+	bne.s	locret_72B5C_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	loc_72B5C
+
+	locret_72B5C_2:
 		moveq	#0,d0
 		move.b	$B(a5),d0
 		movea.l	$18(a6),a1
@@ -42926,14 +43598,6 @@ loc_72B78:
 		adda.w	#$30,a5
 		dbf	d7,loc_72B66
 		movea.l	a3,a5
-		tst.b	$40(a6)			; is the DAC channel running?
-		bmi.s	Restore_NoFM6		; if it is, branch
-
-		moveq	#$2B,d0			; DAC enable/disable register
-		moveq	#0,d1			; Disable DAC
-		jsr	sub_7272E(pc)
-
-Restore_NoFM6:		
 		move.b	#$80,$24(a6)
 		move.b	#$28,$26(a6)
 		clr.b	$27(a6)
@@ -43024,12 +43688,21 @@ loc_72C26:				; XREF: loc_72A64
 		moveq	#0,d0
 		move.b	(a4)+,d0
 		move.b	d0,$B(a5)
+
+SFM_UpdateVoice:
 		btst	#2,(a5)
 		bne.w	locret_72CAA
+	tst.b	$0E(a6)
+	bne.s	locret_72CAA_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_72CAA
+
+	locret_72CAA_2:
+
 		movea.l	$18(a6),a1
 		tst.b	$E(a6)
 		beq.s	sub_72C4E
-		movea.l	$20(a5),a1
+		movea.l	$20(a5),a1	; ERROR HERE...
 		tst.b	$E(a6)
 		bmi.s	sub_72C4E
 		movea.l	$20(a6),a1
@@ -43064,6 +43737,7 @@ loc_72C72:
 		andi.w	#7,d4
 		move.b	byte_72CAC(pc,d4.w),d4
 		move.b	9(a5),d3
+	add.b	$16(a6),d3			; EXTRA
 
 loc_72C8C:
 		move.b	(a2)+,d0
@@ -43092,6 +43766,13 @@ byte_72CAC:	dc.b 8,	8, 8, 8, $A, $E, $E, $F
 sub_72CB4:				; XREF: sub_72504; sub_7267C; loc_72BA4
 		btst	#2,(a5)
 		bne.s	locret_72D16
+
+	tst.b	$0E(a6)
+	bne.s	locret_72D16_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_72D16
+
+	locret_72D16_2:
 		moveq	#0,d0
 		move.b	$B(a5),d0
 		movea.l	$18(a6),a1
@@ -43118,6 +43799,7 @@ loc_72CE6:
 		andi.w	#7,d0
 		move.b	byte_72CAC(pc,d0.w),d4
 		move.b	9(a5),d3
+	add.b	$16(a6),d3			; EXTRA
 		bmi.s	locret_72D16
 		moveq	#3,d5
 
@@ -43158,6 +43840,15 @@ loc_72D30:				; XREF: loc_72A64
 
 loc_72D52:				; XREF: loc_72A64
 		bset	#3,(a5)
+		movea.l	$14(a5),a0				; CHG: load modulation address
+		lea	$18(a5),a1				; CHG: load modulation settings RAM
+		move.b	(a0)+,(a1)+				; CHG: reset settings...
+		move.b	(a0)+,(a1)+				; CHG: ''
+		move.b	(a0)+,(a1)+				; CHG: ''
+		move.b	(a0)+,d0				; CHG: ''
+		lsr.b	#$01,d0					; CHG: ''
+		move.b	d0,(a1)+				; CHG: ''
+		clr.w	(a1)+					; CHG: clear modulation frequency
 		rts	
 ; ===========================================================================
 
@@ -43167,7 +43858,7 @@ loc_72D58:				; XREF: loc_72A64
 		tst.b	1(a5)
 		bmi.s	loc_72D74
 		tst.b	8(a6)
-		bmi.w	loc_72E02
+		bmi.w	SF2_MutePCM				; CHG: for PCM, branch to a differen mute routine
 		jsr	sub_726FE(pc)
 		bra.s	loc_72D78
 ; ===========================================================================
@@ -43234,13 +43925,52 @@ loc_72DEA:
 		move.b	$1F(a0),($C00011).l
 
 loc_72E02:
-		addq.w	#4,sp					; MJ: changed to 4 (go back, but not out of sound driver)
-		tst.b	$08(a6)					; MJ: is this a PCM channel?
-		bne.s	FlagF2_NoWaitFrame			; MJ: if so, branch
-		addq.w	#4,sp					; MJ: go back outside the sound driver like normal
-
-FlagF2_NoWaitFrame:
+		addq.w	#$04*2,sp					; CHG: skip return addresses (returns back outside of the sound driver)
 		rts	
+
+SF2_MutePCM:
+		addq.w	#4,sp						; CHG: go back, but not out of sound driver
+		cmpi.b	#$80,$08(a6)					; CHG: is this PCM 1?
+		bne.s	SF2_MutePCM2					; CHG: if not, branch to mute PCM 2
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM1_Sample).l,a1			; CHG: load PCM 1 slot address
+		StopZ80
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM1_NewRET).l		; CHG: change "JP Nc" to "JP c"
+		StartZ80
+		rts							; CHG: return
+
+SF2_MutePCM2:
+		lea	(StopSample).l,a0				; CHG: load stop sample address
+		lea	($A00000+PCM2_Sample).l,a1			; CHG: load PCM 1 slot address
+		StopZ80
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: set address of reverse sample
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	(a0)+,(a1)+					; CHG: ''
+		move.b	#%11011010,($A00000+PCM2_NewRET).l		; CHG: change "JP Nc" to "JP c"
+		StartZ80
+		rts							; CHG: return
+
 ; ===========================================================================
 
 loc_72E06:				; XREF: loc_72A64
@@ -43248,6 +43978,12 @@ loc_72E06:				; XREF: loc_72A64
 		move.b	(a4)+,$1F(a5)
 		btst	#2,(a5)
 		bne.s	locret_72E1E 
+	tst.b	$0E(a6)
+	bne.s	locret_72E1E_2
+	tst.b	$22(a5)				; EXTRA - ON/OFF
+	bne.s	locret_72E1E 
+
+	locret_72E1E_2:
 		move.b	-1(a4),d0				; MJ: reload F3 setting to d0
 		move.b	d0,($C00011).l				; MJ: save F3 setting (should be EX (PSG 4) related)
 		andi.b	#%00000011,d0				; MJ: get only frequency mode bits
@@ -43310,8 +44046,6 @@ loc_72E64:				; XREF: loc_72A64
 		move.b	#$F,d1
 		bra.w	sub_7272E
 ; ===========================================================================
-Z80ROM:		incbin	"Dual PCM\Z80.bin"
-Z80ROM_End:	even
 Music81:	incbin	sound\music81.bin
 		even
 Music82:	incbin	sound\music82.bin
@@ -43471,6 +44205,23 @@ SoundD0:	incbin	sound\soundD0.bin
 SegaPCM:	incbin	"Dual PCM\Samples\incswf\Sega.swf",$3A
 SegaPCM_End:	even
 
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Z80 ROM address
+; ---------------------------------------------------------------------------
+
+Z80ROM:		incbin	"Dual PCM\Z80.bin"
+Z80ROM_End:	even
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Sample 68k PCM list
+; ---------------------------------------------------------------------------
+; SampleList:
+		include	"Dual PCM\Samples.asm"
+
+; ===========================================================================
+
 SHC2021:    incbin "SHC21_Lite_Sonic12.bin"
             even
 
@@ -43535,59 +44286,6 @@ ErrorExcept:	jsr	ErrorHandler(pc)
 		even
 
 ErrorHandler:	incbin	"ErrorHandler.bin"
-
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Sample 68k PCM list
-; ---------------------------------------------------------------------------
-
-SampleList:		dc.l	StopSample			; 80 (THIS IS A REST NOTE, DO NOT EDIT...)
-			dc.l	Sonic1Kick			; 81
-			dc.l	Sonic1Snare			; 82
-			dc.l	Sonic1TimpaniLow		; 83
-			dc.l	StopSample			; 84
-			dc.l	StopSample			; 85
-			dc.l	StopSample			; 86
-			dc.l	StopSample			; 87
-			dc.l	Sonic1TimpaniHigh		; 88
-			dc.l	Sonic1TimpaniMid		; 89
-			dc.l	Sonic1TimpaniLow		; 8A
-			dc.l	Sonic1TimpaniLower		; 8B
-
-; ---------------------------------------------------------------------------
-; Sample z80 pointers
-; ---------------------------------------------------------------------------
-
-StopSample:		dcz80	SWF_StopSample
-Sonic1Kick:		dcz80	SWF_S1Kick
-Sonic1Snare:		dcz80	SWF_S1Snare
-Sonic1TimpaniHigh:	dcz80	SWF_S1TimpaniHigh
-Sonic1TimpaniMid:	dcz80	SWF_S1TimpaniMid
-Sonic1TimpaniLow:	dcz80	SWF_S1TimpaniLow
-Sonic1TimpaniLower:	dcz80	SWF_S1TimpaniLower
-
-; ---------------------------------------------------------------------------
-; Sample file includes
-; ---------------------------------------------------------------------------
-			align	$20,$FF
-SWF_StopSample:	dcb.b	$7FFF,$00
-		dc.b	$80
-; ---------------------------------------------------------------------------
-SWF_S1Kick:		incbin	"Dual PCM\Samples\incswf\Sonic 1 Kick.swf"
-SWF_S1Snare:		incbin	"Dual PCM\Samples\incswf\Sonic 1 Snare.swf"
-SWF_S1TimpaniHigh:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani High.swf"
-SWF_S1TimpaniMid:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Mid.swf"
-SWF_S1TimpaniLow:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Low.swf"
-SWF_S1TimpaniLower:	incbin	"Dual PCM\Samples\incswf\Sonic 1 Timpani Lower.swf"
-SWF_Dies:		incbin	"Dual PCM\Samples\incswf\dies.swf"
-SWF_Frustrated:		incbin	"Dual PCM\Samples\incswf\frustrated.swf"
-SWF_Happy:		incbin	"Dual PCM\Samples\incswf\happy.swf"
-SWF_Happy2:		incbin	"Dual PCM\Samples\incswf\happy 2.swf"
-SWF_Hurt:		incbin	"Dual PCM\Samples\incswf\hurt.swf"
-SWF_Impatient:		incbin	"Dual PCM\Samples\incswf\impatient.swf"
-SWF_Invincibility:		incbin	"Dual PCM\Samples\incswf\invincibility.swf"
-
-; ===========================================================================
 
 ; end of 'ROM'
 EndOfRom:

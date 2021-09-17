@@ -123,7 +123,7 @@ int GetLabel (u_char *Text, char *Memory, u_int &MemoryLoc)
 {
 	u_int TextLoc = 0x00;
 	u_char Byte = Memory [MemoryLoc];
-	while (Byte != '	' && Byte != ' ' && Byte != ':')
+	while (Byte != '	' && Byte != ' ' && Byte != ':' && Byte != 0x0A && Byte != 0x0D)
 	{
 		Text [TextLoc++] = Byte;
 		Byte = Memory [++MemoryLoc];

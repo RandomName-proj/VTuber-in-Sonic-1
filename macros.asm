@@ -92,33 +92,44 @@ StartZ80	macro
 		move.w	#$0000,($A11100).l			; request Z80 stop (OFF)
 		endm
 
-	; --- Turning DMA mode on ---
-
-Z80DMA_ON	macro
-		StopZ80
-		move.b	#(Flush&$FF),($A00000+FL_FlushSwitch+1).l	; change the "jp" instruction address to "Flush" routine loop
-		StartZ80
-		move.w	#$0180,d7				; set delay time (give z80 time to get out of the "CatchUp" routine...
-		nop						; ...and into the "Flush" routine, so the 68k doesn't start DMA before...
-		nop						; ...the z80 has a chance to stop reading from the window
-		dbf	d7,*-$04				; loop back and perform the nops again...
+ResetZ80	macro
+		move.w	#$0000,($A11200).l			; request Z80 reset (ON)
 		endm
 
-	; --- Turning DMA mode off ---
-
-Z80DMA_OFF	macro
-		StopZ80
-		move.b	#(CatchUp&$FF),($A00000+FL_FlushSwitch+1).l	; change the "jp" instruction address to "CatchUp" routine loop
-		StartZ80
+NeglectZ80	macro
+		move.w	#$0100,($A11200).l			; request Z80 reset (OFF)
 		endm
 
+	; --- DMA to (a6) containing C00004 ---
+
+DMA:		macro	Size, Source, Destination
+		move.l	#(((((Size/$02)<<$08)&$FF0000)+((Size/$02)&$FF))+$94009300),(a6)
+		move.l	#((((((Source&$FFFFFF)/$02)<<$08)&$FF0000)+(((Source&$FFFFFF)/$02)&$FF))+$96009500),(a6)
+		move.l	#(((((Source&$FFFFFF)/$02)&$7F0000)+$97000000)+((Destination>>$10)&$FFFF)),(a6)
+		move.w	#((Destination&$FF7F)|$80),(a6)
+		endm
 
 	; --- Storing 68k address for Z80 as dc ---
 
-dcz80		macro	Sample
-		dc.b	(Sample&$FF)
-		dc.b	(((Sample>>$08)&$7F)|$80)
-		dc.b	((Sample&$7F8000)>>$0F)
+dcz80		macro	Sample, SampleRev, SampleLoop, SampleLoopRev
+		dc.b	((Sample)&$FF)
+		dc.b	((((Sample)>>$08)&$7F)|$80)
+		dc.b	(((Sample)&$7F8000)>>$0F)
+		dc.b	(((SampleRev)-1)&$FF)
+		dc.b	(((((SampleRev)-1)>>$08)&$7F)|$80)
+		dc.b	((((SampleRev)-1)&$7F8000)>>$0F)
+		dc.b	((SampleLoop)&$FF)
+		dc.b	((((SampleLoop)>>$08)&$7F)|$80)
+		dc.b	(((SampleLoop)&$7F8000)>>$0F)
+		dc.b	(((SampleLoopRev)-1)&$FF)
+		dc.b	(((((SampleLoopRev)-1)>>$08)&$7F)|$80)
+		dc.b	((((SampleLoopRev)-1)&$7F8000)>>$0F)
+		endm
+
+	; --- End marker for PCM samples ---
+
+EndMarker	macro
+		dcb.b	Z80E_Read*(($1000+$100)/$100),$00
 		endm
 
 ; ===========================================================================
