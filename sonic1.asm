@@ -32,6 +32,36 @@ Rings_manager_routine = Ring_Positions+Rings_Space+$C
 Level_started_flag = Ring_Positions+Rings_Space+$D
 Ring_consumption_table = Ring_Positions+Rings_Space+$E
 respawn_index = $14	
+
+mainspr_mapframe    = $B
+mainspr_width        = $E
+mainspr_childsprites     = $F    ; amount of child sprites
+mainspr_height        = $14
+sub2_x_pos        = $10    ;x_vel
+sub2_y_pos        = $12    ;y_vel
+sub2_mapframe        = $15
+sub3_x_pos        = $16    ;y_radius
+sub3_y_pos        = $18    ;priority
+sub3_mapframe        = $1B    ;anim_frame
+sub4_x_pos        = $1C    ;anim
+sub4_y_pos        = $1E    ;anim_frame_duration
+sub4_mapframe        = $21    ;collision_property
+sub5_x_pos        = $22    ;status
+sub5_y_pos        = $24    ;routine
+sub5_mapframe        = $27
+sub6_x_pos        = $28    ;subtype
+sub6_y_pos        = $2A
+sub6_mapframe        = $2D
+sub7_x_pos        = $2E
+sub7_y_pos        = $30
+sub7_mapframe        = $33
+sub8_x_pos        = $34
+sub8_y_pos        = $36
+sub8_mapframe        = $39
+sub9_x_pos        = $3A
+sub9_y_pos        = $3C
+sub9_mapframe        = $3F
+next_subspr       = $6	
 	
 StartOfRom:
 Vectors:	dc.l $FFFE00, EntryPoint, BusError, AddressError
@@ -2831,14 +2861,13 @@ loc_29C0:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-CalcSine:				; XREF: SS_BGAnimate; et al
-		andi.w	#$FF,d0
-		add.w	d0,d0
-		addi.w	#$80,d0
-		move.w	Sine_Data(pc,d0.w),d1
-		subi.w	#$80,d0
-		move.w	Sine_Data(pc,d0.w),d0
-		rts	
+CalcSine:
+        andi.w  #$FF,d0
+        addq.w  #8,d0
+        add.w   d0,d0
+        move.w  Sine_Data+($40*2)-16(pc,d0.w),d1
+        move.w  Sine_Data-16(pc,d0.w),d0
+        rts
 ; End of function CalcSine
 
 ; ===========================================================================
@@ -13581,13 +13610,7 @@ Obj2E_ChkInvinc:
 		move.b #1,($FFFFFE2D).w ; Set Invisibility to 1
 		move.w #$4B0,($FFFFD032).w ; Set Invisibility timer to 4B0
 		move.b #$4A,($FFFFD200).w ; load stars object ($3801)
-		move.b #1,($FFFFD21C).w
-		move.b #$4A,($FFFFD240).w ; load stars object ($3802)
-		move.b #2,($FFFFD25C).w
-		move.b #$4A,($FFFFD280).w ; load stars object ($3803)
-		move.b #3,($FFFFD29C).w
-		move.b #$4A,($FFFFD2C0).w ; load stars object ($3804)
-		move.b #4,($FFFFD2DC).w
+		move.b	#1,($FFFFD21C).w
 		tst.b ($FFFFF7AA).w ; is boss mode on?
 		bne.s DontPlayMusic ; If so, don't play music
 		cmpi.w #$C,($FFFFFE14).w ; Check if Sonic has air left
@@ -17457,6 +17480,18 @@ locret_D63E:
 		rts	
 ; End of function DisplaySprite2
 
+
+DisplaySprite3:
+    lea    ($FFFFAC00).w,a1
+    adda.w    d0,a1
+    cmpi.w    #$7E,(a1)
+    bhs.s    return_16542
+    addq.w    #2,(a1)
+    adda.w    (a1),a1
+    move.w    a0,(a1)
+
+return_16542:
+    rts
 ; ---------------------------------------------------------------------------
 ; Subroutine to	delete an object
 ; ---------------------------------------------------------------------------
@@ -17515,12 +17550,17 @@ BuildSpritesCont:
 		moveq	#2,d6
 
 loc_D672:
-		movea.w	(a4,d6.w),a0
-		tst.b	(a0)
-		beq.w	loc_D726
-		bclr	#7,1(a0)
-		move.b	1(a0),d0
-		move.b	d0,d4
+        movea.w    (a4,d6.w),a0
+        tst.b    (a0)
+        beq.w    loc_D726
+        bclr    #7,1(a0)
+        move.b    1(a0),d0
+        move.b    d0,d4
+        cmpi.b    #1,(a0)    ; is this object is Sonic
+        beq.s    @skip    ; if it is, branch
+        btst    #6,d0    ; is the multi-draw flag set?
+        bne.w   BuildSprites_MultiDraw    ; if it is, branch
+   @skip:
 		andi.w	#$C,d0
 		beq.s	loc_D6DE
 		movea.l	BldSpr_ScrPos(pc,d0.w),a1
@@ -17574,14 +17614,15 @@ loc_D700:
 		btst	#5,d4
 		bne.s	loc_D71C
 		move.b	$1A(a0),d1
-		add.b	d1,d1
+		add.w	d1,d1					; MJ: changed from byte to word (we want more than 7F sprites)
 		adda.w	(a1,d1.w),a1
+		moveq	#$00,d1					; MJ: clear d1 (because of our byte to word change)
 		move.b	(a1)+,d1
 		subq.b	#1,d1
 		bmi.s	loc_D720
 
 loc_D71C:
-		bsr.w	sub_D750
+		jsr	sub_D750
 
 loc_D720:
 		bset	#7,1(a0)
@@ -17606,12 +17647,118 @@ loc_D748:
 		rts	
 ; End of function BuildSprites
 
+BuildSprites_MultiDraw:
+	move.l	a4,-(sp)
+	lea	($FFFFF700).w,a4
+	movea.w	2(a0),a3
+	movea.l	4(a0),a5
+	moveq	#0,d0
+
+	; check if object is within X bounds
+	move.b	mainspr_width(a0),d0	; load pixel width
+	move.w	8(a0),d3
+	sub.w	(a4),d3
+	move.w	d3,d1                            
+	add.w	d0,d1                            ; is the object right edge to the left of the screen? 
+	bmi.w	BuildSprites_MultiDraw_NextObj   ; if it is, branch
+	move.w	d3,d1
+	sub.w	d0,d1
+	cmpi.w	#320,d1                          ; is the object left edge to the right of the screen?
+	bge.w	BuildSprites_MultiDraw_NextObj   ; if it is, branch
+	addi.w	#128,d3
+
+	; check if object is within Y bounds
+	btst	#4,d4                            ; is the accurate Y check flag set?
+	beq.s	BuildSpritesMulti_ApproxYCheck
+	moveq	#0,d0
+	move.b	mainspr_height(a0),d0	         ; load pixel height
+	move.w	$C(a0),d2
+	sub.w	4(a4),d2
+	move.w	d2,d1
+	add.w	d0,d1
+	bmi.w	BuildSprites_MultiDraw_NextObj  ; if the object is above the screen
+	move.w	d2,d1
+	sub.w	d0,d1
+	cmpi.w	#224,d1
+	bge.w	BuildSprites_MultiDraw_NextObj  ; if the object is below the screen
+	addi.w	#128,d2
+	bra.s	BuildSpritesMulti_DrawSprite
+BuildSpritesMulti_ApproxYCheck:
+	move.w	$C(a0),d2
+	sub.w	4(a4),d2
+	addi.w	#128,d2
+	andi.w	#$7FF,d2
+	cmpi.w	#-32+128,d2
+	blo.s	BuildSprites_MultiDraw_NextObj
+	cmpi.w	#32+128+224,d2
+	bhs.s	BuildSprites_MultiDraw_NextObj
+BuildSpritesMulti_DrawSprite:
+	moveq	#0,d1
+	move.b	mainspr_mapframe(a0),d1	         ; get current frame
+	beq.s	@noparenttodraw
+	add.w	d1,d1
+	movea.l	a5,a1                            ; a5 is mappings(a0), copy to a1
+	adda.w	(a1,d1.w),a1
+	moveq	#0,d1
+	move.b	(a1)+,d1
+	subq.b	#1,d1                            ; get number of pieces
+	bmi.s	@noparenttodraw                  ; if there are 0 pieces, branch
+	move.w	d4,-(sp)
+	jsr	ChkDrawSprite	                 ; draw the sprite
+	move.w	(sp)+,d4
+@noparenttodraw:
+	ori.b	#$80,1(a0)	         ; set onscreen flag
+	lea	sub2_x_pos(a0),a6                ; address of first child sprite info
+	moveq	#0,d0
+	move.b	mainspr_childsprites(a0),d0	 ; get child sprite count
+	subq.w	#1,d0		                 ; if there are 0, go to next object
+	bcs.s	BuildSprites_MultiDraw_NextObj
+
+@drawchildloop:
+	swap	d0
+	move.w	(a6)+,d3	                 ; get X pos
+	sub.w	(a4),d3                          ; subtract the screen's x position
+	addi.w	#128,d3
+	move.w	(a6)+,d2	                 ; get Y pos
+	sub.w	4(a4),d2   ; subtract the screen's y position
+	addi.w	#128,d2
+	andi.w	#$7FF,d2
+	addq.w	#1,a6
+	moveq	#0,d1
+	move.b	(a6)+,d1	                 ; get mapping frame
+	add.w	d1,d1
+	movea.l	a5,a1
+	adda.w	(a1,d1.w),a1
+	moveq	#0,d1
+	move.b	(a1)+,d1
+	subq.b	#1,d1                            ; get number of pieces
+	bmi.s	@nochildleft                     ; if there are 0 pieces, branch
+	move.w	d4,-(sp)
+	jsr	ChkDrawSprite
+	move.w	(sp)+,d4
+@nochildleft:
+	swap	d0
+	dbf	d0,@drawchildloop	         ; repeat for number of child sprites
+; loc_16804:
+BuildSprites_MultiDraw_NextObj:
+	movea.l	(sp)+,a4
+	bra.w	loc_D726; End of function BuildSprites
+
+
+; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
+
+; sub_1680A:
+ChkDrawSprite:
+	cmpi.b	#80,d5		; has the sprite limit been reached?
+	blo.s	loc_1681C	; if it hasn't, branch
+	rts	; otherwise, return
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
 sub_D750:				; XREF: BuildSprites
 		movea.w	2(a0),a3
+loc_1681C:
 		btst	#0,d4
 		bne.s	loc_D796
 		btst	#1,d4
@@ -17625,8 +17772,7 @@ sub_D750:				; XREF: BuildSprites
 sub_D762:				; XREF: sub_D762; SS_ShowLayout
 		cmpi.b	#$50,d5
 		beq.s	locret_D794
-
-DrawSprite_Loop:
+DrawSprite_Loop:				; XREF: sub_D762; SS_ShowLayout	
 		move.b	(a1)+,d0
 		ext.w	d0
 		add.w	d2,d0
@@ -27730,67 +27876,202 @@ jmp_DeleteObj38: ; loc_12648:
 		jmp DeleteObject 
 
 ; ---------------------------------------------------------------------------
-; Object 4A - New Invincibility Object
+; Object 4A - New Invincibility Object (ported from Sonic 2)
 ; ---------------------------------------------------------------------------
 
 Obj4A: ; XREF: Obj_Index
-		move.l #UnC_Stars,d1
-		move.w #$A820,d2
-		move.w #$240,d3
-		jsr (QueueDMATransfer).l
-
-Invincibility_Main:
-		moveq #0,d0
-		move.b $24(a0),d0
-
-Invincibility_Init:
-		addq.b #2,$24(a0)
-		move.l #Map_obj38,4(a0) ; loads mapping
-		move.b #4,1(a0)
-		move.b #1,$18(a0)
-		move.b #$10,$19(a0)
-		move.w #$541,2(a0) ; shield specific code
+		moveq	#0,d0
+		move.b	InvStars_routine(a0),d0
+		move.w	InvStars_Index(pc,d0.w),d1
+		jmp	InvStars_Index(pc,d1.w)
 ; ===========================================================================
 
-Obj4A_Stars: ; XREF: Obj38_Index
-		tst.b ($FFFFFE2D).w ; does Sonic have invincibility?
-		beq.s Obj4A_Delete2 ; if not, branch
-		move.w ($FFFFF7A8).w,d0
-		move.b $1C(a0),d1
-		subq.b #1,d1
+InvStars_Index:	dc.w Obj4A_Init-InvStars_Index
+		dc.w Obj4A_Main-InvStars_Index
+		dc.w Obj4A_SubObject-InvStars_Index
 ; ===========================================================================
 
-Obj4A_StarTrail: ; XREF: Obj4A_Stars
-		lsl.b #3,d1
-		move.b d1,d2
-		add.b d1,d1
-		add.b d2,d1
-		addq.b #4,d1
-		sub.b d1,d0
-		move.b $30(a0),d1
-		sub.b d1,d0
-		addq.b #4,d1
-		cmpi.b #$18,d1
-		bcs.s Obj4A_StarTrail2
-		moveq #0,d1
+off_1D992:
+		dc.l Ani_InvStars2 ; animation script
+		dc.w $B ; speed index,sub3 anim
+		dc.l Ani_InvStars3
+		dc.w $160D
+		dc.l Ani_InvStars4
+		dc.w $2C0D
+; ===========================================================================	
 
-Obj4A_StarTrail2:
-		move.b d1,$30(a0)
+InvStars_routine: equ $A ; the same as obRoutine in other objects
+InvStars_AniScript: equ $30 ; animation script used by sub-objects(in main object it's clear and unused) (4 bytes)
+InvStars_SpeedIndex: equ $34  ; (2 bytes)
+InvStars_PrevPosIndex: equ $36 ; clear and unused in main object
 
-Obj4A_StarTrail2a:
-		lea ($FFFFCB00).w,a1
-		lea (a1,d0.w),a1
-		move.w (a1)+,8(a0)
-		move.w (a1)+,$C(a0)
-		move.b ($FFFFD022).w,$22(a0)
-		lea (Ani_obj38).l,a1
-		jsr (AnimateSprite).l
-		jmp (DisplaySprite).l
+
+Obj4A_Init:
+		move.l	#ArtUnc_InvStars,d1
+		move.w	#$A820,d2
+		move.w	#$200,d3
+		jsr	(QueueDMATransfer).l
+		moveq	#0,d2
+		lea	off_1D992-6(pc),a2
+		lea	(a0),a1
+		moveq	#3,d1
+LoadStarsObject:	
+		move.b	(a0),(a1) ; load obj35
+		move.b	#4,InvStars_routine(a1)		; => @SubObject
+		move.l	#Map_InvStars,$4(a1)
+		move.w	#$541,$2(a1)
+		move.b  #%001000100,1(a1)
+		move.b	#$10,mainspr_width(a1)
+		move.b	#2,mainspr_childsprites(a1)
+		move.b	d2,InvStars_PrevPosIndex(a1)
+		addq.w	#1,d2
+		move.l	(a2)+,InvStars_AniScript(a1)
+		move.w	(a2)+,InvStars_SpeedIndex(a1)
+		lea	$40(a1),a1 ; a1=object
+		dbf	d1,LoadStarsObject
+
+		move.b	#2,InvStars_routine(a0)		; => @MainObject
+		move.b	#4,InvStars_SpeedIndex(a0)
+
+Obj4A_Main:
+		lea ($FFFFD000).w,a1 ; a1=character
+		tst.b   ($FFFFFE2D).w
+		beq.w	DeleteObject
+		move.w	8(a1),d0
+		move.w	d0,8(a0)
+		move.w	$C(a1),d1
+		move.w	d1,$C(a0)
+		lea	sub2_x_pos(a0),a2
+		lea	Ani_InvStars1,a3
+		moveq	#0,d5
+
+Obj4A_GetFrame:
+		move.w	$38(a0),d2
+		move.b	(a3,d2.w),d5
+		bpl.s	Obj4A_SetFrameandPos
+		clr.w	$38(a0)
+		bra.s	Obj4A_GetFrame
 ; ===========================================================================
 
-Obj4A_Delete2: ; XREF: Obj4A_Stars
-		jmp (DeleteObject).l 
+Obj4A_SetFrameandPos:
+		addq.w	#1,$38(a0)
+		lea	InvStars_Speeds,a6
+		move.b	InvStars_SpeedIndex(a0),d6
+		jsr	Obj4A_Display2
+		move.w	d2,(a2)+	; sub2_x_pos
+		move.w	d3,(a2)+	; sub2_y_pos
+		move.w	d5,(a2)+	; sub2_mapframe
+		addi.w	#$20,d6
+		jsr	Obj4A_Display2
+		move.w	d2,(a2)+	; sub3_x_pos
+		move.w	d3,(a2)+	; sub3_y_pos
+		move.w	d5,(a2)+	; sub3_mapframe
+		moveq	#$12,d0
+		btst	#0,$22(a1)
+		beq.s	Obj4A_Display
+		neg.w	d0
 
+Obj4A_Display:
+		add.b	d0,InvStars_SpeedIndex(a0)
+		move.w	#(1*$80),d0
+		bra.w	DisplaySprite3
+; ===========================================================================
+
+Obj4A_SubObject:
+		lea ($FFFFD000).w,a1 ; a1=character
+		tst.b   ($FFFFFE2D).w
+		beq.w	DeleteObject
+		lea	($FFFFF7A8).w,a5
+		lea	($FFFFCB00).w,a6
+	
+@getPosition_sub:
+		move.b	InvStars_PrevPosIndex(a0),d1
+		lsl.b	#2,d1
+		move.w	d1,d2
+		add.w	d1,d1
+		add.w	d2,d1 
+		move.w	(a5),d0
+		sub.b	d1,d0
+		lea	(a6,d0.w),a2
+		move.w	(a2)+,d0
+		move.w	(a2)+,d1
+		move.w	d0,8(a0)
+		move.w	d1,$C(a0)
+		lea	sub2_x_pos(a0),a2
+		movea.l	InvStars_AniScript(a0),a3
+
+Obj4A_GetSubFrame:
+		move.w	$38(a0),d2
+		move.b	(a3,d2.w),d5
+		bpl.s	Obj4A_SetSubFrameandPos
+		clr.w	$38(a0)
+		bra.s	Obj4A_GetSubFrame
+; ===========================================================================
+
+Obj4A_SetSubFrameandPos:
+		swap	d5
+		add.b	$35(a0),d2
+		move.b	(a3,d2.w),d5
+		addq.w	#1,$38(a0)
+		lea	InvStars_Speeds(pc),a6
+		move.b	InvStars_SpeedIndex(a0),d6
+		bsr.s	Obj4A_Display2
+		move.w	d2,(a2)+	; sub2_x_pos
+		move.w	d3,(a2)+	; sub2_y_pos
+		move.w	d5,(a2)+	; sub2_mapframe
+		addi.w	#$20,d6
+		swap	d5
+		bsr.s	Obj4A_Display2
+		move.w	d2,(a2)+	; sub3_x_pos
+		move.w	d3,(a2)+	; sub3_y_pos
+		move.w	d5,(a2)+	; sub3_mapframe
+		moveq	#2,d0
+		btst	#0,$22(a1)
+		beq.s	loc_1DB20
+		neg.w	d0
+
+loc_1DB20:
+		add.b    d0,InvStars_SpeedIndex(a0)
+		move.w    #(1*$80),d0
+		bra.w    DisplaySprite3
+; ===========================================================================
+Obj4A_Display2:
+		andi.w	#$3E,d6 ; limit to 6 bits and clear first bit
+		move.b	(a6,d6.w),d2 ; move x-move speed to d2
+		move.b	1(a6,d6.w),d3 ; move y-move speed to d3
+		ext.w	d2
+		ext.w	d3
+		add.w	d0,d2 ; add object x position to x-move speed
+		add.w	d1,d3 ; add object y position to y-move speed
+		rts
+
+InvStars_Speeds: ; x-move speed,	y-move speed	
+		dc.w   $F00,  $F03,  $E06,  $D08,  $B0B,  $80D,  $60E,  $30F,   $10, $FC0F, $F90E, $F70D, $F40B, $F208, $F106, $F003
+		dc.w  $F000, $F0FC, $F1F9, $F2F7, $F4F4, $F7F2, $F9F1, $FCF0, $FFF0,  $3F0,  $6F1,  $8F2,  $BF4,  $DF7,  $EF9,  $FFC
+
+; ---------------------------------------------------------------------------
+; Animation script - invincibility stars
+; ---------------------------------------------------------------------------
+
+; The animation script differs from the animate_sprite subroutine
+; Every positive byte - mapping
+; Every negative byte - loop flag 
+
+Ani_InvStars1:	dc.b   8,  5,  7,  6,  6,  7,  5,  8,  6,  7,  7,  6,$FF
+	even
+Ani_InvStars2:	dc.b   8,  7,  6,  5,  4,  3,  4,  5,  6,  7,$FF
+		dc.b   3,  4,  5,  6,  7,  8,  7,  6,  5,  4
+	even
+Ani_InvStars3:	dc.b   8,  7,  6,  5,  4,  3,  2,  3,  4,  5,  6,  7,$FF
+		dc.b   2,  3,  4,  5,  6,  7,  8,  7,  6,  5,  4,  3
+	even
+Ani_InvStars4:	dc.b   7,  6,  5,  4,  3,  2,  1,  2,  3,  4,  5,  6,$FF
+		dc.b   1,  2,  3,  4,  5,  6,  7,  6,  5,  4,  3,  2
+	even		
+
+
+Map_InvStars:
+	include "_maps\obj4A.asm"
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Object 08 - water splash (LZ)
@@ -27835,14 +28116,9 @@ Ani_obj38:
 Map_obj38:
 	include "_maps\obj38.asm"
 
-Ani_obj4A:
-	include "_anim\obj4A.asm"
-
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - special stage entry	from beta
 ; ---------------------------------------------------------------------------
-Map_obj4A:
-	include "_maps\obj4A.asm"
 
 Ani_obj08:
 	include "_anim\obj08.asm"
@@ -39902,7 +40178,7 @@ Nem_SyzSparkle:	incbin	artnem\xxxstars.bin	; unused stars
 		even
 UnC_Shield:	incbin	artunc\shield.bin	; shield
 		even
-UnC_Stars:	incbin	artunc\invstars.bin	; invincibility stars
+ArtUnc_InvStars:	incbin	artunc\invstars.bin	; invincibility stars
 		even
 Nem_LzSonic:	incbin	artnem\xxxlzson.bin	; unused LZ Sonic holding his breath
 		even
