@@ -1,28 +1,34 @@
+Now
+
 Additions
 - sound effects to match faces
+	- add DualPCM Flex-Ed
+- functioning air pockets
+- make the title screen background use only one palette line so that the other two lines can be used to give color back to the foreground
+- surprised at spike bug death
+- confused during wind sections in LZ
+
+Bugs
+- lava tag at the end of MZ act 1 doesn't work
+- wind tunnel in the shortcut to LZ act 1 doesn't work
+- is happy for too long into special stage
+
+Later
+
+Additions
 - points mode - get sonime to do a variety of frequent facial expressions to get the largest audience
 - move ears separately from head
+- points mode - get sonime to do a variety of frequent facial expressions to get the largest audience
+- move ears separately from head	
 - object which forces an expression then deletes itself
 - angry at using save states (if possible)
-- shadow/highlight water mode
-	- implement when fully underwater
-	- add for when loading level
-	- add mappings to decorations object to cover hidden objects
-
 
 Faces
 - anime sleep bubble when paused
+- holds breath instead of panicing during drowning countdown
 
 Functions
 - panic when near goal in special stage
 - panic when ring bounces off screen during boss fight
 - annoyed when bumped around too much
-- confused during wind sections in LZ
-- surprised at spike bug death
-
-Bug Fixes
-- make the title screen background use only one palette line so that the other two lines can be used to give color back to the foreground
-- lava tag stops working
-- is happy for too long into special stage
-- labyrinth invincibility causes slowdown so bad it affects h-interrupts
-	- if not fixable by deadline, remove LZ BG effects
+- confused by y-wrap

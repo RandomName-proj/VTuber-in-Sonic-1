@@ -11409,6 +11409,9 @@ Obj1C_Var:	dc.l Map_obj1C		; mappings address
 		dc.l Map_obj1C
 		dc.w $4000
 		dc.b 3,	$10, 0, 0
+		dc.l Map_obj1C
+		dc.w $4000
+		dc.b 4,	$60, 7, 0
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - SLZ	lava thrower
 ; ---------------------------------------------------------------------------
@@ -18467,18 +18470,6 @@ loc_170D0:
 	movea.w	(Ring_start_addr_RAM).w,a4
 	cmpi.w	#$5A,$30(a0)
 	bcc.w	return_17166
-	tst.b	($FFFFFE2C).w	; does Sonic have a lightning shield?
-	beq.s	Touch_Rings_NoAttraction	; if not, branch
-	move.w	8(a0),d2
-	move.w	$C(a0),d3
-	subi.w	#$40,d2
-	subi.w	#$40,d3
-	move.w	#6,d1
-	move.w	#$C,d6
-	move.w	#$80,d4
-	move.w	#$80,d5
-	bra.s	loc_17112
-; ===========================================================================
 	
 Touch_Rings_NoAttraction:
 	move.w	8(a0),d2

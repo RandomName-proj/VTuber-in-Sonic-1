@@ -21,6 +21,10 @@
       <ArtFile filename="../artnem/8x8lz.bin"/>
       <MapFile type="ASM" filename="../_maps/obj1C.asm" frame="3" startpal="2"/>
     </ImageFromMappings>
+    <ImageFromMappings id="img6">
+      <ArtFile filename="../artnem/8x8lz.bin"/>
+      <MapFile type="ASM" filename="../_maps/obj1C.asm" frame="4" startpal="2"/>
+    </ImageFromMappings>
   </Images>
   <Subtypes>
     <Subtype id="00" name="GHZ Bridge Stump" image="img1"/>
@@ -30,5 +34,6 @@
     <Subtype id="04" name="LZ Ground 1" image="img3"/>
     <Subtype id="05" name="LZ Ground 2" image="img4"/>
     <Subtype id="06" name="LZ Ground 3" image="img5"/>
+    <Subtype id="07" name="LZ Pocket" image="img6"/>
   </Subtypes>
 </ObjDef>
