@@ -976,9 +976,9 @@ loc_1314:
 		move.w	#$8F02,(a5)
 		move.l	#0,($FFFFF616).w
 		move.l	#0,($FFFFF61A).w
-		lea	($FFFFF800).w,a1
+		lea	($FFFFF838).w,a1
 		moveq	#0,d0
-		move.w	#$A0,d1
+		move.w	#$92,d1
 
 loc_133A:
 		move.l	d0,(a1)+
@@ -37150,27 +37150,7 @@ Touch_Hurt:				; XREF: Touch_ChkHurt
 HurtSonic:
 		move.b	#face_frustrated,(SonimeSST+sonime_face).w
 		move.w	#$100,(SonimeSST+sonime_facetimer).w
-		lea (SonimeHurt).l,a2 ; load sample pointers
-		lea ($A00C75).l,a3 ; load PCM2 pointers
-		lea ($A00651).l,a4 ; load PCM2 request switch
-		move.w #$0100,($A11100).l ; request Z80 stop (ON)
-		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
-		bne.s *-$08 ; if not, branch
-		move.b d0,($A00647).l ; set volume
-		move.b (a2)+,(a3)+ ; set address of sample
-		move.b (a2)+,(a3)+ ; ''
-		move.b (a2)+,(a3)+ ; ''
-		move.b (a2)+,(a3)+ ; set address of reverse sample
-		move.b (a2)+,(a3)+ ; ''
-		move.b (a2)+,(a3)+ ; ''
-		move.b (a2)+,(a3)+ ; set address of loop sample
-		move.b (a2)+,(a3)+ ; ''
-		move.b (a2)+,(a3)+ ; ''
-		move.b (a2)+,(a3)+ ; set address of loop reverse sample
-		move.b (a2)+,(a3)+ ; ''
-		move.b (a2)+,(a3)+ ; ''
-		move.b #%11011010,(a4) ; set request
-		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
+		PlayPCM2	SonimeHurt
 		tst.b	($FFFFFE2C).w	; does Sonic have a shield?
 		bne.s	Hurt_Shield	; if yes, branch
 		tst.w	($FFFFFE20).w	; does Sonic have any rings?
@@ -44216,6 +44196,7 @@ Z80ROM_End:	even
 ; ---------------------------------------------------------------------------
 ; SampleList:
 		include	"Dual PCM\Samples.asm"
+		even
 
 ; ===========================================================================
 

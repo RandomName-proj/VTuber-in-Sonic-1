@@ -133,3 +133,31 @@ EndMarker	macro
 		endm
 
 ; ===========================================================================
+
+PlayPCM2	macro	Sample
+		move.l	a0,-(sp)
+		move.l	a1,-(sp)
+		lea (Sample).l,a0 ; load sample pointers
+		lea ($A00C75).l,a1 ; load PCM2 pointers
+		move.w #$0100,($A11100).l ; request Z80 stop (ON)
+		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
+		bne.s *-$08 ; if not, branch
+		move.b #0,($A00647).l ; set volume
+		move.b (a0)+,(a1)+ ; set address of sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; set address of reverse sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; set address of loop sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; set address of loop reverse sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b #%11011010,($A00651).l ; set request
+		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
+		move.l	(sp)+,a1
+		move.l	(sp)+,a0
+		endm
+

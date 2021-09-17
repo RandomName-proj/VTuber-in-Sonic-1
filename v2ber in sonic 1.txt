@@ -2,7 +2,6 @@ Now
 
 Additions
 - sound effects to match faces
-	- add DualPCM Flex-Ed
 - functioning air pockets
 - make the title screen background use only one palette line so that the other two lines can be used to give color back to the foreground
 - surprised at spike bug death
