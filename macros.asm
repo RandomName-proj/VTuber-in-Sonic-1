@@ -135,6 +135,8 @@ EndMarker	macro
 ; ===========================================================================
 
 PlayPCM2	macro	Sample
+		tst.b	(f_voice).w
+		bne.s	@donevoice
 		move.l	a0,-(sp)
 		move.l	a1,-(sp)
 		lea (Sample).l,a0 ; load sample pointers
@@ -161,6 +163,8 @@ PlayPCM2	macro	Sample
 		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
 		move.l	(sp)+,a1
 		move.l	(sp)+,a0
+
+	@donevoice:
 		endm
 
 Max_Rings = 511 ; default. maximum number possible is 759
@@ -183,6 +187,7 @@ respawn_index = $14
 v_pocketbottom = $FFFFF60E
 v_pocketx = $FFFFF610
 f_insidepocket = $FFFFF612
+f_voice = $FFFFF613
 
 mainspr_mapframe    = $B
 mainspr_width        = $E

@@ -1061,7 +1061,7 @@ loc_13CA:
 		move.b	#$10,($FFFFF62A).w
 		bsr.w	DelayProgram
 		tst.b	($FFFFFFE1).w	; is slow-motion cheat on?
-		beq.s	Pause_ChkStart	; if not, branch
+		beq.s	Pause_ChkVoice	; if not, branch
 		btst	#6,($FFFFF605).w ; is button A pressed?
 		beq.s	Pause_ChkBC	; if not, branch
 		move.b	#4,($FFFFF600).w ; set game mode to 4 (title screen)
@@ -1074,6 +1074,12 @@ Pause_ChkBC:				; XREF: PauseGame
 		bne.s	Pause_SlowMo	; if yes, branch
 		btst	#5,($FFFFF605).w ; is button C pressed?
 		bne.s	Pause_SlowMo	; if yes, branch
+		bra.s	Pause_ChkStart
+
+Pause_ChkVoice:
+		btst	#4,($FFFFF605).w	; has B been pressed?
+		beq.s	Pause_ChkStart		; if not, branch
+		bchg	#0,(f_voice).w
 
 Pause_ChkStart:				; XREF: PauseGame
 		tst.w	(SonimeSST+sonime_pausetimer).w
@@ -1097,7 +1103,7 @@ Pause_ChkStart:				; XREF: PauseGame
 
 	@notss:
 		btst	#7,($FFFFF605).w ; is Start button pressed?
-		beq.s	loc_13CA	; if not, branch
+		beq.w	loc_13CA	; if not, branch
 		move.w	#$200,(SonimeSST+sonime_pausetimer).w
 
 loc_1404:				; XREF: PauseGame
@@ -3282,18 +3288,6 @@ Title_CountC:
 loc_3230:
 		tst.w	($FFFFF614).w
 		beq.w	Demo
-		btst	#5,($FFFFF605).w	; has C been pressed?
-		beq.s	Title_StartCheck		; if not, branch
-		move.w #$0100,($A11100).l ; request Z80 stop (ON)
-		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
-		bne.s *-$08 ; if not, branch
-		bchg #7,($A00647).l ; set volume
-		move.b #%11011010,($A00651).l ; set request
-		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
-		move.b	#$B5,d0
-		bsr.w	PlaySound_Special
-
-Title_StartCheck:
 		andi.b	#$80,($FFFFF605).w ; check if Start is pressed
 		beq.w	loc_317C	; if not, branch
 
@@ -3802,9 +3796,9 @@ Level_BgmNotLZ4:
 		moveq	#6,d0		; move 6 to d0
 
 Level_PlayBgm:
-;		lea	(MusicList).l,a1 ; load	music playlist
-;		move.b	(a1,d0.w),d0	; add d0 to a1
-;		bsr.w	PlaySound	; play music
+		lea	(MusicList).l,a1 ; load	music playlist
+		move.b	(a1,d0.w),d0	; add d0 to a1
+		bsr.w	PlaySound	; play music
 		move.b	#$34,($FFFFD080).w ; load title	card object
 
 Level_TtlCard:
@@ -27446,18 +27440,18 @@ Obj02_Right:
 
 Obj02_Face:
 		tst.b	($FFFFFE12).w
-		beq.w	@NoWait
+		beq.w	Sonime_NoWait
 		cmpi.b	#face_blink,sonime_face(a0)
 		beq.s	@UnBlink
 		subi.w	#1,sonime_facetimer(a0)
-		bpl.w	@NoWait
+		bpl.w	Sonime_NoWait
 		move.w	#3,sonime_facetimer(a0)
 		move.b	#face_blink,sonime_face(a0)
-		bra.w	@NoWait
+		bra.w	Sonime_NoWait
 
 	@UnBlink:
 		subi.w	#1,sonime_facetimer(a0)
-		bpl.w	@NoWait
+		bpl.w	Sonime_NoWait
 		move.b	#face_neutralr,sonime_face(a0)
 		jsr	RandomNumber
 		andi.w	#$3F,d0
@@ -27477,19 +27471,19 @@ Obj02_Face:
 
 	@NoBlink:
 		cmpi.b	#5,($FFFFD01C).w
-		bne.s	@NoWait
+		bne.s	Sonime_NoWait
 		cmpi.b	#$F,($FFFFD01B).w
-		bcs.s	@NoWait
+		bcs.s	Sonime_NoWait
 		move.b	#face_impatient,sonime_face(a0)
 		PlayPCM2	SonimeImpatient		
 
-	@NoWait:
+Sonime_NoWait:
 		cmpi.w	#$950,($FFFFD010).w
-		blt.s	@TooSlow
+		blt.s	Sonime_TooSlow
 		move.b	#face_happy,sonime_face(a0)
 		PlayPCM2	SonimeSpeed
 
-	@TooSlow:
+Sonime_TooSlow:
 		cmpi.w	#-$950,($FFFFD010).w
 		bgt.s	@TooSlow2
 		move.b	#face_happy,sonime_face(a0)	
@@ -32537,7 +32531,7 @@ loc_179C2:
 		cmpi.w	#$38,$3C(a0)
 		bcs.w	loc_179EE
 		addq.b	#2,$25(a0)
-		bra.s	loc_179EE
+		bra.w	loc_179EE
 ; ===========================================================================
 
 loc_179DA:
@@ -33539,7 +33533,7 @@ loc_1854E:
 		cmpi.w	#$38,$3C(a0)
 		bcs.w	loc_1857A
 		addq.b	#2,$25(a0)
-		bra.s	loc_1857A
+		bra.w	loc_1857A
 ; ===========================================================================
 
 loc_18566:
@@ -34188,7 +34182,7 @@ loc_18B96:
 		cmpi.b	#$2A,$3C(a0)
 		bcs.w	loc_18BC2
 		addq.b	#2,$25(a0)
-		bra.s	loc_18BC2
+		bra.w	loc_18BC2
 ; ===========================================================================
 
 loc_18BAE:
@@ -35093,7 +35087,7 @@ loc_194C2:
 		cmpi.w	#$2A,$3C(a0)
 		bcs.w	loc_194EE
 		addq.b	#2,$25(a0)
-		bra.s	loc_194EE
+		bra.w	loc_194EE
 ; ===========================================================================
 
 loc_194DA:
@@ -37188,7 +37182,7 @@ loc_1AF1E:
 		cmpi.w	#$800,$12(a0)
 		bgt.s	@happy
 		cmpi.w	#-$800,$12(a0)
-		bge.s	locret_1AF2E
+		bge.w	locret_1AF2E
 
 	@happy:
 		btst	#1,$22(a0)
@@ -37405,13 +37399,16 @@ KillSonic:
 		move.b	#$18,$1C(a0)
 		bset	#7,2(a0)
 		move.w	#$A3,d0		; play normal death sound
-		PlayPCM2	SonimeFrustrated		
 		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
 		bne.s	Kill_Sound
 		move.w	#$A6,d0		; play spikes death sound
 		PlayPCM2	SonimeSpikey
+		bra.s	Kill_Sound2
 
 Kill_Sound:
+		PlayPCM2	SonimeFrustrated		
+
+Kill_Sound2:
 		jsr	(PlaySound_Special).l
 
 Kill_NoDeath:
