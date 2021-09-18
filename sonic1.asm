@@ -15103,15 +15103,16 @@ loc_B798:				; XREF: Obj31_Index
 		move.w	8(a0),d4
 		bsr.w	SolidObject
 		btst	#3,$22(a0)
-		beq.s	Obj31_Display
+		beq.w	Obj31_Display
 		cmpi.b	#$10,$32(a0)
-		bcc.s	Obj31_Display
+		bcc.w	Obj31_Display
 		movea.l	a0,a2
 		lea	($FFFFD000).w,a0
 		jsr	KillSonic
 		movea.l	a2,a0
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
 		move.w	#$100,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeSurprised		
 
 Obj31_Display:
 		bsr.w	DisplaySprite
@@ -16260,6 +16261,7 @@ Obj39_SetWait:				; XREF: Obj39_Main
 		move.w	#720,$1E(a0)	; set time delay to 12 seconds
 		addq.b	#2,$24(a0)
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
+;		PlayPCM2	SonimeSurprised
 		tst.b	($FFFFFE18).w
 		bne.s	@nocontinues
 		move.b	#face_meltdown,(SonimeSST+sonime_face).w
@@ -21289,7 +21291,7 @@ loc_FBB0:
 		tst.w	d3
 		bmi.s	loc_FBBC
 		cmpi.w	#$10,d3
-		bcs.s	loc_FBEE
+		bcs.w	loc_FBEE
 		bra.s	loc_FB92
 ; ===========================================================================
 
@@ -21316,6 +21318,7 @@ loc_FBD6:
 		movea.l	(sp)+,a0
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
 		move.w	#$100,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeSurprised				
 		moveq	#-1,d4
 		rts	
 ; ===========================================================================
@@ -24465,7 +24468,7 @@ Obj16_Main:				; XREF: Obj16_Index
 
 Obj16_Move:				; XREF: Obj16_Index
 		lea	(Ani_obj16).l,a1
-		bsr.w	AnimateSprite
+		jsr	(AnimateSprite).l
 		moveq	#0,d0
 		move.b	$1A(a0),d0	; move frame number to d0
 		move.b	Obj16_Data(pc,d0.w),$20(a0) ; load collision response (based on	d0)
@@ -27854,6 +27857,7 @@ Obj0A_ReduceAir:
 		jsr	(PlaySound_Special).l ;	play drowning sound
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
 		move.w	#$100,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeSurprised		
 		move.b	#$A,$34(a0)
 		move.w	#1,$36(a0)
 		move.w	#$78,$2C(a0)
@@ -35740,6 +35744,7 @@ Obj83_Break:				; XREF: loc_19C72
 		moveq	#$38,d2
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
 		move.w	#$200,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeSurprised				
 		addq.b	#2,$24(a0)
 		move.b	#8,$19(a0)
 		move.b	#8,$16(a0)
@@ -36891,7 +36896,7 @@ Obj3E_Switched:				; XREF: Obj3E_Index
 		jsr	AnimateSprite
 		move.w	$30(a0),$C(a0)
 		tst.b	$25(a0)
-		beq.s	locret_1AC60
+		beq.w	locret_1AC60
 		addq.w	#8,$C(a0)
 		move.b	#$A,$24(a0)
 		move.w	#$3C,$1E(a0)
@@ -36899,6 +36904,9 @@ Obj3E_Switched:				; XREF: Obj3E_Index
 		clr.b	($FFFFF7AA).w	; lock screen position
 		move.b	#1,($FFFFF7CC).w ; lock	controls
 		move.w	#$800,($FFFFF602).w ; make Sonic run to	the right
+		PlayPCM2	SonimeBossDefeated		
+		move.b	#face_happy,(SonimeSST+sonime_face).w		
+		move.b	#$40,(SonimeSST+sonime_facetimer).w		
 		clr.b	$25(a0)
 		bclr	#3,($FFFFD022).w
 		bset	#1,($FFFFD022).w
@@ -37227,14 +37235,15 @@ Touch_KillEnemy:
 		cmpi.w	#$800,$12(a0)
 		bgt.s	@happy
 		cmpi.w	#-$800,$12(a0)
-		bge.s	@nothappy
+		bge.w	@nothappy
 
 	@happy:
 		btst	#1,$22(a0)
 		beq.s	@nothappy
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
-
+		PlayPCM2	SonimeHappy
+		
 	@nothappy:
 		bset	#7,$22(a1)
 		moveq	#0,d0
@@ -37329,8 +37338,8 @@ HurtSonic:
 		beq.w	Hurt_NoRings	; if not, branch
 		cmpi.w	#50,($FFFFFE20).w
 		bcs.s	@notbad
-		move.b	#face_surprised,(SonimeSST+sonime_face).w
-
+		move.b	#face_surprised,(SonimeSST+sonime_face).w	
+		
 	@notbad:
 		jsr	SingleObjLoad
 		bne.s	Hurt_Shield
@@ -39531,6 +39540,7 @@ TimeOver:				; XREF: Hud_ChkTime
 		bsr.w	KillSonic
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
 		move.w	#$100,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeSurprised				
 		move.b	#1,($FFFFFE1A).w
 		rts	
 ; ===========================================================================

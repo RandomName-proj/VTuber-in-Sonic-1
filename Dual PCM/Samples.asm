@@ -21,7 +21,7 @@ SampleList:
 		dc.l	SonimeSpeed	; 0B
 		dc.l	SonimeBossDefeated	; 0C
 		dc.l	SonimeGameOver	; 0D
-		
+		dc.l	SonimeSurprised	; 0D	
 ; ---------------------------------------------------------------------------
 ; Sample z80 pointers
 ; ---------------------------------------------------------------------------
@@ -48,6 +48,7 @@ SonimeSpikey:	dcz80	SWF_Spikey,	SWF_Spikey_Rev,	SWF_StopSample,		SWF_StopSample_
 SonimeSpeed:		dcz80	SWF_Speed,		SWF_Speed_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 SonimeBossDefeated:		dcz80	SWF_BossDefeated,		SWF_BossDefeated_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 SonimeGameOver:		dcz80	SWF_GameOver,		SWF_GameOver_Rev,		SWF_StopSample,		SWF_StopSample_Rev
+SonimeSurprised:		dcz80	SWF_Surprised,		SWF_Surprised_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 ; ---------------------------------------------------------------------------
 ; Sample file includes
 ; ---------------------------------------------------------------------------
@@ -94,4 +95,6 @@ SWF_BossDefeated:	incbin	"Dual PCM\Samples\incswf\bossdefeated.swf"
 SWF_BossDefeated_Rev:	EndMarker
 SWF_gameover:	incbin	"Dual PCM\Samples\incswf\gameover.swf"
 SWF_gameover_Rev:	EndMarker
+SWF_Surprised:	incbin	"Dual PCM\Samples\incswf\gameover.swf"
+SWF_Surprised_Rev:	EndMarker
 ; ===========================================================================
