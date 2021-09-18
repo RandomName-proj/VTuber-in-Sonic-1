@@ -16263,7 +16263,8 @@ Obj39_SetWait:				; XREF: Obj39_Main
 		tst.b	($FFFFFE18).w
 		bne.s	@nocontinues
 		move.b	#face_meltdown,(SonimeSST+sonime_face).w
-
+		PlayPCM2	SonimeGameOver
+		
 	@nocontinues:
 		rts	
 ; ===========================================================================
@@ -26990,7 +26991,7 @@ GameOver:				; XREF: Obj01_Death
 		clr.b	($FFFFFE1E).w	; stop time counter
 		addq.b	#1,($FFFFFE1C).w ; update lives	counter
 		subq.b	#1,($FFFFFE12).w ; subtract 1 from number of lives
-		bne.s	loc_138D4
+		bne.w	loc_138D4
 		move.w	#0,$3A(a0)
 		move.b	#$39,($FFFFD080).w ; load GAME object
 		move.b	#$39,($FFFFD0C0).w ; load OVER object
@@ -27013,7 +27014,7 @@ loc_138D4:
 		move.b	#$39,($FFFFD0C0).w ; load OVER object
 		move.b	#2,($FFFFD09A).w
 		move.b	#3,($FFFFD0DA).w
-		bra.s	loc_138C2
+		bra.w	loc_138C2
 ; ===========================================================================
 
 locret_13900:
