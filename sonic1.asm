@@ -16,60 +16,6 @@
 		include	"Equz80.asm"
 		include	"Macros.asm"
 
-Max_Rings = 511 ; default. maximum number possible is 759
-Rings_Space = (Max_Rings+1)*2
-
-Object_Respawn_Table = $FFFF8000
-Camera_X_pos_last = $FFFFFE2A
-Camera_Y_pos_last = $FFFFF76E
-
-Ring_Positions = $FFFF8300
-Ring_start_addr_ROM = Ring_Positions+Rings_Space
-Ring_end_addr_ROM = Ring_Positions+Rings_Space+4
-Ring_start_addr_RAM = Ring_Positions+Rings_Space+8
-Perfect_rings_left = Ring_Positions+Rings_Space+$A
-Rings_manager_routine = Ring_Positions+Rings_Space+$C
-Level_started_flag = Ring_Positions+Rings_Space+$D
-Ring_consumption_table = Ring_Positions+Rings_Space+$E
-respawn_index = $14	
-
-mainspr_mapframe    = $B
-mainspr_width        = $E
-mainspr_childsprites     = $F    ; amount of child sprites
-mainspr_height        = $14
-sub2_x_pos        = $10    ;x_vel
-sub2_y_pos        = $12    ;y_vel
-sub2_mapframe        = $15
-sub3_x_pos        = $16    ;y_radius
-sub3_y_pos        = $18    ;priority
-sub3_mapframe        = $1B    ;anim_frame
-sub4_x_pos        = $1C    ;anim
-sub4_y_pos        = $1E    ;anim_frame_duration
-sub4_mapframe        = $21    ;collision_property
-sub5_x_pos        = $22    ;status
-sub5_y_pos        = $24    ;routine
-sub5_mapframe        = $27
-sub6_x_pos        = $28    ;subtype
-sub6_y_pos        = $2A
-sub6_mapframe        = $2D
-sub7_x_pos        = $2E
-sub7_y_pos        = $30
-sub7_mapframe        = $33
-sub8_x_pos        = $34
-sub8_y_pos        = $36
-sub8_mapframe        = $39
-sub9_x_pos        = $3A
-sub9_y_pos        = $3C
-sub9_mapframe        = $3F
-next_subspr       = $6	
-	
-Yes		=	1
-No		=	0
-
-MUTEDAC		=	No
-MUTEFM		=	No
-MUTEPSG		=	No
-
 StartOfRom:
 Vectors:	dc.l $FFFE00, EntryPoint, BusError, AddressError
 		dc.l IllegalInstr, ZeroDivide, ChkInstr, TrapvInstr
@@ -11431,10 +11377,6 @@ Obj1C_ChkDel:				; XREF: Obj1C_Index
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
 		bls.w	DisplaySprite
-		move.w	respawn_index(a0),d0	; get address in respawn table
-		beq.w	DeleteObject		; if it's zero, don't remember object
-		movea.w	d0,a2	; load address into a2
-		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 		bra.w	DeleteObject	; and delete object
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -11469,6 +11411,76 @@ Obj1C_Var:	dc.l Map_obj1C		; mappings address
 ; ---------------------------------------------------------------------------
 Map_obj1C:
 	include "_maps\obj1C.asm"
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Object 03 - LZ Air Pockets
+; ---------------------------------------------------------------------------
+
+Obj03:					; XREF: Obj_Index
+		moveq	#0,d0
+		move.b	$24(a0),d0
+		move.w	Obj03_Index(pc,d0.w),d1
+		jmp	Obj03_Index(pc,d1.w)
+; ===========================================================================
+Obj03_Index:	dc.w Obj03_Main-Obj03_Index
+		dc.w Obj03_ChkDel-Obj03_Index
+; ===========================================================================
+
+Obj03_Main:				; XREF: Obj03_Index
+		addq.b	#2,$24(a0)
+		move.l	#Map_Obj03,4(a0)
+		move.w	#$4000,2(a0)
+		ori.b	#4,1(a0)
+		move.b	#$60,$19(a0)
+		move.b	#7,$18(a0)
+		move.b	#0,$1A(a0)
+		move.w	8(a0),d0
+		move.w	d0,(v_pocketx).w
+		move.w	$C(a0),d0
+		addi.w	#$40,d0
+		move.w	d0,(v_pocketbottom).w
+
+Obj03_ChkDel:				; XREF: Obj03_Index
+		lea	($FFFFD000).w,a1
+		move.w	8(a1),d0
+		sub.w	8(a0),d0
+		addi.w	#$60,d0
+		bmi.s	@outpocket
+		cmpi.w	#$C0,d0
+		bcc.s	@outpocket
+		move.w	$C(a0),d0
+		sub.w	$C(a1),d0
+		addi.w	#$40,d0
+		bmi.s	@outpocket
+		cmpi.w	#$80,d0
+		bcc.s	@outpocket
+
+		st		(f_insidepocket).w
+		bra.s	@chkgone
+
+	@outpocket:
+		sf		(f_insidepocket).w
+
+	@chkgone:
+		move.w	8(a0),d0
+		andi.w	#$FF80,d0
+		move.w	($FFFFF700).w,d1
+		subi.w	#$80,d1
+		andi.w	#$FF80,d1
+		sub.w	d1,d0
+		cmpi.w	#$280,d0
+		bls.w	DisplaySprite
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bra.w	DeleteObject	; and delete object
+; ---------------------------------------------------------------------------
+; Sprite mappings - LZ Air Pockets
+; ---------------------------------------------------------------------------
+Map_Obj03:
+	include "_maps\obj03.asm"
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -25060,7 +25072,16 @@ Obj64_Animate:				; XREF: Obj64_Index
 Obj64_ChkWater:				; XREF: Obj64_Index
 		move.w	($FFFFF646).w,d0
 		cmp.w	$C(a0),d0	; is bubble underwater?
+		bcc.s	Obj64_Burst	; if yes, branch
+		move.w	(v_pocketbottom).w,d0
+		cmp.w	$C(a0),d0	; is bubble underwater?
 		bcs.s	Obj64_Wobble	; if yes, branch
+		move.w	8(a0),d0
+		sub.w	(v_pocketx).w,d0
+		addi.w	#$60,d0
+		bmi.s	Obj64_Wobble
+		cmpi.w	#$C0,d0
+		bcc.s	Obj64_Wobble
 
 Obj64_Burst:				; XREF: Obj64_Wobble
 		move.b	#6,$24(a0)
@@ -25136,6 +25157,18 @@ Obj64_BblMaker:				; XREF: Obj64_Index
 		move.w	($FFFFF646).w,d0
 		cmp.w	$C(a0),d0	; is bubble maker underwater?
 		bcc.w	Obj64_ChkDel	; if not, branch
+		move.w	(v_pocketbottom).w,d0
+		cmp.w	$C(a0),d0
+		bcs.s	Obj64_Cont
+		move.w	8(a0),d0
+		sub.w	(v_pocketx).w,d0
+		addi.w	#$60,d0
+		bmi.s	Obj64_Cont
+		cmpi.w	#$C0,d0
+		bcc.s	Obj64_Cont
+		bra.w	Obj64_ChkDel
+
+Obj64_Cont:
 		tst.b	1(a0)
 		bpl.w	Obj64_ChkDel
 		subq.w	#1,$38(a0)
@@ -25230,8 +25263,19 @@ Obj64_ChkDel:				; XREF: Obj64_BblMaker
 
 Obj64_NoDel:	
 		move.w	($FFFFF646).w,d0
+		cmp.w	$C(a0),d0	; is bubble maker underwater?
+		bcc.s	Obj64_UW	; if not, branch
+		move.w	(v_pocketbottom).w,d0
 		cmp.w	$C(a0),d0
 		bcs.w	DisplaySprite
+		move.w	8(a0),d0
+		sub.w	(v_pocketx).w,d0
+		addi.w	#$60,d0
+		bmi.w	DisplaySprite
+		cmpi.w	#$C0,d0
+		bcc.w	DisplaySprite
+
+Obj64_UW:
 		rts	
 ; ===========================================================================
 ; bubble production sequence
@@ -25541,6 +25585,8 @@ Obj01_InWater:
 		move.w	($FFFFF646).w,d0
 		cmp.w	$C(a0),d0	; is Sonic above the water?
 		bge.s	Obj01_OutWater	; if yes, branch
+		tst.b	(f_insidepocket).w
+		bne.s	Obj01_OutWater
 		bset	#6,$22(a0)
 		bne.s	locret_12D80
 		bsr.w	ResumeMusic
@@ -27535,7 +27581,18 @@ Obj0A_Animate:				; XREF: Obj0A_Index
 Obj0A_ChkWater:				; XREF: Obj0A_Index
 		move.w	($FFFFF646).w,d0
 		cmp.w	$C(a0),d0	; has bubble reached the water surface?
-		bcs.s	Obj0A_Wobble	; if not, branch
+		bcc.s	Obj0A_ChkDel	; if not, branch
+		move.w	(v_pocketbottom).w,d0
+		cmp.w	$C(a0),d0
+		bcs.s	Obj0A_Wobble
+		move.w	8(a0),d0
+		sub.w	(v_pocketx).w,d0
+		addi.w	#$60,d0
+		bmi.s	Obj0A_Wobble
+		cmpi.w	#$C0,d0
+		bcc.s	Obj0A_Wobble
+
+Obj0A_ChkDel:
 		move.b	#6,$24(a0)
 		addq.b	#7,$1C(a0)
 		cmpi.b	#$D,$1C(a0)
@@ -28110,6 +28167,11 @@ Obj08_Main:				; XREF: Obj08_Index
 
 Obj08_Display:				; XREF: Obj08_Index
 		move.w	($FFFFF646).w,$C(a0) ; copy y-position from water height
+		tst.b	($FFFFF64E).w
+		beq.s	Obj08_Animate
+		move.w	(v_pocketbottom).w,$C(a0) ; copy y-position from water height
+
+Obj08_Animate:
 		lea	(Ani_obj08).l,a1
 		jsr	AnimateSprite
 		jmp	DisplaySprite
