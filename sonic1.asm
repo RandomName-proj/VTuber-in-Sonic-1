@@ -3802,9 +3802,9 @@ Level_BgmNotLZ4:
 		moveq	#6,d0		; move 6 to d0
 
 Level_PlayBgm:
-		lea	(MusicList).l,a1 ; load	music playlist
-		move.b	(a1,d0.w),d0	; add d0 to a1
-		bsr.w	PlaySound	; play music
+;		lea	(MusicList).l,a1 ; load	music playlist
+;		move.b	(a1,d0.w),d0	; add d0 to a1
+;		bsr.w	PlaySound	; play music
 		move.b	#$34,($FFFFD080).w ; load title	card object
 
 Level_TtlCard:
@@ -27484,21 +27484,15 @@ Obj02_Face:
 		PlayPCM2	SonimeImpatient		
 
 	@NoWait:
-		cmpi.w	#$800,($FFFFD010).w
+		cmpi.w	#$950,($FFFFD010).w
 		blt.s	@TooSlow
 		move.b	#face_happy,sonime_face(a0)
-		cmpi.w	#$A00,($FFFFD010).w
-		blt.s	@TooSlow		
-		move.b	#face_happy,sonime_face(a0)		
 		PlayPCM2	SonimeSpeed
 
 	@TooSlow:
-		cmpi.w	#-$800,($FFFFD010).w
+		cmpi.w	#-$950,($FFFFD010).w
 		bgt.s	@TooSlow2
-		move.b	#face_happy,sonime_face(a0)
-		cmpi.w	#-$A00,($FFFFD010).w
-		blt.s	@TooSlow		
-		move.b	#face_happy,sonime_face(a0)		
+		move.b	#face_happy,sonime_face(a0)	
 		PlayPCM2	SonimeSpeed
 		
 	@TooSlow2:
@@ -29719,7 +29713,7 @@ Obj66_Main:				; XREF: Obj66_Index
 ; ===========================================================================
 
 Obj66_Loop:
-		jsr	SingleObjLoad
+		jsr	(SingleObjLoad).l
 		bne.s	loc_150FE
 		move.b	#$66,0(a1)
 		addq.b	#4,$24(a1)
@@ -32394,7 +32388,7 @@ loc_1784C:				; XREF: loc_177E6
 
 BossDefeated:
 		move.b	#face_happy,(SonimeSST+sonime_face).w
-		move.w	#$80,(SonimeSST+sonime_facetimer).w
+		move.w	#$80,(SonimeSST+sonime_facetimer).w	
 		move.b	($FFFFFE0F).w,d0
 		andi.b	#7,d0
 		bne.s	locret_178A2
@@ -32528,12 +32522,12 @@ loc_179AC:				; XREF: Obj3D_ShipIndex
 		beq.s	loc_179BC
 		bpl.s	loc_179C2
 		addi.w	#$18,$12(a0)
-		bra.s	loc_179EE
+		bra.w	loc_179EE
 ; ===========================================================================
 
 loc_179BC:
 		clr.w	$12(a0)
-		bra.s	loc_179EE
+		bra.w	loc_179EE
 ; ===========================================================================
 
 loc_179C2:
@@ -32541,7 +32535,7 @@ loc_179C2:
 		bcs.s	loc_179DA
 		beq.s	loc_179E0
 		cmpi.w	#$38,$3C(a0)
-		bcs.s	loc_179EE
+		bcs.w	loc_179EE
 		addq.b	#2,$25(a0)
 		bra.s	loc_179EE
 ; ===========================================================================
@@ -32553,6 +32547,7 @@ loc_179DA:
 
 loc_179E0:
 		clr.w	$12(a0)
+		PlayPCM2	SonimeBossDefeated			
 		move.w	#$81,d0
 		jsr	(PlaySound).l	; play GHZ music
 
@@ -33117,12 +33112,13 @@ loc_180F6:				; XREF: Obj77_ShipIndex
 		tst.b	$3D(a0)
 		bne.s	loc_18112
 		cmpi.w	#$1EC8,8(a1)
-		blt.s	loc_18126
+		blt.w	loc_18126
 		cmpi.w	#$F0,$C(a1)
-		bgt.s	loc_18126
+		bgt.w	loc_18126
 		move.b	#$32,$3C(a0)
 
 loc_18112:
+		PlayPCM2	SonimeBossDefeated	
 		move.w	#$82,d0
 		jsr	(PlaySound).l	; play LZ music
 		bset	#0,$22(a0)
@@ -33527,13 +33523,13 @@ loc_1852C:				; XREF: Obj73_ShipIndex
 		cmpi.w	#$270,$38(a0)
 		bcc.s	loc_18544
 		addi.w	#$18,$12(a0)
-		bra.s	loc_1857A
+		bra.w	loc_1857A
 ; ===========================================================================
 
 loc_18544:
 		clr.w	$12(a0)
 		clr.w	$3C(a0)
-		bra.s	loc_1857A
+		bra.w	loc_1857A
 ; ===========================================================================
 
 loc_1854E:
@@ -33541,7 +33537,7 @@ loc_1854E:
 		bcs.s	loc_18566
 		beq.s	loc_1856C
 		cmpi.w	#$38,$3C(a0)
-		bcs.s	loc_1857A
+		bcs.w	loc_1857A
 		addq.b	#2,$25(a0)
 		bra.s	loc_1857A
 ; ===========================================================================
@@ -33553,6 +33549,7 @@ loc_18566:
 
 loc_1856C:
 		clr.w	$12(a0)
+		PlayPCM2	SonimeBossDefeated			
 		move.w	#$83,d0
 		jsr	(PlaySound).l	; play MZ music
 
@@ -34176,12 +34173,12 @@ loc_18B80:				; XREF: Obj7A_ShipIndex
 		beq.s	loc_18B90
 		bpl.s	loc_18B96
 		addi.w	#$18,$12(a0)
-		bra.s	loc_18BC2
+		bra.w	loc_18BC2
 ; ===========================================================================
 
 loc_18B90:
 		clr.w	$12(a0)
-		bra.s	loc_18BC2
+		bra.w	loc_18BC2
 ; ===========================================================================
 
 loc_18B96:
@@ -34189,7 +34186,7 @@ loc_18B96:
 		bcs.s	loc_18BAE
 		beq.s	loc_18BB4
 		cmpi.b	#$2A,$3C(a0)
-		bcs.s	loc_18BC2
+		bcs.w	loc_18BC2
 		addq.b	#2,$25(a0)
 		bra.s	loc_18BC2
 ; ===========================================================================
@@ -34201,6 +34198,7 @@ loc_18BAE:
 
 loc_18BB4:
 		clr.w	$12(a0)
+		PlayPCM2	SonimeBossDefeated			
 		move.w	#$84,d0
 		jsr	(PlaySound).l	; play SLZ music
 
@@ -35080,12 +35078,12 @@ loc_194AC:				; XREF: Obj75_ShipIndex
 		beq.s	loc_194BC
 		bpl.s	loc_194C2
 		addi.w	#$18,$12(a0)
-		bra.s	loc_194EE
+		bra.w	loc_194EE
 ; ===========================================================================
 
 loc_194BC:
 		clr.w	$12(a0)
-		bra.s	loc_194EE
+		bra.w	loc_194EE
 ; ===========================================================================
 
 loc_194C2:
@@ -35093,7 +35091,7 @@ loc_194C2:
 		bcs.s	loc_194DA
 		beq.s	loc_194E0
 		cmpi.w	#$2A,$3C(a0)
-		bcs.s	loc_194EE
+		bcs.w	loc_194EE
 		addq.b	#2,$25(a0)
 		bra.s	loc_194EE
 ; ===========================================================================
@@ -35105,6 +35103,7 @@ loc_194DA:
 
 loc_194E0:
 		clr.w	$12(a0)
+		PlayPCM2	SonimeBossDefeated			
 		move.w	#$85,d0
 		jsr	(PlaySound).l	; play SYZ music
 
@@ -37347,7 +37346,7 @@ HurtSonic:
 Hurt_Shield:
 		move.b	#0,($FFFFFE2C).w ; remove shield
 		move.b	#4,$24(a0)
-		jsr	Sonic_ResetOnFloor
+		jsr	(Sonic_ResetOnFloor).l
 		bset	#1,$22(a0)
 		move.w	#-$400,$12(a0)	; make Sonic bounce away from the object
 		move.w	#-$200,$10(a0)
