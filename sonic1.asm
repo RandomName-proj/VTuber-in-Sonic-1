@@ -37284,7 +37284,7 @@ KillSonic:
 		bne.w	Kill_NoDeath	; if yes, branch
 		move.b	#0,($FFFFFE2D).w ; remove invincibility
 		move.b	#6,$24(a0)
-		bsr.w	Sonic_ResetOnFloor
+		jsr	(Sonic_ResetOnFloor).l
 		bset	#1,$22(a0)
 		move.w	#-$700,$12(a0)
 		move.w	#0,$10(a0)
