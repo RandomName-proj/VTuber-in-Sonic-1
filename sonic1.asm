@@ -11488,7 +11488,7 @@ Obj03_Main:				; XREF: Obj03_Index
 		move.b	#3,(a1)
 		move.b	#6,$24(a1)
 		move.l	#Map_obj03,4(a1)
-		move.w	#$C300,2(a1)
+		move.w	#$C308,2(a1)
 		ori.b	#4,1(a1)
 		move.b	#$60,$19(a1)
 		move.b	#0,$18(a1)
@@ -21516,7 +21516,7 @@ Obj52_Main:				; XREF: Obj52_Index
 		cmpi.b	#1,($FFFFFE10).w ; check if level is LZ
 		bne.s	loc_FE44
 		move.l	#Map_obj52a,4(a0) ; LZ specific	code
-		move.w	#$43BC,2(a0)
+		move.w	#$4000,2(a0)
 		move.b	#7,$16(a0)
 
 loc_FE44:
@@ -22415,7 +22415,7 @@ Obj57_Main:				; XREF: Obj57_Index
 		cmpi.b	#1,($FFFFFE10).w ; check if level is LZ
 		bne.s	loc_107E8
 		move.b	#0,$20(a0)	; LZ specific code (chain doesn't hurt)
-		move.w	#$310,2(a0)
+		move.w	#$318,2(a0)
 		move.l	#Map_obj57a,4(a0)
 
 loc_107E8:
@@ -23335,7 +23335,7 @@ Obj1B_Index:	dc.w Obj1B_Main-Obj1B_Index
 Obj1B_Main:				; XREF: Obj1B_Index
 		addq.b	#2,$24(a0)
 		move.l	#Map_obj1B,4(a0)
-		move.w	#$C300,2(a0)
+		move.w	#$C308,2(a0)
 		move.b	#4,1(a0)
 		move.b	#$80,$19(a0)
 		move.w	8(a0),$30(a0)
@@ -23508,7 +23508,7 @@ Obj0C_Index:	dc.w Obj0C_Main-Obj0C_Index
 Obj0C_Main:				; XREF: Obj0C_Index
 		addq.b	#2,$24(a0)
 		move.l	#Map_obj0C,4(a0)
-		move.w	#$4328,2(a0)
+		move.w	#$4330,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$28,$19(a0)
 		moveq	#0,d0
@@ -24527,6 +24527,11 @@ Obj61_Main:				; XREF: Obj61_Index
 		move.b	(a2),$16(a0)
 		lsr.w	#1,d0
 		move.b	d0,$1A(a0)
+		cmpi.b	#3,d0
+		bne.s	@notblock
+		move.w	#$4000,2(a0)
+
+	@notblock:
 		move.w	8(a0),$34(a0)
 		move.w	$C(a0),$30(a0)
 		move.b	$28(a0),d0
@@ -24735,7 +24740,7 @@ Obj62_SpitRate:	dc.b 30, 60, 90, 120, 150, 180,	210, 240
 Obj62_Main:				; XREF: Obj62_Index
 		addq.b	#2,$24(a0)
 		move.l	#Map_obj62,4(a0)
-		move.w	#$42E9,2(a0)
+		move.w	#$42F1,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#3,$18(a0)
 		move.b	#$10,$19(a0)
@@ -24769,7 +24774,7 @@ Obj62_FireBall:				; XREF: Obj62_Index
 		move.b	#8,$16(a0)
 		move.b	#8,$17(a0)
 		move.l	#Map_obj62,4(a0)
-		move.w	#$2E9,2(a0)
+		move.w	#$2F1,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#4,$18(a0)
 		move.b	#$98,$20(a0)
@@ -25141,7 +25146,7 @@ Obj64_Index:	dc.w Obj64_Main-Obj64_Index
 Obj64_Main:				; XREF: Obj64_Index
 		addq.b	#2,$24(a0)
 		move.l	#Map_obj64,4(a0)
-		move.w	#$8348,2(a0)
+		move.w	#$8350,2(a0)
 		move.b	#$84,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#1,$18(a0)
@@ -25443,7 +25448,7 @@ Obj65_Index:	dc.w Obj65_Main-Obj65_Index
 Obj65_Main:				; XREF: Obj65_Index
 		addq.b	#4,$24(a0)
 		move.l	#Map_obj65,4(a0)
-		move.w	#$4259,2(a0)
+		move.w	#$429A,2(a0)
 		ori.b	#4,1(a0)
 		move.b	#$18,$19(a0)
 		move.b	#1,$18(a0)
@@ -25454,6 +25459,13 @@ Obj65_Main:				; XREF: Obj65_Index
 loc_12AE6:
 		andi.b	#$F,d0		; read only the	2nd byte
 		move.b	d0,$1A(a0)	; set frame number
+		cmpi.b	#7,d0
+		bhi.s	@standard
+		btst	d0,#%10111101
+		beq.s	@standard
+		subi.w	#$29A,2(a0)
+
+	@standard:
 		cmpi.b	#9,d0		; is object type $x9 ?
 		bne.s	Obj65_ChkDel	; if not, branch
 		clr.b	$18(a0)
@@ -27656,7 +27668,7 @@ Obj0A_Index:	dc.w Obj0A_Main-Obj0A_Index, Obj0A_Animate-Obj0A_Index
 Obj0A_Main:				; XREF: Obj0A_Index
 		addq.b	#2,$24(a0)
 		move.l	#Map_obj64,4(a0)
-		move.w	#$8348,2(a0)
+		move.w	#$8350,2(a0)
 		move.b	#$84,1(a0)
 		move.b	#$10,$19(a0)
 		move.b	#1,$18(a0)
@@ -28263,7 +28275,7 @@ Obj08_Main:				; XREF: Obj08_Index
 		ori.b	#4,1(a0)
 		move.b	#1,$18(a0)
 		move.b	#$10,$19(a0)
-		move.w	#$4259,2(a0)
+		move.w	#$4278,2(a0)
 		move.w	($FFFFD008).w,8(a0) ; copy x-position from Sonic
 
 Obj08_Display:				; XREF: Obj08_Index
@@ -30526,7 +30538,7 @@ Obj6B_Delete:
 ; ===========================================================================
 
 Obj6B_SBZ3:				; XREF: Obj6B_Main
-		move.w	#$41F0,2(a0)
+		move.w	#$4210,2(a0)
 		cmpi.w	#$A80,8(a0)
 		bne.s	Obj6B_SBZ12
 		move.w	respawn_index(a0),d0	; get address in respawn table
@@ -40458,7 +40470,9 @@ Nem_GhzWall2:	incbin	artnem\ghzwall2.bin	; GHZ normal wall
 ; ---------------------------------------------------------------------------
 Nem_Water:	incbin	artnem\lzwater.bin	; LZ water surface
 		even
-Nem_Splash:	incbin	artnem\lzsplash.bin	; LZ waterfalls and splashes
+Nem_Splash:	incbin	artnem\lzsplash.bin	; LZ waterfalls
+		even
+Nem_Splash2:	incbin	artnem\lzsplash2.bin	; LZ splash
 		even
 Nem_LzSpikeBall:incbin	artnem\lzspball.bin	; LZ spiked ball on chain
 		even

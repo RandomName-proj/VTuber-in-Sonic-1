@@ -89,23 +89,21 @@ PLC_GHZ2:	dc.w 5
 ; ---------------------------------------------------------------------------
 ; Pattern load cues - Labyrinth
 ; ---------------------------------------------------------------------------
-PLC_LZ:		dc.w $A
-		dc.l Nem_LzBlock1	; block
-		dc.w $3C00
+PLC_LZ:		dc.w 9
 		dc.l Nem_LzBlock2	; blocks
-		dc.w $3E00
-		dc.l Nem_Splash		; waterfalls and splash
-		dc.w $4B20
+		dc.w $4200
+		dc.l Nem_Splash2	; splash
+		dc.w $4F00
+		dc.l Nem_Splash		; waterfalls
+		dc.w $5340
 		dc.l Nem_Water		; water	surface
-		dc.w $6000
+		dc.w $6100
 		dc.l Nem_LzSpikeBall	; spiked ball
-		dc.w $6200
+		dc.w $6300
 		dc.l Nem_FlapDoor	; flapping door
-		dc.w $6500
+		dc.w $6600
 		dc.l Nem_Bubbles	; bubbles and numbers
-		dc.w $6900
-		dc.l Nem_LzBlock3	; block
-		dc.w $7780
+		dc.w $6A00
 		dc.l Nem_LzDoor1	; vertical door
 		dc.w $7880
 		dc.l Nem_Harpoon	; harpoon
@@ -120,7 +118,7 @@ PLC_LZ2:	dc.w $C
 		dc.l Nem_LzWheel	; wheel
 		dc.w $7EC0
 		dc.l Nem_Gargoyle	; gargoyle head
-		dc.w $5D20
+		dc.w $5E20
 		dc.l Nem_LzSonic	; Sonic	holding	his breath
 		dc.w $8800
 		dc.l Nem_LzPlatfm	; rising platform
