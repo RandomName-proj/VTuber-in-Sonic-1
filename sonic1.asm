@@ -29637,7 +29637,11 @@ Obj66_Main:				; XREF: Obj66_Index
 ; ===========================================================================
 
 Obj66_Loop:
+<<<<<<< Updated upstream
+		jsr	SingleObjLoad
+=======
 		jsr	(SingleObjLoad).l
+>>>>>>> Stashed changes
 		bne.s	loc_150FE
 		move.b	#$66,0(a1)
 		addq.b	#4,$24(a1)
@@ -32459,7 +32463,7 @@ loc_179C2:
 		bcs.s	loc_179DA
 		beq.s	loc_179E0
 		cmpi.w	#$38,$3C(a0)
-		bcs.w	loc_179EE
+		bcs.s	loc_179EE
 		addq.b	#2,$25(a0)
 		bra.s	loc_179EE
 ; ===========================================================================
@@ -33036,9 +33040,9 @@ loc_180F6:				; XREF: Obj77_ShipIndex
 		tst.b	$3D(a0)
 		bne.s	loc_18112
 		cmpi.w	#$1EC8,8(a1)
-		blt.w	loc_18126
+		blt.s	loc_18126
 		cmpi.w	#$F0,$C(a1)
-		bgt.w	loc_18126
+		bgt.s	loc_18126
 		move.b	#$32,$3C(a0)
 
 loc_18112:
@@ -33461,7 +33465,7 @@ loc_1854E:
 		bcs.s	loc_18566
 		beq.s	loc_1856C
 		cmpi.w	#$38,$3C(a0)
-		bcs.w	loc_1857A
+		bcs.s	loc_1857A
 		addq.b	#2,$25(a0)
 		bra.s	loc_1857A
 ; ===========================================================================
@@ -34110,7 +34114,7 @@ loc_18B96:
 		bcs.s	loc_18BAE
 		beq.s	loc_18BB4
 		cmpi.b	#$2A,$3C(a0)
-		bcs.w	loc_18BC2
+		bcs.s	loc_18BC2
 		addq.b	#2,$25(a0)
 		bra.s	loc_18BC2
 ; ===========================================================================
@@ -35015,7 +35019,7 @@ loc_194C2:
 		bcs.s	loc_194DA
 		beq.s	loc_194E0
 		cmpi.w	#$2A,$3C(a0)
-		bcs.w	loc_194EE
+		bcs.s	loc_194EE
 		addq.b	#2,$25(a0)
 		bra.s	loc_194EE
 ; ===========================================================================
