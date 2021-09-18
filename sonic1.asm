@@ -20751,13 +20751,14 @@ Obj54_ChkDel:				; XREF: Obj54_Index
 		subi.w	#$80,d1
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
-		bmi.w	DeleteObject
+		bmi.s	@del
 		cmpi.w	#$280,d0
-		bls.s	Obj54_NoDel
-	;	move.w	respawn_index(a0),d0	; get address in respawn table
-	;	beq.w	DeleteObject		; if it's zero, don't remember object
-	;	movea.w	d0,a2	; load address into a2
-	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		bls.w	Obj54_NoDel
+	@del:
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.w	DeleteObject		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 		bra.w	DeleteObject	; and delete object
 
 Obj54_NoDel:
@@ -23771,9 +23772,10 @@ Obj5E:					; XREF: Obj_Index
 		subi.w	#$80,d1
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
-		bmi.w	DeleteObject
+		bmi.s	@del
 		cmpi.w	#$280,d0
 		bls.w	DisplaySprite
+	@del:
 		move.w	respawn_index(a0),d0	; get address in respawn table
 		beq.w	DeleteObject		; if it's zero, don't remember object
 		movea.w	d0,a2	; load address into a2
@@ -30323,10 +30325,10 @@ Obj6A_Action:				; XREF: Obj6A_Index
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
 		bls.s	Obj6A_NoDel
-	;	move.w	respawn_index(a0),d0	; get address in respawn table
-	;	beq.s	Obj6A_Delete		; if it's zero, don't remember object
-	;	movea.w	d0,a2	; load address into a2
-	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj6A_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 		bra.s	Obj6A_Delete	; and delete object
 
 Obj6A_NoDel:
@@ -31011,10 +31013,10 @@ Obj6F:					; XREF: Obj_Index
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
 		bls.s	Obj6F_Display
-	;	move.w	respawn_index(a0),d0	; get address in respawn table
-	;	beq.s	loc_1629A		; if it's zero, don't remember object
-	;	movea.w	d0,a2	; load address into a2
-	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	loc_1629A		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 		bra.s	loc_1629A	; and delete object
 
 Obj6F_Display:
@@ -31276,10 +31278,10 @@ Obj70_ChkDel:
 		sub.w	d1,d0
 		cmpi.w	#$280,d0
 		bls.s	Obj70_NoDel
-	;	move.w	respawn_index(a0),d0	; get address in respawn table
-	;	beq.s	Obj70_Delete		; if it's zero, don't remember object
-	;	movea.w	d0,a2	; load address into a2
-	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj70_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 		bra.s	Obj70_Delete	; and delete object
 
 Obj70_NoDel:
@@ -34332,13 +34334,15 @@ Obj7B:					; XREF: Obj_Index
 		subi.w	#$80,d1
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
-		bmi.w	Obj7A_Delete
+		bmi.s	@del
 		cmpi.w	#$280,d0
 		bls.s	Obj7B_NoDel
-	;	move.w	respawn_index(a0),d0	; get address in respawn table
-	;	beq.s	Obj7B_Delete		; if it's zero, don't remember object
-	;	movea.w	d0,a2	; load address into a2
-	;	bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+
+	@del:
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj7B_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
 
 Obj7B_Delete:
 		jmp	DeleteObject	; and delete object

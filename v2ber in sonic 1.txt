@@ -8,7 +8,6 @@ Additions
 - confused during wind sections in LZ
 
 Bugs
-- lava tag at the end of MZ act 1 doesn't work
 - wind tunnel in the shortcut to LZ act 1 doesn't work
 - is happy for too long into special stage
 
