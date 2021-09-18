@@ -354,6 +354,19 @@ Art_Text:	incbin	artunc\menutext.bin	; text used in level select and debug mode
 
 ; ===========================================================================
 
+DetectPAL:
+		jsr	(sub_71B4C).l
+		btst    #6,($A10001).l
+		beq.w   @ret
+		addq.b  #1,($FFFFFFBF).w
+		cmpi.b  #5,($FFFFFFBF).w
+		blo.s   @ret
+		clr.b   ($FFFFFFBF).w
+		jsr	sub_71B4C
+@ret
+		rts
+; End of function DetectPAL
+
 loc_B10:				; XREF: Vectors
 		movem.l	d0-a6,-(sp)
 		tst.b	($FFFFF62A).w
@@ -377,7 +390,7 @@ loc_B42:
 		jsr	off_B6E(pc,d0.w)
 
 loc_B5E:				; XREF: loc_B88
-		jsr	sub_71B4C
+		jsr		(DetectPAL).l
 
 loc_B64:				; XREF: loc_D50
 		addq.l	#1,($FFFFFE0C).w
@@ -773,7 +786,7 @@ loc_119E:				; XREF: PalToCRAM
 		clr.b	($FFFFF64F).w
 		movem.l	d0-a6,-(sp)
 		bsr.w	Demo_Time
-		jsr	sub_71B4C
+		jsr		(DetectPAL).l
 		movem.l	(sp)+,d0-a6
 		rte	
 ; End of function PalToCRAM
@@ -4811,6 +4824,7 @@ SS_ClrNemRam:
 		move.b	#9,($FFFFD000).w ; load	special	stage Sonic object
         move.b    #0,($FFFFFFD0).w
 		bsr.w	PalCycle_SS
+		clr.b	(SonimeSST+sonime_airtimer).w		
 		clr.w	($FFFFF780).w	; set stage angle to "upright"
 		move.b	#$FF,(v_ssangleprev).w	; fill previous angle with obviously false value to force an update
 		move.w	#$40,($FFFFF782).w ; set stage rotation	speed
@@ -27385,13 +27399,20 @@ Obj02_Face:
 		cmpi.w	#$800,($FFFFD010).w
 		blt.s	@TooSlow
 		move.b	#face_happy,sonime_face(a0)
+		cmpi.w	#$A00,($FFFFD010).w
+		blt.s	@TooSlow		
+		move.b	#face_happy,sonime_face(a0)		
 		PlayPCM2	SonimeSpeed
 
 	@TooSlow:
 		cmpi.w	#-$800,($FFFFD010).w
 		bgt.s	@TooSlow2
 		move.b	#face_happy,sonime_face(a0)
-
+		cmpi.w	#-$A00,($FFFFD010).w
+		blt.s	@TooSlow		
+		move.b	#face_happy,sonime_face(a0)		
+		PlayPCM2	SonimeSpeed
+		
 	@TooSlow2:
 		moveq	#0,d4
 		move.b	sonime_face(a0),d4
