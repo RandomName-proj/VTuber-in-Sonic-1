@@ -89,8 +89,8 @@ Vectors:	dc.l $FFFE00, EntryPoint, BusError, AddressError
 		dc.l ErrorTrap,	ErrorTrap, ErrorTrap, ErrorTrap
 Console:	dc.b 'SEGA MEGA DRIVE ' ; Hardware system ID
 Date:		dc.b '(C)SEGA 1991.APR' ; Release date
-Title_Local:	dc.b 'SONIC THE               HEDGEHOG                ' ; Domestic name
-Title_Int:	dc.b 'SONIC THE               HEDGEHOG                ' ; International name
+Title_Local:	dc.b 'VTUBER IN SONIC 1                               ' ; Domestic name
+Title_Int:	dc.b 'VTUBER IN SONIC 1                               ' ; International name
 Serial:					dc.b "GM 00004049-01" ; Serial/version number (Rev01)
 Checksum:	dc.w 0
 		dc.b 'J               ' ; I/O support
@@ -27294,18 +27294,18 @@ Obj02_Right:
 
 Obj02_Face:
 		tst.b	($FFFFFE12).w
-		beq.s	@NoWait
+		beq.w	@NoWait
 		cmpi.b	#face_blink,sonime_face(a0)
 		beq.s	@UnBlink
 		subi.w	#1,sonime_facetimer(a0)
-		bpl.s	@NoWait
+		bpl.w	@NoWait
 		move.w	#3,sonime_facetimer(a0)
 		move.b	#face_blink,sonime_face(a0)
-		bra.s	@NoWait
+		bra.w	@NoWait
 
 	@UnBlink:
 		subi.w	#1,sonime_facetimer(a0)
-		bpl.s	@NoWait
+		bpl.w	@NoWait
 		move.b	#face_neutralr,sonime_face(a0)
 		jsr	RandomNumber
 		andi.w	#$3F,d0
@@ -27329,11 +27329,13 @@ Obj02_Face:
 		cmpi.b	#$F,($FFFFD01B).w
 		bcs.s	@NoWait
 		move.b	#face_impatient,sonime_face(a0)
+		PlayPCM2	SonimeImpatient		
 
 	@NoWait:
 		cmpi.w	#$800,($FFFFD010).w
 		blt.s	@TooSlow
 		move.b	#face_happy,sonime_face(a0)
+		PlayPCM2	SonimeSpeed
 
 	@TooSlow:
 		cmpi.w	#-$800,($FFFFD010).w
@@ -36990,19 +36992,19 @@ Touch_Monitor:
 		move.w	$C(a0),d0
 		subi.w	#$10,d0
 		cmp.w	$C(a1),d0
-		bcs.s	locret_1AF2E
+		bcs.w	locret_1AF2E
 		neg.w	$12(a0)		; reverse Sonic's y-motion
 		clr.b	(SonimeSST+sonime_airtimer).w
 		move.w	#-$180,$12(a1)
 		tst.b	$25(a1)
-		bne.s	locret_1AF2E
+		bne.w	locret_1AF2E
 		addq.b	#4,$25(a1)	; advance the monitor's routine counter
 		rts	
 ; ===========================================================================
 
 loc_1AF1E:
 		cmpi.b	#2,$1C(a0)	; is Sonic rolling/jumping?
-		bne.s	locret_1AF2E
+		bne.w	locret_1AF2E
 		neg.w	$12(a0)		; reverse Sonic's y-motion
 		addq.b	#2,$24(a1)	; advance the monitor's routine counter
 		cmpi.w	#$400,$10(a0)
@@ -37019,6 +37021,7 @@ loc_1AF1E:
 		beq.s	locret_1AF2E
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeHappy2
 
 locret_1AF2E:
 		rts	
@@ -37216,7 +37219,7 @@ Hurt_NoRings:
 
 KillSonic:
 		tst.w	($FFFFFE08).w	; is debug mode	active?
-		bne.s	Kill_NoDeath	; if yes, branch
+		bne.w	Kill_NoDeath	; if yes, branch
 		move.b	#0,($FFFFFE2D).w ; remove invincibility
 		move.b	#6,$24(a0)
 		bsr.w	Sonic_ResetOnFloor
@@ -37228,9 +37231,11 @@ KillSonic:
 		move.b	#$18,$1C(a0)
 		bset	#7,2(a0)
 		move.w	#$A3,d0		; play normal death sound
+		PlayPCM2	SonimeFrustrated		
 		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
 		bne.s	Kill_Sound
 		move.w	#$A6,d0		; play spikes death sound
+		PlayPCM2	SonimeSpikey
 
 Kill_Sound:
 		jsr	(PlaySound_Special).l
@@ -38613,13 +38618,14 @@ Obj09_ChkGlass:
 		cmpi.b	#$2F,d0
 		beq.s	Obj09_Glass
 		cmpi.b	#$30,d0
-		bne.s	Obj09_NoGlass	; if not, branch
+		bne.w	Obj09_NoGlass	; if not, branch
 
 Obj09_Glass:
 		cmpi.b	#face_happy,(SonimeSST+sonime_face).w
 		beq.s	@happy
 		move.b	#face_impatient,(SonimeSST+sonime_face).w
 		move.w	#$20,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeImpatient		
 
 	@happy:
 		bsr.w	SS_RemoveCollectedItem
@@ -43756,7 +43762,7 @@ sub_72CB4:				; XREF: sub_72504; sub_7267C; loc_72BA4
 		movea.l	$18(a6),a1
 		tst.b	$E(a6)
 		beq.s	loc_72CD8
-		movea.l	$20(a6),a1
+		movea.l	$20(a5),a1
 		tst.b	$E(a6)
 		bmi.s	loc_72CD8
 		movea.l	$20(a6),a1
