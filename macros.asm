@@ -161,3 +161,60 @@ PlayPCM2	macro	Sample
 		move.l	(sp)+,a0
 		endm
 
+Max_Rings = 511 ; default. maximum number possible is 759
+Rings_Space = (Max_Rings+1)*2
+
+Object_Respawn_Table = $FFFF8000
+Camera_X_pos_last = $FFFFFE2A
+Camera_Y_pos_last = $FFFFF76E
+
+Ring_Positions = $FFFF8300
+Ring_start_addr_ROM = Ring_Positions+Rings_Space
+Ring_end_addr_ROM = Ring_Positions+Rings_Space+4
+Ring_start_addr_RAM = Ring_Positions+Rings_Space+8
+Perfect_rings_left = Ring_Positions+Rings_Space+$A
+Rings_manager_routine = Ring_Positions+Rings_Space+$C
+Level_started_flag = Ring_Positions+Rings_Space+$D
+Ring_consumption_table = Ring_Positions+Rings_Space+$E
+respawn_index = $14	
+
+v_pocketbottom = $FFFFF60E
+v_pocketx = $FFFFF610
+f_insidepocket = $FFFFF612
+
+mainspr_mapframe    = $B
+mainspr_width        = $E
+mainspr_childsprites     = $F    ; amount of child sprites
+mainspr_height        = $14
+sub2_x_pos        = $10    ;x_vel
+sub2_y_pos        = $12    ;y_vel
+sub2_mapframe        = $15
+sub3_x_pos        = $16    ;y_radius
+sub3_y_pos        = $18    ;priority
+sub3_mapframe        = $1B    ;anim_frame
+sub4_x_pos        = $1C    ;anim
+sub4_y_pos        = $1E    ;anim_frame_duration
+sub4_mapframe        = $21    ;collision_property
+sub5_x_pos        = $22    ;status
+sub5_y_pos        = $24    ;routine
+sub5_mapframe        = $27
+sub6_x_pos        = $28    ;subtype
+sub6_y_pos        = $2A
+sub6_mapframe        = $2D
+sub7_x_pos        = $2E
+sub7_y_pos        = $30
+sub7_mapframe        = $33
+sub8_x_pos        = $34
+sub8_y_pos        = $36
+sub8_mapframe        = $39
+sub9_x_pos        = $3A
+sub9_y_pos        = $3C
+sub9_mapframe        = $3F
+next_subspr       = $6	
+	
+Yes		=	1
+No		=	0
+
+MUTEDAC		=	No
+MUTEFM		=	No
+MUTEPSG		=	No
