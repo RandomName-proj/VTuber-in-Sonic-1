@@ -19,6 +19,7 @@ SampleList:
 		dc.l	SonimeInvincibility	; 09
 		dc.l	SonimeSpikey	; 0A
 		dc.l	SonimeSpeed	; 0B
+		dc.l	SonimeBossDefeated	; 0C
 		
 ; ---------------------------------------------------------------------------
 ; Sample z80 pointers
@@ -44,6 +45,7 @@ SonimeImpatient:		dcz80	SWF_Impatient,		SWF_Impatient_Rev,		SWF_StopSample,		SWF
 SonimeInvincibility:	dcz80	SWF_Invincibility,	SWF_Invincibility_Rev,	SWF_StopSample,		SWF_StopSample_Rev
 SonimeSpikey:	dcz80	SWF_Spikey,	SWF_Spikey_Rev,	SWF_StopSample,		SWF_StopSample_Rev
 SonimeSpeed:		dcz80	SWF_Speed,		SWF_Speed_Rev,		SWF_StopSample,		SWF_StopSample_Rev
+SonimeBossDefeated:		dcz80	SWF_BossDefeated,		SWF_BossDefeated_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 ; ---------------------------------------------------------------------------
 ; Sample file includes
 ; ---------------------------------------------------------------------------
@@ -86,4 +88,6 @@ SWF_Spikey:	incbin	"Dual PCM\Samples\incswf\spikey.swf"
 SWF_Spikey_Rev:	EndMarker
 SWF_Speed:	incbin	"Dual PCM\Samples\incswf\goingatsupersonicspeed.swf"
 SWF_Speed_Rev:	EndMarker
+SWF_BossDefeated:	incbin	"Dual PCM\Samples\incswf\bossdefeated.swf"
+SWF_BossDefeated_Rev:	EndMarker
 ; ===========================================================================
