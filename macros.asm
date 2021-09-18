@@ -142,7 +142,9 @@ PlayPCM2	macro	Sample
 		move.w #$0100,($A11100).l ; request Z80 stop (ON)
 		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
 		bne.s *-$08 ; if not, branch
-		move.b #0,($A00647).l ; set volume
+		move.b #1,($A0060E).l ; set pitch quotient
+		move.b #0,($A00619).l ; set pitch fraction
+		move.b #%11010010,($A00603).l ; set request
 		move.b (a0)+,(a1)+ ; set address of sample
 		move.b (a0)+,(a1)+ ; ''
 		move.b (a0)+,(a1)+ ; ''

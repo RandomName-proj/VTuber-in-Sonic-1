@@ -3269,6 +3269,18 @@ Title_CountC:
 loc_3230:
 		tst.w	($FFFFF614).w
 		beq.w	Demo
+		btst	#5,($FFFFF605).w	; has C been pressed?
+		beq.s	Title_StartCheck		; if not, branch
+		move.w #$0100,($A11100).l ; request Z80 stop (ON)
+		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
+		bne.s *-$08 ; if not, branch
+		bchg #7,($A00647).l ; set volume
+		move.b #%11011010,($A00651).l ; set request
+		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
+		move.b	#$B5,d0
+		bsr.w	PlaySound_Special
+
+Title_StartCheck:
 		andi.b	#$80,($FFFFF605).w ; check if Start is pressed
 		beq.w	loc_317C	; if not, branch
 
@@ -29610,7 +29622,7 @@ Obj66_Main:				; XREF: Obj66_Index
 ; ===========================================================================
 
 Obj66_Loop:
-		bsr.w	SingleObjLoad
+		jsr	SingleObjLoad
 		bne.s	loc_150FE
 		move.b	#$66,0(a1)
 		addq.b	#4,$24(a1)
