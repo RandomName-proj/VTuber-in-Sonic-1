@@ -4382,7 +4382,7 @@ locret_3F0A:
 
 ; ===========================================================================
 		dc.w $A80, $300, $C10, $380
-LZWind_Data:	dc.w $F80, $100, $1410,	$180, $460, $400, $710,	$480, $A20
+LZWind_Data:	dc.w $F80, $100, $1410,	$180, $460, $400, $710,	$480, $AA0
 		dc.w $600, $1610, $6E0,	$C80, $600, $13D0, $680
 					; XREF: LZWindTunnels
 		even
@@ -11455,6 +11455,8 @@ Obj03:					; XREF: Obj_Index
 ; ===========================================================================
 Obj03_Index:	dc.w Obj03_Main-Obj03_Index
 		dc.w Obj03_ChkDel-Obj03_Index
+		dc.w Obj03_Child-Obj03_Index
+		dc.w Obj03_Surface-Obj03_Index
 ; ===========================================================================
 
 Obj03_Main:				; XREF: Obj03_Index
@@ -11468,8 +11470,39 @@ Obj03_Main:				; XREF: Obj03_Index
 		move.w	8(a0),d0
 		move.w	d0,(v_pocketx).w
 		move.w	$C(a0),d0
+		move.w	d0,$30(a0)
 		addi.w	#$40,d0
 		move.w	d0,(v_pocketbottom).w
+		subi.w	#$20,$C(a0)
+		jsr	(SingleObjLoad).l
+		bne.w	Obj03_ChkDel
+		move.w	a1,$3C(a0)
+		move.b	#3,(a1)
+		move.b	#4,$24(a1)
+		move.l	#Map_Obj03,4(a1)
+		move.w	#$4000,2(a1)
+		ori.b	#4,1(a1)
+		move.b	#$60,$19(a1)
+		move.b	#7,$18(a1)
+		move.b	#1,$1A(a1)
+		move.w	8(a0),8(a1)
+		move.w	$30(a0),$C(a1)
+		addi.w	#$20,$C(a1)
+		jsr	(SingleObjLoad).l
+		bne.s	Obj03_ChkDel
+		move.w	a1,$3E(a0)
+		move.b	#3,(a1)
+		move.b	#6,$24(a1)
+		move.l	#Map_obj03,4(a1)
+		move.w	#$C300,2(a1)
+		ori.b	#4,1(a1)
+		move.b	#$60,$19(a1)
+		move.b	#0,$18(a1)
+		move.b	#2,$1A(a1)
+		move.w	8(a0),8(a1)
+		move.w	8(a0),$30(a1)
+		move.w	$30(a0),$C(a1)
+		addi.w	#$40,$C(a1)
 
 Obj03_ChkDel:				; XREF: Obj03_Index
 		lea	($FFFFD000).w,a1
@@ -11479,13 +11512,12 @@ Obj03_ChkDel:				; XREF: Obj03_Index
 		bmi.s	@outpocket
 		cmpi.w	#$C0,d0
 		bcc.s	@outpocket
-		move.w	$C(a0),d0
+		move.w	$30(a0),d0
 		sub.w	$C(a1),d0
 		addi.w	#$40,d0
 		bmi.s	@outpocket
 		cmpi.w	#$80,d0
 		bcc.s	@outpocket
-
 		st		(f_insidepocket).w
 		bra.s	@chkgone
 
@@ -11502,10 +11534,54 @@ Obj03_ChkDel:				; XREF: Obj03_Index
 		cmpi.w	#$280,d0
 		bls.w	DisplaySprite
 		move.w	respawn_index(a0),d0	; get address in respawn table
-		beq.w	DeleteObject		; if it's zero, don't remember object
+		beq.s	@delete		; if it's zero, don't remember object
 		movea.w	d0,a2	; load address into a2
 		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+
+	@delete:
+		move.w	$3C(a0),a1
+		bsr.w	DeleteObject2
+		move.w	$3E(a0),a1
+		bsr.w	DeleteObject2
 		bra.w	DeleteObject	; and delete object
+
+Obj03_Surface:
+		move.w	$30(a0),d1
+		btst	#7,($FFFFF605).w ; is Start button pressed?
+		bne.s	@flash	; if not, branch
+		btst	#0,($FFFFFE05).w
+		beq.s	@flash
+		addi.w	#$20,d1
+
+	@flash:
+		move.w	d1,8(a0)
+		tst.b	$32(a0)
+		bne.s	@animate
+		btst	#7,($FFFFF605).w ; is Start button pressed?
+		beq.s	@animate2	; if not, branch
+		addq.b	#3,$1A(a0)	; use different	frames
+		move.b	#1,$32(a0)	; stop animation
+		bra.s	Obj03_Child
+; ===========================================================================
+
+	@animate:
+		tst.w	($FFFFF63A).w	; is the game paused?
+		bne.s	Obj03_Child	; if yes, branch
+		move.b	#0,$32(a0)	; resume animation
+		subq.b	#3,$1A(a0)	; use normal frames
+
+	@animate2:
+		subq.b	#1,$1E(a0)
+		bpl.s	Obj03_Child
+		move.b	#7,$1E(a0)
+		addq.b	#1,$1A(a0)
+		cmpi.b	#5,$1A(a0)
+		bcs.s	Obj03_Child
+		move.b	#2,$1A(a0)
+
+Obj03_Child:
+		bra.w	DisplaySprite
+
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - LZ Air Pockets
 ; ---------------------------------------------------------------------------
@@ -37271,7 +37347,7 @@ HurtSonic:
 Hurt_Shield:
 		move.b	#0,($FFFFFE2C).w ; remove shield
 		move.b	#4,$24(a0)
-		bsr.w	Sonic_ResetOnFloor
+		jsr	Sonic_ResetOnFloor
 		bset	#1,$22(a0)
 		move.w	#-$400,$12(a0)	; make Sonic bounce away from the object
 		move.w	#-$200,$10(a0)
