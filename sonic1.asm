@@ -26188,6 +26188,12 @@ locret_1307C:
 
 
 Sonic_MoveLeft:				; XREF: Sonic_Move
+		cmpi.b	#face_impatient,(SonimeSST+sonime_face).w
+		bne.s	@notfrustrated
+		move.b	#face_neutrall,(SonimeSST+sonime_face).w
+		sf		(SonimeSST+sonime_dontsleep).w
+
+	@notfrustrated:
 		move.w	$20(a0),d0
 		beq.s	loc_13086
 		bpl.s	loc_130B2
@@ -26239,6 +26245,12 @@ locret_130E8:
 
 
 Sonic_MoveRight:			; XREF: Sonic_Move
+		cmpi.b	#face_impatient,(SonimeSST+sonime_face).w
+		bne.s	@notfrustrated
+		move.b	#face_neutrall,(SonimeSST+sonime_face).w
+		sf		(SonimeSST+sonime_dontsleep).w
+
+	@notfrustrated:
 		move.w	$20(a0),d0
 		bmi.s	loc_13118
 		bclr	#0,$22(a0)
@@ -26624,6 +26636,7 @@ Sonic_Jump:				; XREF: Obj01_MdNormal; Obj01_MdRoll
 		cmpi.b	#face_impatient,(SonimeSST+sonime_face).w
 		bne.s	@notfrustrated
 		move.b	#face_neutrall,(SonimeSST+sonime_face).w
+		sf		(SonimeSST+sonime_dontsleep).w
 
 	@notfrustrated:
 		moveq	#0,d0
@@ -27644,8 +27657,6 @@ Obj02_Face:
 		move.b	#face_neutrall,sonime_face(a0)
 
 	@NoBlink:
-		tst.b	($FFFFF602).w
-		bne.w	@Resets
 		cmpi.b	#5,($FFFFD01C).w
 		bne.w	Sonime_NoWait
 		cmpi.b	#$F,($FFFFD01B).w
@@ -27655,10 +27666,6 @@ Obj02_Face:
 		bne.s	Sonime_NoWait
 		PlayPCM2	SonimeImpatient		
 		st		sonime_dontsleep(a0)
-		bra.s	Sonime_NoWait
-
-	@Resets:
-		sf		sonime_dontsleep(a0)
 
 Sonime_NoWait:
 		cmpi.w	#$950,($FFFFD010).w

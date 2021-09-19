@@ -4,8 +4,6 @@ Additions
 - make the title screen background use only one palette line so that the other two lines can be used to give color back to the foreground
 - surprised at spike bug death
 
-Bugs
-- wind tunnel in the shortcut to LZ act 1 doesn't work
 
 Later
 
@@ -14,6 +12,8 @@ Additions
 - move ears separately from head	
 - object which forces an expression then deletes itself
 - angry at using save states (if possible)
+- lip syncing
+- 
 
 Faces
 - anime sleep bubble when paused
@@ -24,3 +24,8 @@ Functions
 - panic when ring bounces off screen during boss fight
 - annoyed when bumped around too much
 - confused by y-wrap
+
+Bugs
+- wind tunnel in the shortcut to LZ act 1 doesn't work
+- LZ credits demo broken due to change in layout
+- special stage transition garbage
