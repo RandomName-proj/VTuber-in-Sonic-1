@@ -13496,6 +13496,7 @@ Obj4B_Collect:				; XREF: Obj4B_Index
 		subq.b	#2,$24(a0)
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeBigRing				
 		move.b	#0,$20(a0)
 		bsr.w	SingleObjLoad
 		bne.w	Obj4B_PlaySnd
@@ -16539,6 +16540,7 @@ loc_C61A:				; XREF: Obj3A_ChkPos
 		bne.s	loc_C5FE
 		addq.b	#2,$24(a0)
 		move.w	#180,$1E(a0)	; set time delay to 3 seconds
+
 
 Obj3A_Wait:				; XREF: Obj3A_Index
 		subq.w	#1,$1E(a0)	; subtract 1 from time delay
@@ -20397,7 +20399,7 @@ loc_EC70:
 		move.w	($FFFFF72A).w,d1
 		addi.w	#$128,d1
 		cmp.w	d1,d0
-		bcs.s	locret_ECEE
+		bcs.w	locret_ECEE
 
 loc_EC86:
 		addq.b	#2,$24(a0)
@@ -20443,7 +20445,8 @@ loc_ECD0:
 		move.w	d0,($FFFFF7D4).w ; set ring bonus
 		move.w	#$8E,d0
 		jsr	(PlaySound_Special).l ;	play "Sonic got	through" music
-
+		move.b	#face_happy,(SonimeSST+sonime_face).w
+		
 locret_ECEE:
 		rts	
 ; End of function GotThroughAct
