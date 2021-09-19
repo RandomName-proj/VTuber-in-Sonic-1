@@ -3367,8 +3367,6 @@ LevelSelect:
 		bne.s	LevSel_Level_SS	; if not, go to	Level/SS subroutine
 		move.w	($FFFFFF84).w,d0
 		addi.w	#$80,d0
-		tst.b	($FFFFFFE3).w	; is Japanese Credits cheat on?
-		beq.s	LevSel_NoCheat	; if not, branch
 		cmpi.w	#$9F,d0		; is sound $9F being played?
 		beq.s	LevSel_Ending	; if yes, branch
 		cmpi.w	#$9E,d0		; is sound $9E being played?
@@ -6026,6 +6024,7 @@ Obj87_Leap:				; XREF: Obj87_Index
 		move.b	#5,$1A(a0)
 		move.b	#2,$1C(a0)	; use "leaping"	animation
 		move.b	#$89,($FFFFD400).w ; load "SONIC THE HEDGEHOG" object
+		PlayPCM2 SonimeHappy		
 		bra.s	Obj87_Animate
 ; ===========================================================================
 
