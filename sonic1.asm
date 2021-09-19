@@ -16415,12 +16415,9 @@ Obj39_SetWait:				; XREF: Obj39_Main
 		move.w	#720,$1E(a0)	; set time delay to 12 seconds
 		addq.b	#2,$24(a0)
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
-<<<<<<< Updated upstream
-=======
 		PlayPCM2	SonimeSurprised
 		
 Obj39_SetWait_partfuckingtwo:		
->>>>>>> Stashed changes
 		tst.b	($FFFFFE18).w
 		bne.s	Obj39_nocontinues
 		tst.b	($FFFFFE1A).w	; is time over flag set?

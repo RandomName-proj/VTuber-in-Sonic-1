@@ -109,6 +109,4 @@ SWF_Boing:	incbin	"Dual PCM\Samples\incswf\Boing.swf"
 SWF_Boing_Rev:	EndMarker
 SWF_NoConfidence:	incbin	"Dual PCM\Samples\incswf\noconfidence.swf"
 SWF_NoConfidence_Rev:	EndMarker
-SWF_Surprised:	incbin	"Dual PCM\Samples\incswf\surprised.swf"
-SWF_Surprised_Rev:	EndMarker
 ; ===========================================================================
