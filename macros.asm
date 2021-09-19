@@ -26,7 +26,7 @@ lamppostart = $571 ($A tiles)
 
 ssringart = $22D ($E tiles)
 
-SonimeSST = $FFFFF5C0
+SonimeSST = $FFFF87C0
 v_ssangleprev = $FFFFFFF9
 FromSEGA = $FFFFF601
 

@@ -1,8 +1,6 @@
 Now
 
 Additions
-- sound effects to match faces
-- functioning air pockets
 - make the title screen background use only one palette line so that the other two lines can be used to give color back to the foreground
 - surprised at spike bug death
 - confused during wind sections in LZ
@@ -14,8 +12,6 @@ Bugs
 Later
 
 Additions
-- points mode - get sonime to do a variety of frequent facial expressions to get the largest audience
-- move ears separately from head
 - points mode - get sonime to do a variety of frequent facial expressions to get the largest audience
 - move ears separately from head	
 - object which forces an expression then deletes itself
