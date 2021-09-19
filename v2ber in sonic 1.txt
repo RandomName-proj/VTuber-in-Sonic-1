@@ -1,19 +1,11 @@
 Now
 
 Additions
-- add Discord secrets
-	- ProjectFM Nerve Center - GHZ3 Waterfall w/ 50 rings + 1up - https://discord.gg/ytk4RnKX7j
-	- The Wooloo Lounge - MZ3 Shortcut w/ 1up - https://discord.gg/j7gt7vD2y4
-	- The Rocky Mountains - SYZ1 Secret Area w/ speed shoes + 1up - https://discord.gg/JfzZYBucHw
-	- SHIMA - LZ - LZ1 shortcut - https://discord.gg/BvxsGUzWHe
-	- RadiantNexus - SLZ2 50 ring area - https://discord.gg/w85Y5ES
-	- MDDC - SBZ2 Top Shortcut - http://dc.megadrive.dev/
 - make the title screen background use only one palette line so that the other two lines can be used to give color back to the foreground
 - surprised at spike bug death
 
 Bugs
 - wind tunnel in the shortcut to LZ act 1 doesn't work
-- is happy for too long into special stage
 
 Later
 

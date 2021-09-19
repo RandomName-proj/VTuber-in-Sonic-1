@@ -95,6 +95,6 @@ SWF_BossDefeated:	incbin	"Dual PCM\Samples\incswf\bossdefeated.swf"
 SWF_BossDefeated_Rev:	EndMarker
 SWF_gameover:	incbin	"Dual PCM\Samples\incswf\gameover.swf"
 SWF_gameover_Rev:	EndMarker
-SWF_Surprised:	incbin	"Dual PCM\Samples\incswf\gameover.swf"
+SWF_Surprised:	incbin	"Dual PCM\Samples\incswf\surprised.swf"
 SWF_Surprised_Rev:	EndMarker
 ; ===========================================================================

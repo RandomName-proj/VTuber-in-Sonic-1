@@ -53,6 +53,8 @@ sonime_waittimer = $18
 sonime_waittimer2 = $19
 sonime_pausetimer = $20
 sonime_airtimer = $22
+sonime_dontsleep = $24
+sonime_finaldefeat = $25
 
 face_neutrall = 0
 face_blink = 1
@@ -135,36 +137,12 @@ EndMarker	macro
 ; ===========================================================================
 
 PlayPCM2	macro	Sample
-		tst.b	(f_voice).w
-		bne.s	@donevoice
 		move.l	a0,-(sp)
 		move.l	a1,-(sp)
 		lea (Sample).l,a0 ; load sample pointers
-		lea ($A00C75).l,a1 ; load PCM2 pointers
-		move.w #$0100,($A11100).l ; request Z80 stop (ON)
-		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
-		bne.s *-$08 ; if not, branch
-		move.b #1,($A0060E).l ; set pitch quotient
-		move.b #0,($A00619).l ; set pitch fraction
-		move.b #%11010010,($A00603).l ; set request
-		move.b (a0)+,(a1)+ ; set address of sample
-		move.b (a0)+,(a1)+ ; ''
-		move.b (a0)+,(a1)+ ; ''
-		move.b (a0)+,(a1)+ ; set address of reverse sample
-		move.b (a0)+,(a1)+ ; ''
-		move.b (a0)+,(a1)+ ; ''
-		move.b (a0)+,(a1)+ ; set address of loop sample
-		move.b (a0)+,(a1)+ ; ''
-		move.b (a0)+,(a1)+ ; ''
-		move.b (a0)+,(a1)+ ; set address of loop reverse sample
-		move.b (a0)+,(a1)+ ; ''
-		move.b (a0)+,(a1)+ ; ''
-		move.b #%11011010,($A00651).l ; set request
-		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
+		jsr	(PlaySample_PCM2).l
 		move.l	(sp)+,a1
 		move.l	(sp)+,a0
-
-	@donevoice:
 		endm
 
 Max_Rings = 511 ; default. maximum number possible is 759

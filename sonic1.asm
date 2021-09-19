@@ -1037,6 +1037,35 @@ PlaySound_Unk:
 		move.b	d0,($FFFFF00C).w
 		rts	
 
+PlaySample_PCM2:
+		tst.b	(f_voice).w
+		bne.s	@donevoice
+		lea ($A00C75).l,a1 ; load PCM2 pointers
+		move.w #$0100,($A11100).l ; request Z80 stop (ON)
+		btst.b #$00,($A11100).l ; has the Z80 stopped yet?
+		bne.s *-$08 ; if not, branch
+		move.b #1,($A0060E).l ; set pitch quotient
+		move.b #0,($A00619).l ; set pitch fraction
+		move.b #%11010010,($A00603).l ; set request
+		move.b #0,($A00647).l ; set volume
+		move.b (a0)+,(a1)+ ; set address of sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; set address of reverse sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; set address of loop sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; set address of loop reverse sample
+		move.b (a0)+,(a1)+ ; ''
+		move.b (a0)+,(a1)+ ; ''
+		move.b #%11011010,($A00651).l ; set request
+		move.w #$0000,($A11100).l ; request Z80 stop (OFF)
+
+	@donevoice:
+		rts
+
 ; ---------------------------------------------------------------------------
 ; Subroutine to	pause the game
 ; ---------------------------------------------------------------------------
@@ -3206,9 +3235,9 @@ Title_ClrObjRam2:
 		bsr.w	LoadPLC2
 		move.w	#0,($FFFFFFE4).w
 		move.w	#0,($FFFFFFE6).w
-		move.w	($FFFFF60C).w,d0
-		ori.b	#$40,d0
-		move.w	d0,($C00004).l
+	;	move.w	($FFFFF60C).w,d0
+	;	ori.b	#$40,d0
+	;	move.w	d0,($C00004).l
 		move.w	#$202F,($FFFFF626).w
 		tst.b	(FromSEGA).w
 		beq.s	@notSEGA
@@ -4759,19 +4788,21 @@ Demo_SS:	incbin	demodata\i_ss.bin
 ; ---------------------------------------------------------------------------
 
 SpecialStage:				; XREF: GameModeArray
+        move.b    #0,($FFFFFFD0).w
 		move.w	#$CA,d0
 		bsr.w	PlaySound_Special ; play special stage entry sound
 		jsr	BuildSprites
 		bsr.w	Pal_MakeFlash
+
 		move	#$2700,sr
 		lea	($C00004).l,a6
 		move.w	#$8B03,(a6)
 		move.w	#$8004,(a6)
 		move.w	#$8AAF,($FFFFF624).w
 		move.w	#$9011,(a6)
-		move.w	($FFFFF60C).w,d0
-		andi.b	#$BF,d0
-		move.w	d0,($C00004).l
+	;	move.w	($FFFFF60C).w,d0
+	;	andi.b	#$BF,d0
+	;	move.w	d0,($C00004).l
 		bsr.w	ClearScreen
 		move	#$2300,sr
 		lea	($C00004).l,a5
@@ -4789,7 +4820,6 @@ loc_463C:
 		bsr.w	SS_BGLoad
 		moveq	#$14,d0
 		bsr.w	RunPLC_ROM	; load special stage patterns
-
 		lea	($FFFFD000).w,a1
 		moveq	#0,d0
 		move.w	#$7FF,d1
@@ -4830,7 +4860,6 @@ SS_ClrNemRam:
 		move.l	#0,($FFFFF700).w
 		move.l	#0,($FFFFF704).w
 		move.b	#9,($FFFFD000).w ; load	special	stage Sonic object
-        move.b    #0,($FFFFFFD0).w
 		bsr.w	PalCycle_SS
 		clr.b	(SonimeSST+sonime_airtimer).w		
 		clr.w	($FFFFF780).w	; set stage angle to "upright"
@@ -4856,9 +4885,9 @@ SS_ClrNemRam:
 		move.b	#1,($FFFFFFFA).w ; enable debug	mode
 
 SS_NoDebug:
-		move.w	($FFFFF60C).w,d0
-		ori.b	#$40,d0
-		move.w	d0,($C00004).l
+	;	move.w	($FFFFF60C).w,d0
+	;	ori.b	#$40,d0
+	;	move.w	d0,($C00004).l
 		bsr.w	Pal_MakeWhite
 
 ; ---------------------------------------------------------------------------
@@ -4911,6 +4940,11 @@ SS_EndLoop:
 		bsr.w	Pal_ToWhite
 
 loc_47D4:
+		cmpi.b	#face_happy,(SonimeSST+sonime_face).w
+		bne.s	@nothappy
+		PlayPCM2	SonimeHappy2
+
+	@nothappy:
 		tst.w	($FFFFF614).w
 		bne.s	SS_EndLoop
 
@@ -5360,9 +5394,9 @@ byte_4CCC:	dc.b 8,	2, 4, $FF, 2, 3, 8, $FF, 4, 2, 2, 3, 8,	$FD, 4,	2, 2, 3, 2, $
 ContinueScreen:				; XREF: GameModeArray
 		bsr.w	Pal_FadeFrom
 		move	#$2700,sr
-		move.w	($FFFFF60C).w,d0
-		andi.b	#$BF,d0
-		move.w	d0,($C00004).l
+	;	move.w	($FFFFF60C).w,d0
+	;	andi.b	#$BF,d0
+	;	move.w	d0,($C00004).l
 		lea	($C00004).l,a6
 		move.w	#$8004,(a6)
 		move.w	#$8700,(a6)
@@ -5405,9 +5439,9 @@ Cont_ClrObjRam:
 		move.b    #0,($FFFFFFD0).w
 		jsr	ObjectsLoad
 		jsr	BuildSprites
-		move.w	($FFFFF60C).w,d0
-		ori.b	#$40,d0
-		move.w	d0,($C00004).l
+	;	move.w	($FFFFF60C).w,d0
+	;	ori.b	#$40,d0
+	;	move.w	d0,($C00004).l
 		bsr.w	Pal_FadeTo
 
 ; ---------------------------------------------------------------------------
@@ -5688,8 +5722,8 @@ End_ClrRam3:
 		dbf	d1,End_ClrRam3	; clear	variables
 
 		move	#$2700,sr
-		move.w	($FFFFF60C).w,d0
-		move.w	d0,($C00004).l
+	;	move.w	($FFFFF60C).w,d0
+	;	move.w	d0,($C00004).l
 		bsr.w	ClearScreen
 		lea	($C00004).l,a6
 		move.w	#$8B03,(a6)
@@ -5759,9 +5793,9 @@ End_LoadSonic:
 		move.w	#1800,($FFFFF614).w
 		move.b	#$18,($FFFFF62A).w
 		bsr.w	DelayProgram
-		move.w	($FFFFF60C).w,d0
-		ori.b	#$40,d0
-		move.w	d0,($C00004).l
+	;	move.w	($FFFFF60C).w,d0
+	;	ori.b	#$40,d0
+	;	move.w	d0,($C00004).l
 		move.w	#$202F,($FFFFF626).w
 		bsr.w	Pal_FadeTo
 
@@ -13461,7 +13495,7 @@ Obj4B_Animate:				; XREF: Obj4B_Index
 Obj4B_Collect:				; XREF: Obj4B_Index
 		subq.b	#2,$24(a0)
 		move.b	#face_happy,(SonimeSST+sonime_face).w
-		move.b	#$40,(SonimeSST+sonime_facetimer).w
+		move.w	#$40,(SonimeSST+sonime_facetimer).w
 		move.b	#0,$20(a0)
 		bsr.w	SingleObjLoad
 		bne.w	Obj4B_PlaySnd
@@ -13850,6 +13884,10 @@ Obj2E_ChkInvinc:
 		cmpi.w #$C,($FFFFFE14).w ; Check if Sonic has air left
 		bls.s DontPlayMusic ; If so, don't play music
 		move.w #$87,d0 ; Load Invisibility music
+		tst.b	(f_voice).w
+		beq.s	@play
+		move.w #$94,d0 ; Load Invisibility music without voice
+	@play:
 		jmp (PlaySound).l
 
 DontPlayMusic:
@@ -16374,13 +16412,15 @@ Obj39_SetWait:				; XREF: Obj39_Main
 		move.w	#720,$1E(a0)	; set time delay to 12 seconds
 		addq.b	#2,$24(a0)
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
-;		PlayPCM2	SonimeSurprised
 		tst.b	($FFFFFE18).w
-		bne.s	@nocontinues
+		bne.s	Obj39_nocontinues
+		tst.b	($FFFFFE1A).w	; is time over flag set?
+		bne.s	Obj39_nocontinues
 		move.b	#face_meltdown,(SonimeSST+sonime_face).w
 		PlayPCM2	SonimeGameOver
+		rts
 		
-	@nocontinues:
+Obj39_nocontinues:
 		rts	
 ; ===========================================================================
 
@@ -27601,12 +27641,21 @@ Obj02_Face:
 		move.b	#face_neutrall,sonime_face(a0)
 
 	@NoBlink:
+		tst.b	($FFFFF602).w
+		bne.w	@Resets
 		cmpi.b	#5,($FFFFD01C).w
-		bne.s	Sonime_NoWait
+		bne.w	Sonime_NoWait
 		cmpi.b	#$F,($FFFFD01B).w
-		bcs.s	Sonime_NoWait
+		bcs.w	Sonime_NoWait
 		move.b	#face_impatient,sonime_face(a0)
+		tst.b	sonime_dontsleep(a0)
+		bne.s	Sonime_NoWait
 		PlayPCM2	SonimeImpatient		
+		st		sonime_dontsleep(a0)
+		bra.s	Sonime_NoWait
+
+	@Resets:
+		sf		sonime_dontsleep(a0)
 
 Sonime_NoWait:
 		cmpi.w	#$950,($FFFFD010).w
@@ -32668,12 +32717,11 @@ loc_179C2:
 
 loc_179DA:
 		subq.w	#8,$12(a0)
-		bra.s	loc_179EE
+		bra.w	loc_179EE
 ; ===========================================================================
 
 loc_179E0:
-		clr.w	$12(a0)
-		PlayPCM2	SonimeBossDefeated			
+		clr.w	$12(a0)	
 		move.w	#$81,d0
 		jsr	(PlaySound).l	; play GHZ music
 
@@ -33244,7 +33292,6 @@ loc_180F6:				; XREF: Obj77_ShipIndex
 		move.b	#$32,$3C(a0)
 
 loc_18112:
-		PlayPCM2	SonimeBossDefeated	
 		move.w	#$82,d0
 		jsr	(PlaySound).l	; play LZ music
 		bset	#0,$22(a0)
@@ -33670,12 +33717,11 @@ loc_1854E:
 
 loc_18566:
 		subq.w	#8,$12(a0)
-		bra.s	loc_1857A
+		bra.w	loc_1857A
 ; ===========================================================================
 
 loc_1856C:
-		clr.w	$12(a0)
-		PlayPCM2	SonimeBossDefeated			
+		clr.w	$12(a0)	
 		move.w	#$83,d0
 		jsr	(PlaySound).l	; play MZ music
 
@@ -34319,12 +34365,11 @@ loc_18B96:
 
 loc_18BAE:
 		subq.w	#8,$12(a0)
-		bra.s	loc_18BC2
+		bra.w	loc_18BC2
 ; ===========================================================================
 
 loc_18BB4:
-		clr.w	$12(a0)
-		PlayPCM2	SonimeBossDefeated			
+		clr.w	$12(a0)	
 		move.w	#$84,d0
 		jsr	(PlaySound).l	; play SLZ music
 
@@ -35226,12 +35271,11 @@ loc_194C2:
 
 loc_194DA:
 		subq.w	#8,$12(a0)
-		bra.s	loc_194EE
+		bra.w	loc_194EE
 ; ===========================================================================
 
 loc_194E0:
-		clr.w	$12(a0)
-		PlayPCM2	SonimeBossDefeated			
+		clr.w	$12(a0)	
 		move.w	#$85,d0
 		jsr	(PlaySound).l	; play SYZ music
 
@@ -36150,6 +36194,7 @@ loc_19FBC:
 		move.w	#$25C0,8(a0)
 		move.w	#$53C,$C(a0)
 		move.b	#$14,$16(a0)
+		PlayPCM2	SonimeBossDefeated
 		rts	
 ; ===========================================================================
 word_19FD6:	dc.w 0,	2, 2, 4, 4, 6, 6, 0
@@ -36329,6 +36374,12 @@ loc_1A1D4:				; XREF: off_19E80
 		move.w	#$1E,$30(a0)
 		move.w	#$AC,d0
 		jsr	(PlaySound_Special).l ;	play boss damage sound
+		tst.b	(SonimeSST+sonime_finaldefeat).w
+		bne.s	loc_1A1FC
+		st		(SonimeSST+sonime_finaldefeat).w
+		PlayPCM2	SonimeHappy2
+		move.b	#face_happy,(SonimeSST+sonime_face).w
+		move.w	#$60,(SonimeSST+sonime_facetimer).w
 
 loc_1A1FC:
 		subq.w	#1,$30(a0)
@@ -37324,7 +37375,7 @@ loc_1AF1E:
 
 	@happy:
 		btst	#1,$22(a0)
-		beq.s	locret_1AF2E
+		beq.w	locret_1AF2E
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
 		PlayPCM2	SonimeHappy2
@@ -37368,7 +37419,7 @@ Touch_KillEnemy:
 
 	@happy:
 		btst	#1,$22(a0)
-		beq.s	@nothappy
+		beq.w	@nothappy
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
 		PlayPCM2	SonimeHappy
@@ -38726,9 +38777,9 @@ Obj09_Get1Up:
 
 Obj09_ChkEmer:
 		cmpi.b	#$3B,d4		; is the item an emerald?
-		bcs.s	Obj09_ChkGhost
+		bcs.w	Obj09_ChkGhost
 		cmpi.b	#$40,d4
-		bhi.s	Obj09_ChkGhost
+		bhi.w	Obj09_ChkGhost
 		bsr.w	SS_RemoveCollectedItem
 		bne.s	Obj09_GetEmer
 		move.b	#5,(a2)
@@ -38736,7 +38787,7 @@ Obj09_ChkEmer:
 
 Obj09_GetEmer:
 		cmpi.b	#6,($FFFFFE57).w ; do you have all the emeralds?
-		beq.s	Obj09_NoEmer	; if yes, branch
+		beq.w	Obj09_NoEmer	; if yes, branch
 		subi.b	#$3B,d4
 		moveq	#0,d0
 		move.b	($FFFFFE57).w,d0
@@ -38748,7 +38799,7 @@ Obj09_GetEmer:
 
 Obj09_NoEmer:
 		move.w	#$93,d0
-		jsr	(PlaySound_Special).l ;	play emerald music
+		jsr	(PlaySound).l ;	play emerald music
 		moveq	#0,d4
 		rts	
 ; ===========================================================================
@@ -38856,13 +38907,13 @@ Obj09_BumpSnd:
 
 Obj09_GOAL:
 		cmpi.b	#$27,d0		; is the item a	"GOAL"?
-		bne.s	Obj09_UPblock
+		bne.w	Obj09_UPblock
 		addq.b	#2,$24(a0)	; run routine "Obj09_ExitStage"
 		move.b	#face_frustrated,(SonimeSST+sonime_face).w
 		move.w	#$80,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeHurt	
 		move.w	#$A8,d0		; change item
-		jsr	(PlaySound_Special).l ;	play "GOAL" sound
-		rts	
+		jmp	(PlaySound_Special).l ;	play "GOAL" sound
 ; ===========================================================================
 
 Obj09_UPblock:
@@ -38932,10 +38983,9 @@ Obj09_ChkGlass:
 
 Obj09_Glass:
 		cmpi.b	#face_happy,(SonimeSST+sonime_face).w
-		beq.s	@happy
+		beq.w	@happy
 		move.b	#face_impatient,(SonimeSST+sonime_face).w
 		move.w	#$20,(SonimeSST+sonime_facetimer).w
-		PlayPCM2	SonimeImpatient		
 
 	@happy:
 		bsr.w	SS_RemoveCollectedItem
@@ -41274,7 +41324,7 @@ MusicIndex:	dc.l Music81, Music82
 		dc.l Music8D, Music8E
 		dc.l Music8F, Music90
 		dc.l Music91, Music92
-		dc.l Music93
+		dc.l Music93, Music94
 ; ---------------------------------------------------------------------------
 ; Type of sound	being played ($90 = music; $70 = normal	sound effect)
 ; ---------------------------------------------------------------------------
@@ -44386,6 +44436,8 @@ Music91:	incbin	sound\music91.bin
 Music92:	incbin	sound\music92.bin
 		even
 Music93:	incbin	sound\music93.bin
+		even
+Music94:	incbin	sound\music94.bin
 		even
 ; ---------------------------------------------------------------------------
 ; Sound	effect pointers
