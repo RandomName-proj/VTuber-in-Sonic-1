@@ -7,11 +7,11 @@ Mus89_Special_Stage_Header:
 	smpsHeaderDAC       Mus89_Special_Stage_DAC
 	smpsHeaderDAC       Mus89_Special_Stage_DAC2	
 	smpsHeaderFM        Mus89_Special_Stage_FM1,	$DC, $18
+	smpsHeaderFM        Mus89_Special_Stage_FM6,	$E8, $14
 	smpsHeaderFM        Mus89_Special_Stage_FM2,	$DC, $0C
 	smpsHeaderFM        Mus89_Special_Stage_FM3,	$E8, $18
 	smpsHeaderFM        Mus89_Special_Stage_FM4,	$E8, $18
 ;	smpsHeaderFM        Mus89_Special_Stage_FM5,	$E8, $18
-	smpsHeaderFM        Mus89_Special_Stage_FM6,	$E8, $14
 	smpsHeaderPSG       Mus89_Special_Stage_PSG1,	$DC, $03, $00, fTone_04
 	smpsHeaderPSG       Mus89_Special_Stage_PSG2,	$FD, $01, $00, fTone_08
 	smpsHeaderPSG       Mus89_Special_Stage_PSG3,	$DC, $04, $00, fTone_04
