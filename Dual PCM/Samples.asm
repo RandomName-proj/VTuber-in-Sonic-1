@@ -22,7 +22,9 @@ SampleList:
 		dc.l	SonimeBossDefeated	; 0C
 		dc.l	SonimeGameOver	; 0D
 		dc.l	SonimeSurprised	; 0E	
-		dc.l	SonimeBigRing	; 0F			
+		dc.l	SonimeBigRing	; 0F		
+		dc.l	SonimeBoing	; 10	
+		dc.l	SonimeNoConfidence ; 11
 ; ---------------------------------------------------------------------------
 ; Sample z80 pointers
 ; ---------------------------------------------------------------------------
@@ -51,6 +53,8 @@ SonimeBossDefeated:		dcz80	SWF_BossDefeated,		SWF_BossDefeated_Rev,		SWF_StopSam
 SonimeGameOver:		dcz80	SWF_GameOver,		SWF_GameOver_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 SonimeSurprised:		dcz80	SWF_Surprised,		SWF_Surprised_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 SonimeBigRing:		dcz80	SWF_BigRing,		SWF_BigRing_Rev,		SWF_StopSample,		SWF_StopSample_Rev
+SonimeBoing:		dcz80	SWF_Boing,		SWF_Boing_Rev,		SWF_StopSample,		SWF_StopSample_Rev
+SonimeNoConfidence:		dcz80	SWF_NoConfidence,		SWF_NoConfidence_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 ; ---------------------------------------------------------------------------
 ; Sample file includes
 ; ---------------------------------------------------------------------------
@@ -101,4 +105,10 @@ SWF_Surprised:	incbin	"Dual PCM\Samples\incswf\surprised.swf"
 SWF_Surprised_Rev:	EndMarker
 SWF_BigRing:	incbin	"Dual PCM\Samples\incswf\bigring.swf"
 SWF_BigRing_Rev:	EndMarker
+SWF_Boing:	incbin	"Dual PCM\Samples\incswf\Boing.swf"
+SWF_Boing_Rev:	EndMarker
+SWF_NoConfidence:	incbin	"Dual PCM\Samples\incswf\noconfidence.swf"
+SWF_NoConfidence_Rev:	EndMarker
+SWF_Surprised:	incbin	"Dual PCM\Samples\incswf\surprised.swf"
+SWF_Surprised_Rev:	EndMarker
 ; ===========================================================================

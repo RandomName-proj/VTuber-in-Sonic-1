@@ -5472,7 +5472,7 @@ loc_4DF2:
 		move.b	#face_panic,(SonimeSST+sonime_face).w
 		cmpi.w	#$40,($FFFFF614).w
 		bgt.w	Cont_MainLoop
-		move.b	#face_meltdown,(SonimeSST+sonime_face).w
+		move.b	#face_meltdown,(SonimeSST+sonime_face).w		
 		tst.w	($FFFFF614).w
 		bne.w	Cont_MainLoop
 		move.b	#4,($FFFFF600).w ; go to Sega screen
@@ -6390,8 +6390,9 @@ Obj8B_Main:				; XREF: Obj8B_Index
 		move.b	#2,$1C(a0)	; use "END" animation
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		cmpi.b	#6,($FFFFFE57).w ; do you have all 6 emeralds?
-		beq.s	Obj8B_Animate	; if yes, branch
+		beq.w	Obj8B_Animate	; if yes, branch
 		move.b	#face_frustrated,(SonimeSST+sonime_face).w
+		PlayPCM2	SonimeNoConfidence
 		move.b	#$8A,($FFFFD0C0).w ; load credits object
 		move.w	#9,($FFFFFFF4).w ; use "TRY AGAIN" text
 		move.b	#$8C,($FFFFD800).w ; load emeralds object on "TRY AGAIN" screen
@@ -10389,6 +10390,7 @@ MvSonic2:
 	@frustrated2:
 		move.b	#face_impatient,(SonimeSST+sonime_face).w
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeImpatient			
 		rts
 
 	@subtract:
@@ -16413,6 +16415,12 @@ Obj39_SetWait:				; XREF: Obj39_Main
 		move.w	#720,$1E(a0)	; set time delay to 12 seconds
 		addq.b	#2,$24(a0)
 		move.b	#face_surprised,(SonimeSST+sonime_face).w
+<<<<<<< Updated upstream
+=======
+		PlayPCM2	SonimeSurprised
+		
+Obj39_SetWait_partfuckingtwo:		
+>>>>>>> Stashed changes
 		tst.b	($FFFFFE18).w
 		bne.s	Obj39_nocontinues
 		tst.b	($FFFFFE1A).w	; is time over flag set?
@@ -20204,6 +20212,7 @@ Obj47_Hit:				; XREF: Obj47_Index
 		beq.w	Obj47_Display	; if not, branch
 		move.b	#face_confused,(SonimeSST+sonime_face).w
 		move.w	#$20,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeBoing		
 		clr.b	$21(a0)
 		lea	($FFFFD000).w,a1
 		move.w	8(a0),d1
@@ -26623,6 +26632,7 @@ Sonic_Jump:				; XREF: Obj01_MdNormal; Obj01_MdRoll
 		move.w	#$6000,(SonimeSST+sonime_waittimer).w
 		cmpi.b	#face_impatient,(SonimeSST+sonime_face).w
 		bne.s	@notfrustrated
+		PlayPCM2	SonimeImpatient			
 		move.b	#face_neutrall,(SonimeSST+sonime_face).w
 
 	@notfrustrated:
@@ -37515,13 +37525,16 @@ HurtSonic:
 		move.b	#face_frustrated,(SonimeSST+sonime_face).w
 		move.w	#$100,(SonimeSST+sonime_facetimer).w
 		PlayPCM2	SonimeHurt
+	
+HurtSonic2:	
 		tst.b	($FFFFFE2C).w	; does Sonic have a shield?
-		bne.s	Hurt_Shield	; if yes, branch
+		bne.w	Hurt_Shield	; if yes, branch
 		tst.w	($FFFFFE20).w	; does Sonic have any rings?
 		beq.w	Hurt_NoRings	; if not, branch
 		cmpi.w	#50,($FFFFFE20).w
 		bcs.s	@notbad
 		move.b	#face_surprised,(SonimeSST+sonime_face).w	
+		PlayPCM2	SonimeSurprised				
 		
 	@notbad:
 		jsr	SingleObjLoad
@@ -38872,9 +38885,10 @@ locret_1BEAC:
 
 Obj09_ChkBumper:
 		cmpi.b	#$25,d0		; is the item a	bumper?
-		bne.s	Obj09_GOAL	
+		bne.w	Obj09_GOAL	
 		move.b	#face_confused,(SonimeSST+sonime_face).w
 		move.w	#$20,(SonimeSST+sonime_facetimer).w
+		PlayPCM2	SonimeBoing
 		move.l	$32(a0),d1
 		subi.l	#$FF0001,d1
 		move.w	d1,d2
