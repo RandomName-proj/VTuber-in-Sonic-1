@@ -4315,9 +4315,9 @@ LZWind_Loop:
 		bcc.w	loc_3EF4
 		move.w	$C(a1),d2
 		cmp.w	2(a2),d2
-		bcs.s	loc_3EF4
+		bcs.w	loc_3EF4
 		cmp.w	6(a2),d2
-		bcc.s	loc_3EF4
+		bcc.w	loc_3EF4
 		move.b	($FFFFFE0F).w,d0
 		andi.b	#$3F,d0
 		bne.s	loc_3E90
@@ -4342,6 +4342,8 @@ loc_3EBA:
 		add.w	d0,$C(a1)
 
 LZWind_Move:
+		move.b	#face_confused,(SonimeSST+sonime_face).w
+		move.w	#$40,(SonimeSST+sonime_facetimer).w
 		addq.w	#4,8(a1)
 		move.w	#$400,$10(a1)	; move Sonic horizontally
 		move.w	#0,$12(a1)
@@ -11045,7 +11047,7 @@ Obj1A_Slope:
 		move.w	#$30,d1
 		lea	(Obj1A_SlopeData).l,a2
 		bsr.w	SlopeObject
-		bra.w	MarkObjGone
+		jmp	MarkObjGone
 ; ===========================================================================
 
 Obj1A_Touch:				; XREF: Obj1A_Index
@@ -11064,7 +11066,7 @@ Obj1A_WalkOff:				; XREF: Obj1A_Index
 		lea	(Obj1A_SlopeData).l,a2
 		move.w	8(a0),d2
 		bsr.w	SlopeObject2
-		bra.w	MarkObjGone
+		jmp	MarkObjGone
 ; End of function Obj1A_WalkOff
 
 ; ===========================================================================
@@ -11166,7 +11168,7 @@ Obj53_Solid:
 		bset	#0,1(a0)
 
 Obj53_MarkAsGone:
-		bra.w	MarkObjGone
+		jmp	MarkObjGone
 ; ===========================================================================
 
 Obj53_Touch:				; XREF: Obj53_Index
@@ -11183,7 +11185,7 @@ Obj53_WalkOff:				; XREF: Obj53_Index
 		bsr.w	ExitPlatform
 		move.w	8(a0),d2
 		bsr.w	MvSonicOnPtfm2
-		bra.w	MarkObjGone
+		jmp	MarkObjGone
 ; End of function Obj53_WalkOff
 
 ; ===========================================================================
@@ -11581,6 +11583,122 @@ Obj03_Child:
 ; ---------------------------------------------------------------------------
 Map_Obj03:
 	include "_maps\obj03.asm"
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Object 04 - discord links
+; ---------------------------------------------------------------------------
+
+Obj04:					; XREF: Obj_Index
+		moveq	#0,d0
+		move.b	$24(a0),d0
+		move.w	Obj04_Index(pc,d0.w),d1
+		jmp	Obj04_Index(pc,d1.w)
+; ===========================================================================
+Obj04_Index:	dc.w Obj04_Main-Obj04_Index
+		dc.w Obj04_ChkDel-Obj04_Index
+; ===========================================================================
+
+Obj04_Main:				; XREF: Obj04_Index
+		addq.b	#2,$24(a0)
+		moveq	#0,d0
+		move.l	#Map_Obj04,4(a0)
+		move.w	#$5A0,2(a0)
+		ori.b	#4,1(a0)
+		move.b	($FFFFFE10).w,$1A(a0)
+		tst.b	$1A(a0)
+		bne.s	@notghz
+		move.w	#$85A0,2(a0)
+
+	@notghz:
+		move.b	#$60,$19(a0)
+		move.b	#7,$18(a0)
+		movea.l	#DPLC_Obj04,a2
+		move.w	#$B400,d4		; offset in VRAM to store art
+		move.l	#Art_Links,d6
+		moveq	#0,d0
+		move.b	$1A(a0),d0	; load frame number
+		bra.s	Load_DPLC
+
+Obj04_ChkDel:				; XREF: Obj04_Index
+		move.w	8(a0),d0
+		andi.w	#$FF80,d0
+		move.w	($FFFFF700).w,d1
+		subi.w	#$80,d1
+		andi.w	#$FF80,d1
+		sub.w	d1,d0
+		bmi.s	Obj04_ChkDel2
+		cmpi.w	#$280,d0
+		bhi.w	Obj04_ChkDel2
+		move.w	$C(a0),d0
+		andi.w	#$FF80,d0
+		move.w	($FFFFF704).w,d1
+		subi.w	#$80,d1
+		andi.w	#$FF80,d1
+		sub.w	d1,d0
+		bmi.s	Obj04_ChkDel2
+		cmpi.w	#$180,d0
+		bls.w	DisplaySprite
+
+Obj04_ChkDel2:
+		move.w	respawn_index(a0),d0	; get address in respawn table
+		beq.s	Obj04_Delete		; if it's zero, don't remember object
+		movea.w	d0,a2	; load address into a2
+		bclr	#7,(a2)	; clear respawn table entry, so object can be loaded again
+
+Obj04_Delete:
+		moveq	#2,d0
+		jsr	(LoadPLC).l	; load explosion patterns
+		bra.w	DeleteObject	; and delete object
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Subroutine to queue any pattern load cue
+; Input: a2 - DPLC file, d4 - VRAM address, d6 - Art file, d0 - frame number
+; ---------------------------------------------------------------------------
+
+Load_DPLC:
+		add.w	d0,d0		; multiply by 2
+		adda.w	(a2,d0.w),a2	; get the right DPLC location
+		moveq	#0,d5		; quckly clear d5
+		move.b	(a2)+,d5	; then move the amount of requests to d5
+		subq.w	#1,d5		; subtract 1
+		bmi.s	DPLC_End	; if negative, branch away
+
+DPLC_ReadEntry:
+		moveq	#0,d1
+		move.b	(a2)+,d1	; get first byte to d1, and increment pointer
+		lsl.w	#8,d1		; shift 8 bits left
+		move.b	(a2)+,d1 	; move second byte to d1
+
+		move.w	d1,d3		; move d1 to d3
+		lsr.w	#8,d3		; shift 8 bits right
+		andi.w	#$F0,d3		; leave only bits 7, 6, 5, and 4
+		addi.w	#$10,d3		; add $10 to d3
+
+		andi.w	#$FFF,d1	; filter out bits 15, 14, 13 and 12
+		lsl.l	#5,d1		; shift 5 bits left
+		add.l	d6,d1		; add the art address to d1
+		move.w	d4,d2		; move VRAM location to d2
+		add.w	d3,d4		; add d3 to VRAM address
+		add.w	d3,d4		; add d3 to VRAM address
+
+		jsr	QueueDMATransfer; Save it to the DMA queue
+		dbf	d5,DPLC_ReadEntry; repeat for number of requests
+
+DPLC_End:
+		rts			; return
+
+; End of function LoadDPLC
+
+; ---------------------------------------------------------------------------
+; Sprite mappings - Obj04
+; ---------------------------------------------------------------------------
+Map_Obj04:
+	include "_maps\links.asm"
+
+DPLC_Obj04:
+	include "_inc\links DPLC.asm"
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -12270,7 +12388,7 @@ Obj28_Ending:				; XREF: Obj28_Index
 
 Obj28_FromEnemy:			; XREF: Obj28_Ending
 		addq.b	#2,$24(a0)
-		bsr.w	RandomNumber
+		jsr	RandomNumber
 		andi.w	#1,d0
 		moveq	#0,d1
 		move.b	($FFFFFE10).w,d1
@@ -40382,6 +40500,12 @@ Art_Sonime_Faces:	incbin	artunc\sonime_faces.bin
 Art_Sonime_LeftEar:	incbin	artunc\sonime_leftear.bin
 		even
 Art_Sonime_RightEar:	incbin	artunc\sonime_rightear.bin
+		even
+
+; ---------------------------------------------------------------------------
+; Uncompressed graphics	- Links
+; ---------------------------------------------------------------------------
+Art_Links:	incbin	artunc\links.bin	; Sonic
 		even
 
 ; ---------------------------------------------------------------------------

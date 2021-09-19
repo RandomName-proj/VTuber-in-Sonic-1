@@ -1,0 +1,382 @@
+linksdplc:
+linksdplc_0: 	dc.w linksdplc_BA-linksdplc
+linksdplc_2: 	dc.w linksdplc_C9-linksdplc
+linksdplc_4: 	dc.w linksdplc_DE-linksdplc
+linksdplc_6: 	dc.w linksdplc_E9-linksdplc
+linksdplc_8: 	dc.w linksdplc_104-linksdplc
+linksdplc_A: 	dc.w linksdplc_113-linksdplc
+linksdplc_C: 	dc.w linksdplc_11C-linksdplc
+linksdplc_E: 	dc.w linksdplc_11F-linksdplc
+linksdplc_10: 	dc.w linksdplc_122-linksdplc
+linksdplc_12: 	dc.w linksdplc_127-linksdplc
+linksdplc_14: 	dc.w linksdplc_12C-linksdplc
+linksdplc_16: 	dc.w linksdplc_131-linksdplc
+linksdplc_18: 	dc.w linksdplc_136-linksdplc
+linksdplc_1A: 	dc.w linksdplc_13B-linksdplc
+linksdplc_1C: 	dc.w linksdplc_140-linksdplc
+linksdplc_1E: 	dc.w linksdplc_145-linksdplc
+linksdplc_20: 	dc.w linksdplc_14A-linksdplc
+linksdplc_22: 	dc.w linksdplc_14F-linksdplc
+linksdplc_24: 	dc.w linksdplc_154-linksdplc
+linksdplc_26: 	dc.w linksdplc_159-linksdplc
+linksdplc_28: 	dc.w linksdplc_15E-linksdplc
+linksdplc_2A: 	dc.w linksdplc_163-linksdplc
+linksdplc_2C: 	dc.w linksdplc_168-linksdplc
+linksdplc_2E: 	dc.w linksdplc_16D-linksdplc
+linksdplc_30: 	dc.w linksdplc_170-linksdplc
+linksdplc_32: 	dc.w linksdplc_173-linksdplc
+linksdplc_34: 	dc.w linksdplc_176-linksdplc
+linksdplc_36: 	dc.w linksdplc_179-linksdplc
+linksdplc_38: 	dc.w linksdplc_17E-linksdplc
+linksdplc_3A: 	dc.w linksdplc_183-linksdplc
+linksdplc_3C: 	dc.w linksdplc_188-linksdplc
+linksdplc_3E: 	dc.w linksdplc_18D-linksdplc
+linksdplc_40: 	dc.w linksdplc_192-linksdplc
+linksdplc_42: 	dc.w linksdplc_197-linksdplc
+linksdplc_44: 	dc.w linksdplc_19C-linksdplc
+linksdplc_46: 	dc.w linksdplc_1A1-linksdplc
+linksdplc_48: 	dc.w linksdplc_1A6-linksdplc
+linksdplc_4A: 	dc.w linksdplc_1A9-linksdplc
+linksdplc_4C: 	dc.w linksdplc_1AC-linksdplc
+linksdplc_4E: 	dc.w linksdplc_1B1-linksdplc
+linksdplc_50: 	dc.w linksdplc_1B6-linksdplc
+linksdplc_52: 	dc.w linksdplc_1BB-linksdplc
+linksdplc_54: 	dc.w linksdplc_1BE-linksdplc
+linksdplc_56: 	dc.w linksdplc_1C1-linksdplc
+linksdplc_58: 	dc.w linksdplc_1C4-linksdplc
+linksdplc_5A: 	dc.w linksdplc_1C7-linksdplc
+linksdplc_5C: 	dc.w linksdplc_1CA-linksdplc
+linksdplc_5E: 	dc.w linksdplc_1CD-linksdplc
+linksdplc_60: 	dc.w linksdplc_1D2-linksdplc
+linksdplc_62: 	dc.w linksdplc_1D7-linksdplc
+linksdplc_64: 	dc.w linksdplc_1DA-linksdplc
+linksdplc_66: 	dc.w linksdplc_1DF-linksdplc
+linksdplc_68: 	dc.w linksdplc_1E4-linksdplc
+linksdplc_6A: 	dc.w linksdplc_1E7-linksdplc
+linksdplc_6C: 	dc.w linksdplc_1EC-linksdplc
+linksdplc_6E: 	dc.w linksdplc_1F1-linksdplc
+linksdplc_70: 	dc.w linksdplc_1F4-linksdplc
+linksdplc_72: 	dc.w linksdplc_1F9-linksdplc
+linksdplc_74: 	dc.w linksdplc_1FC-linksdplc
+linksdplc_76: 	dc.w linksdplc_1FF-linksdplc
+linksdplc_78: 	dc.w linksdplc_202-linksdplc
+linksdplc_7A: 	dc.w linksdplc_205-linksdplc
+linksdplc_7C: 	dc.w linksdplc_208-linksdplc
+linksdplc_7E: 	dc.w linksdplc_20D-linksdplc
+linksdplc_80: 	dc.w linksdplc_212-linksdplc
+linksdplc_82: 	dc.w linksdplc_217-linksdplc
+linksdplc_84: 	dc.w linksdplc_21C-linksdplc
+linksdplc_86: 	dc.w linksdplc_221-linksdplc
+linksdplc_88: 	dc.w linksdplc_226-linksdplc
+linksdplc_8A: 	dc.w linksdplc_22B-linksdplc
+linksdplc_8C: 	dc.w linksdplc_230-linksdplc
+linksdplc_8E: 	dc.w linksdplc_235-linksdplc
+linksdplc_90: 	dc.w linksdplc_23A-linksdplc
+linksdplc_92: 	dc.w linksdplc_23F-linksdplc
+linksdplc_94: 	dc.w linksdplc_244-linksdplc
+linksdplc_96: 	dc.w linksdplc_249-linksdplc
+linksdplc_98: 	dc.w linksdplc_24E-linksdplc
+linksdplc_9A: 	dc.w linksdplc_253-linksdplc
+linksdplc_9C: 	dc.w linksdplc_258-linksdplc
+linksdplc_9E: 	dc.w linksdplc_25D-linksdplc
+linksdplc_A0: 	dc.w linksdplc_262-linksdplc
+linksdplc_A2: 	dc.w linksdplc_267-linksdplc
+linksdplc_A4: 	dc.w linksdplc_26C-linksdplc
+linksdplc_A6: 	dc.w linksdplc_271-linksdplc
+linksdplc_A8: 	dc.w linksdplc_276-linksdplc
+linksdplc_AA: 	dc.w linksdplc_27B-linksdplc
+linksdplc_AC: 	dc.w linksdplc_280-linksdplc
+linksdplc_AE: 	dc.w linksdplc_285-linksdplc
+linksdplc_B0: 	dc.w linksdplc_28A-linksdplc
+linksdplc_B2: 	dc.w linksdplc_28D-linksdplc
+linksdplc_B4: 	dc.w linksdplc_292-linksdplc
+linksdplc_B6: 	dc.w linksdplc_295-linksdplc
+linksdplc_B8: 	dc.w linksdplc_298-linksdplc
+linksdplc_BA: 	dc.b $7
+	dc.b $B0, $0
+	dc.b $B0, $C
+	dc.b $B0, $18
+	dc.b $B0, $24
+	dc.b $80, $30
+	dc.b $30, $39
+	dc.b $30, $3D
+linksdplc_C9: 	dc.b $A
+	dc.b $30, $B8
+	dc.b $0, $BC
+	dc.b $30, $BD
+	dc.b $30, $C1
+	dc.b $70, $C5
+	dc.b $30, $CD
+	dc.b $10, $D1
+	dc.b $30, $D3
+	dc.b $30, $D7
+	dc.b $20, $DB
+linksdplc_DE: 	dc.b $5
+	dc.b $B0, $41
+	dc.b $F0, $4D
+	dc.b $F0, $5D
+	dc.b $80, $6D
+	dc.b $0, $76
+linksdplc_E9: 	dc.b $D
+	dc.b $30, $DE
+	dc.b $0, $E2
+	dc.b $30, $E3
+	dc.b $30, $E8
+	dc.b $0, $EC
+	dc.b $0, $ED
+	dc.b $0, $E7
+	dc.b $30, $EE
+	dc.b $10, $F2
+	dc.b $70, $F4
+	dc.b $10, $FC
+	dc.b $30, $FE
+	dc.b $11, $2
+linksdplc_104: 	dc.b $7
+	dc.b $F0, $77
+	dc.b $F0, $87
+	dc.b $F0, $97
+	dc.b $50, $AA
+	dc.b $10, $A8
+	dc.b $70, $B0
+	dc.b $0, $A7
+linksdplc_113: 	dc.b $4
+	dc.b $F1, $4
+	dc.b $F1, $14
+	dc.b $F1, $24
+	dc.b $81, $34
+linksdplc_11C: 	dc.b $1
+	dc.b $F5, $13
+linksdplc_11F: 	dc.b $1
+	dc.b $F5, $23
+linksdplc_122: 	dc.b $2
+	dc.b $F5, $33
+	dc.b $35, $43
+linksdplc_127: 	dc.b $2
+	dc.b $F5, $47
+	dc.b $75, $57
+linksdplc_12C: 	dc.b $2
+	dc.b $F5, $5F
+	dc.b $25, $6F
+linksdplc_131: 	dc.b $2
+	dc.b $F5, $72
+	dc.b $35, $82
+linksdplc_136: 	dc.b $2
+	dc.b $F5, $86
+	dc.b $55, $96
+linksdplc_13B: 	dc.b $2
+	dc.b $F5, $9C
+	dc.b $65, $AC
+linksdplc_140: 	dc.b $2
+	dc.b $F5, $B3
+	dc.b $55, $C3
+linksdplc_145: 	dc.b $2
+	dc.b $F5, $C9
+	dc.b $35, $D9
+linksdplc_14A: 	dc.b $2
+	dc.b $F5, $DD
+	dc.b $35, $ED
+linksdplc_14F: 	dc.b $2
+	dc.b $F5, $F1
+	dc.b $56, $1
+linksdplc_154: 	dc.b $2
+	dc.b $F6, $7
+	dc.b $56, $17
+linksdplc_159: 	dc.b $2
+	dc.b $F6, $1D
+	dc.b $56, $2D
+linksdplc_15E: 	dc.b $2
+	dc.b $F6, $33
+	dc.b $46, $43
+linksdplc_163: 	dc.b $2
+	dc.b $F6, $48
+	dc.b $76, $58
+linksdplc_168: 	dc.b $2
+	dc.b $F6, $60
+	dc.b $46, $70
+linksdplc_16D: 	dc.b $1
+	dc.b $F6, $75
+linksdplc_170: 	dc.b $1
+	dc.b $86, $85
+linksdplc_173: 	dc.b $1
+	dc.b $E6, $8E
+linksdplc_176: 	dc.b $1
+	dc.b $F6, $75
+linksdplc_179: 	dc.b $2
+	dc.b $F6, $9D
+	dc.b $26, $AD
+linksdplc_17E: 	dc.b $2
+	dc.b $F6, $B0
+	dc.b $26, $C0
+linksdplc_183: 	dc.b $2
+	dc.b $F6, $C3
+	dc.b $26, $D3
+linksdplc_188: 	dc.b $2
+	dc.b $F6, $D6
+	dc.b $46, $E6
+linksdplc_18D: 	dc.b $2
+	dc.b $F6, $EB
+	dc.b $26, $FB
+linksdplc_192: 	dc.b $2
+	dc.b $F6, $FE
+	dc.b $27, $E
+linksdplc_197: 	dc.b $2
+	dc.b $F7, $11
+	dc.b $27, $21
+linksdplc_19C: 	dc.b $2
+	dc.b $F7, $24
+	dc.b $67, $34
+linksdplc_1A1: 	dc.b $2
+	dc.b $F7, $3B
+	dc.b $77, $4B
+linksdplc_1A6: 	dc.b $1
+	dc.b $F6, $75
+linksdplc_1A9: 	dc.b $1
+	dc.b $E6, $8E
+linksdplc_1AC: 	dc.b $2
+	dc.b $F7, $53
+	dc.b $67, $63
+linksdplc_1B1: 	dc.b $2
+	dc.b $F7, $6A
+	dc.b $67, $7A
+linksdplc_1B6: 	dc.b $2
+	dc.b $F7, $81
+	dc.b $57, $91
+linksdplc_1BB: 	dc.b $1
+	dc.b $D7, $97
+linksdplc_1BE: 	dc.b $1
+	dc.b $D7, $A5
+linksdplc_1C1: 	dc.b $1
+	dc.b $D7, $B3
+linksdplc_1C4: 	dc.b $1
+	dc.b $D7, $C1
+linksdplc_1C7: 	dc.b $1
+	dc.b $D7, $CF
+linksdplc_1CA: 	dc.b $1
+	dc.b $D7, $DD
+linksdplc_1CD: 	dc.b $2
+	dc.b $F7, $EB
+	dc.b $17, $FB
+linksdplc_1D2: 	dc.b $2
+	dc.b $F7, $FD
+	dc.b $28, $D
+linksdplc_1D7: 	dc.b $1
+	dc.b $68, $10
+linksdplc_1DA: 	dc.b $2
+	dc.b $F8, $17
+	dc.b $58, $27
+linksdplc_1DF: 	dc.b $2
+	dc.b $F8, $2D
+	dc.b $38, $3D
+linksdplc_1E4: 	dc.b $1
+	dc.b $D8, $41
+linksdplc_1E7: 	dc.b $2
+	dc.b $F8, $4F
+	dc.b $8, $5F
+linksdplc_1EC: 	dc.b $2
+	dc.b $F8, $60
+	dc.b $8, $70
+linksdplc_1F1: 	dc.b $1
+	dc.b $D8, $71
+linksdplc_1F4: 	dc.b $2
+	dc.b $F8, $7F
+	dc.b $18, $8F
+linksdplc_1F9: 	dc.b $1
+	dc.b $F8, $91
+linksdplc_1FC: 	dc.b $1
+	dc.b $E8, $A1
+linksdplc_1FF: 	dc.b $1
+	dc.b $F8, $B0
+linksdplc_202: 	dc.b $1
+	dc.b $D8, $C0
+linksdplc_205: 	dc.b $1
+	dc.b $E8, $CE
+linksdplc_208: 	dc.b $2
+	dc.b $F8, $DD
+	dc.b $18, $ED
+linksdplc_20D: 	dc.b $2
+	dc.b $F8, $EF
+	dc.b $48, $FF
+linksdplc_212: 	dc.b $2
+	dc.b $F9, $4
+	dc.b $59, $14
+linksdplc_217: 	dc.b $2
+	dc.b $F9, $1A
+	dc.b $69, $2A
+linksdplc_21C: 	dc.b $2
+	dc.b $F7, $FD
+	dc.b $28, $D
+linksdplc_221: 	dc.b $2
+	dc.b $F7, $EB
+	dc.b $17, $FB
+linksdplc_226: 	dc.b $2
+	dc.b $F9, $31
+	dc.b $29, $41
+linksdplc_22B: 	dc.b $2
+	dc.b $F9, $44
+	dc.b $39, $54
+linksdplc_230: 	dc.b $2
+	dc.b $F9, $58
+	dc.b $39, $68
+linksdplc_235: 	dc.b $2
+	dc.b $F9, $6C
+	dc.b $49, $7C
+linksdplc_23A: 	dc.b $2
+	dc.b $F9, $81
+	dc.b $39, $91
+linksdplc_23F: 	dc.b $2
+	dc.b $F9, $95
+	dc.b $29, $A5
+linksdplc_244: 	dc.b $2
+	dc.b $F9, $A8
+	dc.b $39, $B8
+linksdplc_249: 	dc.b $2
+	dc.b $F9, $BC
+	dc.b $49, $CC
+linksdplc_24E: 	dc.b $2
+	dc.b $F9, $D1
+	dc.b $29, $E1
+linksdplc_253: 	dc.b $2
+	dc.b $F9, $E4
+	dc.b $39, $F4
+linksdplc_258: 	dc.b $2
+	dc.b $F9, $F8
+	dc.b $3A, $8
+linksdplc_25D: 	dc.b $2
+	dc.b $FA, $C
+	dc.b $4A, $1C
+linksdplc_262: 	dc.b $2
+	dc.b $FA, $21
+	dc.b $3A, $31
+linksdplc_267: 	dc.b $2
+	dc.b $FA, $35
+	dc.b $2A, $45
+linksdplc_26C: 	dc.b $2
+	dc.b $FA, $48
+	dc.b $3A, $58
+linksdplc_271: 	dc.b $2
+	dc.b $FA, $5C
+	dc.b $4A, $6C
+linksdplc_276: 	dc.b $2
+	dc.b $FA, $71
+	dc.b $3A, $81
+linksdplc_27B: 	dc.b $2
+	dc.b $FA, $85
+	dc.b $3A, $95
+linksdplc_280: 	dc.b $2
+	dc.b $FA, $99
+	dc.b $5A, $A9
+linksdplc_285: 	dc.b $2
+	dc.b $FA, $AF
+	dc.b $6A, $BF
+linksdplc_28A: 	dc.b $1
+	dc.b $FA, $C6
+linksdplc_28D: 	dc.b $2
+	dc.b $FA, $D6
+	dc.b $A, $E6
+linksdplc_292: 	dc.b $1
+	dc.b $BA, $E7
+linksdplc_295: 	dc.b $1
+	dc.b $DA, $F3
+linksdplc_298: 	dc.b $1
+	dc.b $CB, $1
+	even
