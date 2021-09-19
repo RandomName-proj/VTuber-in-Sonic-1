@@ -11606,11 +11606,6 @@ Obj04_Main:				; XREF: Obj04_Index
 		move.w	#$5A0,2(a0)
 		ori.b	#4,1(a0)
 		move.b	($FFFFFE10).w,$1A(a0)
-		tst.b	$1A(a0)
-		bne.s	@notghz
-		move.w	#$85A0,2(a0)
-
-	@notghz:
 		move.b	#$60,$19(a0)
 		move.b	#7,$18(a0)
 		movea.l	#DPLC_Obj04,a2
@@ -11637,7 +11632,7 @@ Obj04_ChkDel:				; XREF: Obj04_Index
 		andi.w	#$FF80,d1
 		sub.w	d1,d0
 		bmi.s	Obj04_ChkDel2
-		cmpi.w	#$180,d0
+		cmpi.w	#$100,d0
 		bls.w	DisplaySprite
 
 Obj04_ChkDel2:
