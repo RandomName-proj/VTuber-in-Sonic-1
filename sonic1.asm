@@ -3053,6 +3053,7 @@ Sega_GotoTitle:
 ; ---------------------------------------------------------------------------
 
 TitleScreen:				; XREF: GameModeArray
+		move.b	#0,(Level_started_flag).w
 		move.b	#face_neutrall,(SonimeSST+sonime_face).w
 		move.b	#$E4,d0
 		bsr.w	PlaySound_Special ; stop music
@@ -3143,7 +3144,6 @@ Title_LoadText:
 		move.w	#0,($FFFFFFEA).w
 		move.w	#0,($FFFFFE10).w ; set level to	GHZ (00)
 		move.w	#0,($FFFFF634).w ; disable pallet cycling
-		move.b	#0,(Level_started_flag).w
 		bsr.w	LevelSizeLoad
 		bsr.w	DeformBgLayer
 		lea	($FFFFB000).w,a1
