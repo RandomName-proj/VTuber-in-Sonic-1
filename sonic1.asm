@@ -4973,7 +4973,12 @@ loc_47D4:
 		mulu.w	#10,d0		; multiply rings by 10
 		move.w	d0,($FFFFF7D4).w ; set rings bonus
 		move.w	#$8E,d0
-		jsr	(PlaySound_Special).l ;	play end-of-level music
+		tst.b	(f_voice).w
+		beq.s	@play
+		move.w	#$95,d0
+
+	@play:
+		jsr	(PlaySound_Special).l ;	play voiceless end-of-level music
 		lea	($FFFFD000).w,a1
 		moveq	#0,d0
 		move.w	#$7FF,d1
@@ -20451,7 +20456,12 @@ loc_ECD0:
 		mulu.w	#10,d0		; multiply by 10
 		move.w	d0,($FFFFF7D4).w ; set ring bonus
 		move.w	#$8E,d0
-		jsr	(PlaySound_Special).l ;	play "Sonic got	through" music
+		tst.b	(f_voice).w
+		beq.s	@play
+		move.w	#$95,d0
+
+	@play:
+		jsr	(PlaySound_Special).l ;	play voiceless end-of-level music
 		move.b	#face_happy,(SonimeSST+sonime_face).w
 		PlayPCM2	SonimeHappy				
 		
@@ -41348,6 +41358,7 @@ MusicIndex:	dc.l Music81, Music82
 		dc.l Music8F, Music90
 		dc.l Music91, Music92
 		dc.l Music93, Music94
+		dc.l Music95
 ; ---------------------------------------------------------------------------
 ; Type of sound	being played ($90 = music; $70 = normal	sound effect)
 ; ---------------------------------------------------------------------------
@@ -44461,6 +44472,8 @@ Music92:	incbin	sound\music92.bin
 Music93:	incbin	sound\music93.bin
 		even
 Music94:	incbin	sound\music94.bin
+		even
+Music95:	incbin	sound\music95.bin
 		even
 ; ---------------------------------------------------------------------------
 ; Sound	effect pointers
