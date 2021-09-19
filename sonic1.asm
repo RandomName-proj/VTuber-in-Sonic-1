@@ -12,6 +12,7 @@
 
 ; ===========================================================================
 
+		include "_s1smps2asm_inc.asm"
 		include	"Equates.asm"
 		include	"Equz80.asm"
 		include	"Macros.asm"
@@ -44449,7 +44450,7 @@ Music87:	incbin	sound\music87.bin
 		even
 Music88:	incbin	sound\music88.bin
 		even
-Music89:	incbin	sound\music89.bin
+Music89:	include	sound\music89.asm
 		even
 Music8A:	incbin	sound\music8A.bin
 		even
