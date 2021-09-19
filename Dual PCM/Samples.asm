@@ -25,6 +25,7 @@ SampleList:
 		dc.l	SonimeBigRing	; 0F		
 		dc.l	SonimeBoing	; 10	
 		dc.l	SonimeNoConfidence ; 11
+		dc.l	SonimeActClear ; 12		
 ; ---------------------------------------------------------------------------
 ; Sample z80 pointers
 ; ---------------------------------------------------------------------------
@@ -55,6 +56,7 @@ SonimeSurprised:		dcz80	SWF_Surprised,		SWF_Surprised_Rev,		SWF_StopSample,		SWF
 SonimeBigRing:		dcz80	SWF_BigRing,		SWF_BigRing_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 SonimeBoing:		dcz80	SWF_Boing,		SWF_Boing_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 SonimeNoConfidence:		dcz80	SWF_NoConfidence,		SWF_NoConfidence_Rev,		SWF_StopSample,		SWF_StopSample_Rev
+SonimeActClear:		dcz80	SWF_ActClear,		SWF_ActClear_Rev,		SWF_StopSample,		SWF_StopSample_Rev
 ; ---------------------------------------------------------------------------
 ; Sample file includes
 ; ---------------------------------------------------------------------------
@@ -109,4 +111,6 @@ SWF_Boing:	incbin	"Dual PCM\Samples\incswf\Boing.swf"
 SWF_Boing_Rev:	EndMarker
 SWF_NoConfidence:	incbin	"Dual PCM\Samples\incswf\noconfidence.swf"
 SWF_NoConfidence_Rev:	EndMarker
+SWF_ActClear:	incbin	"Dual PCM\Samples\incswf\actclear.swf"
+SWF_ActClear_Rev:	EndMarker
 ; ===========================================================================

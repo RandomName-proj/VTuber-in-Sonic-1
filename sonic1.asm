@@ -3374,7 +3374,7 @@ LevelSelect:
 		beq.s	LevSel_Credits	; if yes, branch
 
 LevSel_NoCheat:
-		cmpi.w	#$94,d0		; is sound $80-$94 being played?
+		cmpi.w	#$95,d0		; is sound $80-$95 being played?
 		bcs.s	LevSel_PlaySnd	; if yes, branch
 		cmpi.w	#$A0,d0		; is sound $95-$A0 being played?
 		bcs.s	LevelSelect	; if yes, branch
@@ -3860,6 +3860,7 @@ loc_3946:
 		bmi.s	Level_ChkDebug
 		move.b	#$21,($FFFFD040).w ; load HUD object
         move.b    #1,($FFFFFFD0).w
+		move.b	#face_neutrall,(SonimeSST+sonime_face).w		
 		
 Level_ChkDebug:
 		tst.b	($FFFFFFE2).w	; has debug cheat been entered?
@@ -20419,7 +20420,7 @@ loc_EC86:
 
 GotThroughAct:				; XREF: Obj3E_EndAct
 		tst.b	($FFFFD5C0).w
-		bne.s	locret_ECEE
+		bne.w	locret_ECEE
 		move.w	($FFFFF72A).w,($FFFFF728).w
 		clr.b	($FFFFFE2D).w	; disable invincibility
 		clr.b	($FFFFFE1E).w	; stop time counter
@@ -20452,6 +20453,7 @@ loc_ECD0:
 		move.w	#$8E,d0
 		jsr	(PlaySound_Special).l ;	play "Sonic got	through" music
 		move.b	#face_happy,(SonimeSST+sonime_face).w
+		PlayPCM2	SonimeHappy				
 		
 locret_ECEE:
 		rts	
