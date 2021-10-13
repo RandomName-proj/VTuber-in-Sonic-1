@@ -3167,7 +3167,7 @@ Title_ClrPallet:
 Title_LoadText:
 		move.w	(a5)+,(a6)
 		dbf	d1,Title_LoadText ; load uncompressed text patterns
-
+		move.b	#0,(Rings_manager_routine).w
 		move.b	#0,($FFFFFE30).w ; clear lamppost counter
 		move.w	#0,($FFFFFE08).w ; disable debug item placement	mode
 		move.w	#0,($FFFFFFF0).w ; disable debug mode
@@ -13873,6 +13873,7 @@ Obj2E_ChkShield:
 		move.w	#$40,(SonimeSST+sonime_facetimer).w
 		move.b	#1,($FFFFFE2C).w ; give	Sonic a	shield
 		move.b	#$38,($FFFFD180).w ; load shield object	($38)
+		move.b  #0,($FFFFD180+$24).w ; reset routine counter			
 
 	@alreadyshield:
 		move.w	#$AF,d0
@@ -28204,55 +28205,65 @@ Map_obj0A:
 ; ---------------------------------------------------------------------------
 
 Obj38: ; XREF: Obj_Index
-		move.l #UnC_Shield,d1 ; Call for Regular Shield Art
-		move.w #$A820,d2 ; Load Art from this location (VRAM location*20)
-; In this case, VRAM = $541*20
-		move.w #$200,d3
-		jsr (QueueDMATransfer).l
-; ---------------------------------------------------------------------------
-
-ShieldObj_Main:
-		moveq #0,d0
-		move.b $24(a0),d0
-		move.w Shield_Index(pc,d0.w),d1
-		jmp Shield_Index(pc,d1.w)
+		moveq	#0,d0
+		move.b	$24(a0),d0
+		move.w	Shi_Index(pc,d0.w),d1
+		jmp	Shi_Index(pc,d1.w)
 ; ===========================================================================
-Shield_Index:
-		dc.w Shield_Init-Shield_Index
-		dc.w ShieldChecks-Shield_Index
+Shi_Index:	dc.w Shi_Init-Shi_Index
+		dc.w Shi_Main-Shi_Index
+		dc.w Shi_Remove-Shi_Index
 ; ===========================================================================
 
-Shield_Init:
-		addq.b #2,$24(a0)
-		move.l #Map_Obj38, $0004(A0) ; Load Shield Map into place
-		move.b #4,1(a0)
-		move.b #1,$18(a0)
-		move.b #$18,$19(a0)
-		move.w #$541,2(a0) ; Set VRAM location
-		btst #7,($FFFFD002).w
-		beq.s ShieldChecks
-		bset #7,2(a0)
-; ---------------------------------------------------------------------------
-
-ShieldChecks:
-		tst.b ($FFFFFE2D).w ; Test if Sonic has a shield
-		bne.s SonicHasShield ; If so, branch to do nothing
-		tst.b ($FFFFFE2C).w ; Test if Sonic got invisibility
-		beq.s jmp_DeleteObj38 ; If so, delete object temporarily
-
-ShieldProperties:
-		move.w ($FFFFD008).w,8(a0) ; Load Main Character X-position
-		move.w ($FFFFD00C).w,$C(a0) ; Load Main Character Y-position
-		move.b ($FFFFD022).w,$22(a0) ; Something about Character status
-		lea (Ani_obj38).l, a1 ; Load Animation Scripts into a1
-		jsr AnimateSprite
-		jmp DisplaySprite
-
-SonicHasShield:
+Shi_Init:	; Routine 0
+		tst.b   ($FFFFFE2D).w ; does Sonic have invincibility?
+		bne.s   @wait ; if yes, branch	
+		move.l	#UNC_Shield,d1
+		move.w	#$A820,d2
+		move.w 	#$541,2(a0) ; Set VRAM location
+		move.w    #$200,d3
+		jsr	(QueueDMATransfer).l
+		addq.b	#2,$24(a0)
+		move.l	#Map_obj38,4(a0)
+		move.b	#4,1(a0)
+		move.w	#1,$18(a0)
+		move.b	#$10,$19(a0)
+		move.w	#1,$1C(a0) ; reset animation
+	@wait:
+		rts	
+; ===========================================================================
+Shi_Main:	; Routine 2
+		tst.b	($FFFFFE2D).w	; does Sonic have invincibility?
+		bne.s	@remove	; if yes, branch
+		tst.b	($FFFFFE2C).w	; does Sonic have shield?
+		beq.s	@delete		; if not, branch
+		lea		($FFFFD000).w,a1
+		move.w	8(a1),8(a0)
+		move.w	$C(a1),$C(a0)
+		move.b	$22(a1),$22(a0)
+		lea	(Ani_Obj38).l,a1
+		jsr	(AnimateSprite).l
+		jmp	   (DisplaySprite).l
+@remove:
+		addq.b  #2,$24(a0)
+		rts	
+@delete:
+		move.b	#0,$24(a0)	; reset routine counter
+		move.b	#$8,(a0)		;Revert shield sprite to Insta-Shield
+		move.b	#$0,$24(a0)	;Reset the routine counter to trigger Insta-Shield Init		
 		rts
-
-jmp_DeleteObj38: ; loc_12648:
-		jmp DeleteObject 
+; ===========================================================================
+Shi_Remove:
+		tst.b   ($FFFFFE2C).w
+		bne.s   @end
+		move.l	#UNC_Shield,d1
+		move.w	#$A820,d2
+		move.w #$541,2(a0) ; Set VRAM location
+		move.w    #$200,d3	
+		jsr	(QueueDMATransfer).l
+		subq.b  #2,$24(a0)
+@end:
+		rts
 
 ; ---------------------------------------------------------------------------
 ; Object 4A - New Invincibility Object (ported from Sonic 2)
